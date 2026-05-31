@@ -4,6 +4,8 @@ import { cn } from '../lib/utils';
 
 export const TeamLogo = ({ team, fallbackClasses = "" }: { team: Team, fallbackClasses?: string }) => {
   const [imgFailed, setImgFailed] = useState(false);
+  const [useProxy, setUseProxy] = useState(false);
+
   if (!team.logo || imgFailed) {
     return (
       <div 
@@ -14,5 +16,23 @@ export const TeamLogo = ({ team, fallbackClasses = "" }: { team: Team, fallbackC
       </div>
     );
   }
-  return <img src={team.logo} alt={team.name} referrerPolicy="no-referrer" className="max-w-full max-h-full object-contain filter p-[2px]" onError={() => setImgFailed(true)} />;
+
+  const imgSrc = useProxy ? `https://wsrv.nl/?url=${encodeURIComponent(team.logo)}` : team.logo;
+
+  return (
+    <img 
+      src={imgSrc} 
+      alt={team.name} 
+      referrerPolicy="no-referrer" 
+      className="max-w-full max-h-full object-contain filter p-[2px]" 
+      onError={() => {
+        if (!useProxy && team.logo.includes('hltv.org')) {
+          setUseProxy(true);
+        } else {
+          setImgFailed(true);
+        }
+      }} 
+    />
+  );
 };
+

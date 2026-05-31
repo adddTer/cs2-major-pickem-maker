@@ -466,11 +466,11 @@ export default function App() {
   const getStatusStyles = (statusData: ReturnType<typeof getSetStatus>) => {
       if (!statusData) return { bg: 'bg-zinc-900/80', border: 'border-white/5' };
       switch (statusData.statusId) {
-          case 'passed': return { bg: 'bg-emerald-900/10 bg-gradient-to-br from-emerald-900/20 to-transparent', border: 'border-emerald-500/20' };
-          case 'failed': return { bg: 'bg-rose-900/10 bg-gradient-to-br from-rose-900/20 to-transparent', border: 'border-rose-500/20' };
-          case 'great_chance': return { bg: 'bg-blue-900/10 bg-gradient-to-br from-blue-900/20 to-transparent', border: 'border-blue-500/20' };
-          case 'uncertain': return { bg: 'bg-amber-900/10 bg-gradient-to-br from-amber-900/20 to-transparent', border: 'border-amber-500/20' };
-          case 'slim_chance': return { bg: 'bg-orange-900/10 bg-gradient-to-br from-orange-900/20 to-transparent', border: 'border-orange-500/20' };
+          case 'passed': return { bg: 'bg-zinc-900/60 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/40 via-zinc-900/60 to-zinc-900/80', border: 'border-emerald-500/20' };
+          case 'failed': return { bg: 'bg-zinc-900/60 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-rose-900/40 via-zinc-900/60 to-zinc-900/80', border: 'border-rose-500/20' };
+          case 'great_chance': return { bg: 'bg-zinc-900/60 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900/40 via-zinc-900/60 to-zinc-900/80', border: 'border-blue-500/20' };
+          case 'uncertain': return { bg: 'bg-zinc-900/60 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-900/40 via-zinc-900/60 to-zinc-900/80', border: 'border-amber-500/20' };
+          case 'slim_chance': return { bg: 'bg-zinc-900/60 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-orange-900/40 via-zinc-900/60 to-zinc-900/80', border: 'border-orange-500/20' };
           default: return { bg: 'bg-zinc-900/80', border: 'border-white/5' };
       }
   };
@@ -482,31 +482,31 @@ export default function App() {
       switch (statusId) {
           case 'passed':
               return (
-                  <div className="text-emerald-400 text-[11px] font-bold shrink-0">
+                  <div className="text-emerald-400 text-[11px] font-bold shrink-0 opacity-90">
                       已达成
                   </div>
               );
           case 'failed':
               return (
-                  <div className="text-rose-500 text-[11px] font-bold shrink-0">
+                  <div className="text-rose-500 text-[11px] font-bold shrink-0 opacity-90">
                       未达成
                   </div>
               );
           case 'great_chance':
               return (
-                  <div className="text-blue-400 text-[11px] font-bold shrink-0" title={`需要${5 - guaranteed}题，剩余${possible}题`}>
+                  <div className="text-blue-400 text-[11px] font-bold shrink-0 opacity-90" title={`需要${5 - guaranteed}题，剩余${possible}题`}>
                       形势大好 {guaranteed}/5通过
                   </div>
               );
           case 'uncertain':
               return (
-                  <div className="text-amber-500 text-[11px] font-bold shrink-0" title={`需要${5 - guaranteed}题，剩余${possible}题`}>
+                  <div className="text-amber-500 text-[11px] font-bold shrink-0 opacity-90" title={`需要${5 - guaranteed}题，剩余${possible}题`}>
                       胜负难测 {guaranteed}/5通过
                   </div>
               );
           case 'slim_chance':
               return (
-                  <div className="text-orange-500 text-[11px] font-bold shrink-0" title={`需要${5 - guaranteed}题，剩余${possible}题`}>
+                  <div className="text-orange-500 text-[11px] font-bold shrink-0 opacity-90" title={`需要${5 - guaranteed}题，剩余${possible}题`}>
                       希望渺茫 {guaranteed}/5通过
                   </div>
               );
