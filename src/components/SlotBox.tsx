@@ -18,6 +18,13 @@ export const SlotBox: React.FC<{
   const isXs = size === 'xs';
   return (
      <div 
+        draggable={!readOnly && !!team}
+        onDragStart={(e) => {
+            if (readOnly || !team) return e.preventDefault();
+            e.dataTransfer.setData('teamId', team.id);
+            e.dataTransfer.setData('sourceSlotId', slot.id);
+            e.dataTransfer.effectAllowed = 'copyMove';
+        }}
         onDrop={readOnly ? undefined : (e) => onDrop && onDrop(e, slot.id)} 
         onDragOver={readOnly ? undefined : e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
         onClick={readOnly ? undefined : () => onClick && onClick(slot.id, slot.teamId)}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TEAMS, INITIAL_SLOTS, PLAYOFFS_SLOTS } from './data/teams';
-import { ACTUAL_RESULTS } from './data/matches';
+import { ACTUAL_RESULTS, MATCHES } from './data/matches';
 import { PickSlot, SlotType, PickSet } from './types';
 import { cn } from './lib/utils';
 import { Trophy, RefreshCw, Clock, Users, Edit3, CheckCircle2, Home, CheckSquare, Square, Download, Copy } from 'lucide-react';
@@ -196,7 +196,7 @@ export default function App() {
     if (!currentPoolTeams.find(t => t.id === teamId)) return;
 
     setPicks(prev => {
-        const nextStage = [...prev[activeStage]];
+        const nextStage = [...(prev[activeStage] || defaultPicks[activeStage] || [])];
         const targetIdx = nextStage.findIndex(s => s.id === slotId);
         
         if (activeStage === 'playoffs') {
@@ -205,30 +205,32 @@ export default function App() {
              const oldTeamId = nextStage[targetIdx].teamId;
              nextStage[targetIdx] = { ...nextStage[targetIdx], teamId };
 
-             if (oldTeamId && oldTeamId !== teamId) {
-                  // Forward cascade clear
-                  // If QF changes, if the old team was in SF, clear the SF. Then cascade.
-                  const cascadeClear = (slotName: string, removedTeam: string) => {
-                       const relatedAdv = {
-                           'qf-1': 'sf-1', 'qf-2': 'sf-1',
-                           'qf-3': 'sf-2', 'qf-4': 'sf-2',
-                           'qf-5': 'sf-3', 'qf-6': 'sf-3',
-                           'qf-7': 'sf-4', 'qf-8': 'sf-4',
-                           'sf-1': 'final-1', 'sf-2': 'final-1',
-                           'sf-3': 'final-2', 'sf-4': 'final-2',
-                           'final-1': 'champion', 'final-2': 'champion'
-                       };
-                       const nextId = relatedAdv[slotName as keyof typeof relatedAdv];
-                       if (nextId) {
-                            const nextSlotIdx = nextStage.findIndex(s => s.id === nextId);
-                            if (nextSlotIdx !== -1 && nextStage[nextSlotIdx].teamId === removedTeam) {
-                                 nextStage[nextSlotIdx] = { ...nextStage[nextSlotIdx], teamId: null };
-                                 cascadeClear(nextId, removedTeam);
-                            }
-                       }
-                  };
-                  cascadeClear(slotId, oldTeamId);
-             }
+              if (oldTeamId && oldTeamId !== teamId) {
+                   // Forward cascade clear
+                   // If QF changes, if the old team was in SF, clear the SF. Then cascade.
+                   const cascadeClear = (slotName: string, removedTeam: string) => {
+                        const localSlotName = slotName.replace('playoffs-', '');
+                        const relatedAdv = {
+                            'qf-1': 'sf-1', 'qf-2': 'sf-1',
+                            'qf-3': 'sf-2', 'qf-4': 'sf-2',
+                            'qf-5': 'sf-3', 'qf-6': 'sf-3',
+                            'qf-7': 'sf-4', 'qf-8': 'sf-4',
+                            'sf-1': 'final-1', 'sf-2': 'final-1',
+                            'sf-3': 'final-2', 'sf-4': 'final-2',
+                            'final-1': 'champion', 'final-2': 'champion'
+                        };
+                        const nextIdLocal = relatedAdv[localSlotName as keyof typeof relatedAdv];
+                        if (nextIdLocal) {
+                             const nextId = `playoffs-${nextIdLocal}`;
+                             const nextSlotIdx = nextStage.findIndex(s => s.id === nextId);
+                             if (nextSlotIdx !== -1 && nextStage[nextSlotIdx].teamId === removedTeam) {
+                                  nextStage[nextSlotIdx] = { ...nextStage[nextSlotIdx], teamId: null };
+                                  cascadeClear(nextId, removedTeam);
+                             }
+                        }
+                   };
+                   cascadeClear(slotId, oldTeamId);
+              }
 
              return { ...prev, [activeStage]: nextStage };
         }
@@ -264,7 +266,10 @@ export default function App() {
   const handleEditExisting = (pickSet: PickSet) => {
     setCurrentPickSetId(pickSet.id);
     setNewNickname(pickSet.name);
-    setPicks(pickSet.picks);
+    setPicks({
+        ...defaultPicks,
+        ...pickSet.picks
+    });
     setViewMode('edit');
   };
 
@@ -293,7 +298,7 @@ export default function App() {
 
   const handleClear = (slotId: string) => {
       setPicks(prev => {
-          const nextStage = [...prev[activeStage]];
+          const nextStage = [...(prev[activeStage] || defaultPicks[activeStage] || [])];
           const idx = nextStage.findIndex(s => s.id === slotId);
           if (idx === -1) return prev;
           
@@ -302,6 +307,7 @@ export default function App() {
 
           if (activeStage === 'playoffs' && oldTeamId) {
                 const cascadeClear = (slotName: string, removedTeam: string) => {
+                     const localSlotName = slotName.replace('playoffs-', '');
                      const relatedAdv: Record<string, string> = {
                          'qf-1': 'sf-1', 'qf-2': 'sf-1',
                          'qf-3': 'sf-2', 'qf-4': 'sf-2',
@@ -311,8 +317,9 @@ export default function App() {
                          'sf-3': 'final-2', 'sf-4': 'final-2',
                          'final-1': 'champion', 'final-2': 'champion'
                      };
-                     const nextId = relatedAdv[slotName];
-                     if (nextId) {
+                     const nextIdLocal = relatedAdv[localSlotName as keyof typeof relatedAdv];
+                     if (nextIdLocal) {
+                          const nextId = `playoffs-${nextIdLocal}`;
                           const nextSlotIdx = nextStage.findIndex(s => s.id === nextId);
                           if (nextSlotIdx !== -1 && nextStage[nextSlotIdx].teamId === removedTeam) {
                                nextStage[nextSlotIdx] = { ...nextStage[nextSlotIdx], teamId: null };
@@ -327,10 +334,185 @@ export default function App() {
       });
   };
 
-  const checkPrediction = (teamId: string | null, type: SlotType, actuals?: PickSlot[]): 'correct' | 'incorrect' | 'unknown' => {
-      if (!teamId || !actuals || actuals.length === 0) return 'unknown';
-      const isCorrect = actuals.some(a => a.teamId === teamId && a.type === type);
-      return isCorrect ? 'correct' : 'incorrect';
+  const getTeamRecords = (stage: string) => {
+      const records: Record<string, { w: number; l: number }> = {};
+      const matchesMap = MATCHES[stage] || {};
+      
+      Object.entries(matchesMap).forEach(([bracket, matches]) => {
+          const [wStr, lStr] = bracket.split(':');
+          const w = parseInt(wStr, 10);
+          const l = parseInt(lStr, 10);
+          if (isNaN(w) || isNaN(l)) return;
+          
+          matches.forEach(m => {
+              if (m.team1Id) {
+                  const cur = records[m.team1Id] || { w: 0, l: 0 };
+                  if (w + l >= cur.w + cur.l) records[m.team1Id] = { w, l };
+              }
+              if (m.team2Id) {
+                  const cur = records[m.team2Id] || { w: 0, l: 0 };
+                  if (w + l >= cur.w + cur.l) records[m.team2Id] = { w, l };
+              }
+          });
+      });
+      
+      const actuals = ACTUAL_RESULTS[stage] || [];
+      actuals.forEach(a => {
+          if (a.teamId) {
+              if (a.type === '3-0') records[a.teamId] = { w: 3, l: 0 };
+              else if (a.type === '0-3') records[a.teamId] = { w: 0, l: 3 };
+              else if (a.type === 'advance') {
+                  const cur = records[a.teamId] || { w: 0, l: 0 };
+                  records[a.teamId] = { w: 3, l: cur.l > 0 ? cur.l : 1 };
+              }
+          }
+      });
+      return records;
+  };
+
+  const checkPrediction = (teamId: string | null, type: SlotType, stage: string): 'correct' | 'incorrect' | 'unknown' => {
+      if (!teamId) return 'unknown';
+      
+      const actuals = ACTUAL_RESULTS[stage] || [];
+      
+      if (stage === 'playoffs') {
+          if (!actuals || actuals.length === 0) return 'unknown';
+          const isInActuals = actuals.some(a => a.teamId === teamId && a.type === type);
+          // In playoffs, if the match for this slot has a result, it should be in actuals.
+          // Since we don't have detailed bracket progress tracking yet, we will just use the old logic for playoffs,
+          // but we shouldn't mark it incorrect unless we know the match happened. Actually for playoffs it's harder.
+          // Let's just say if actuals has the EXACT slot (we can match by ID, but `type` is qf/sf/etc). 
+          // Since playoffs doesn't have 5-pick threshold, maybe just leave it 'unknown' unless correct, or if that type has all winners?
+          // For now:
+          const typeCount = actuals.filter(a => a.type === type).length;
+          const maxForType = type === 'qf' ? 8 : type === 'sf' ? 4 : type === 'final' ? 2 : 1;
+          if (isInActuals) return 'correct';
+          if (typeCount >= maxForType) return 'incorrect'; // All slots for this type are filled
+          return 'unknown';
+      }
+
+      const isInActuals = actuals.some(a => a.teamId === teamId);
+      if (isInActuals) {
+          const isCorrect = actuals.some(a => a.teamId === teamId && a.type === type);
+          if (isCorrect) return 'correct';
+          
+          // If they are in actuals but with a DIFFERENT type, e.g. picked 3-0 but got advance
+          // Wait, 'advance' pick is correct if the team is '3-0' or 'advance'.
+          if (type === 'advance') {
+              const actualType = actuals.find(a => a.teamId === teamId)?.type;
+              if (actualType === '3-0' || actualType === 'advance') return 'correct';
+          }
+          return 'incorrect';
+      }
+      
+      const records = getTeamRecords(stage);
+      const record = records[teamId];
+      if (!record) return 'unknown'; 
+      
+      if (type === '3-0') {
+          if (record.l > 0) return 'incorrect'; 
+      } else if (type === '0-3') {
+          if (record.w > 0) return 'incorrect'; 
+      } else if (type === 'advance') {
+          if (record.l === 3) return 'incorrect'; 
+      }
+      
+      // Check if all spots for a type are filled
+      if (type === '3-0' && actuals.filter(a => a.type === '3-0').length >= 2) return 'incorrect';
+      if (type === '0-3' && actuals.filter(a => a.type === '0-3').length >= 2) return 'incorrect';
+      if (type === 'advance' && actuals.filter(a => a.type === 'advance' || a.type === '3-0').length >= 8) return 'incorrect';
+      
+      return 'unknown';
+  };
+
+  const getSetStatus = (theirPicks: PickSlot[], stage: string) => {
+      if (stage === 'playoffs') return null;
+      
+      const records = getTeamRecords(stage);
+      
+      // Check if Round 1 is completely finished (all 16 teams must have played at least 1 match)
+      const teamsWithRecords = Object.values(records).filter(r => (r.w + r.l) > 0);
+      if (teamsWithRecords.length < 16) {
+          return null; 
+      }
+      
+      // Check if all 10 picks are filled for Swiss stage
+      const filledPicks = theirPicks.filter(p => p.teamId);
+      if (filledPicks.length < 10) {
+          return null;
+      }
+      
+      let guaranteed = 0;
+      let possible = 0;
+      theirPicks.forEach(p => {
+          const status = checkPrediction(p.teamId, p.type, stage);
+          if (status === 'correct') guaranteed++;
+          else if (status === 'unknown') possible++;
+      });
+      
+      let statusId = 'unknown';
+      if (guaranteed >= 5) statusId = 'passed';
+      else if (guaranteed + possible < 5) statusId = 'failed';
+      else {
+          const needed = 5 - Math.max(guaranteed, 0);
+          const ratio = needed / (possible || 1);
+          if (ratio <= 0.4) statusId = 'great_chance';
+          else if (ratio > 0.7) statusId = 'slim_chance';
+          else statusId = 'uncertain';
+      }
+      return { statusId, guaranteed, possible };
+  };
+
+  const getStatusStyles = (statusData: ReturnType<typeof getSetStatus>) => {
+      if (!statusData) return { bg: 'bg-zinc-900/80', border: 'border-white/5' };
+      switch (statusData.statusId) {
+          case 'passed': return { bg: 'bg-emerald-900/10 bg-gradient-to-br from-emerald-900/20 to-transparent', border: 'border-emerald-500/20' };
+          case 'failed': return { bg: 'bg-rose-900/10 bg-gradient-to-br from-rose-900/20 to-transparent', border: 'border-rose-500/20' };
+          case 'great_chance': return { bg: 'bg-blue-900/10 bg-gradient-to-br from-blue-900/20 to-transparent', border: 'border-blue-500/20' };
+          case 'uncertain': return { bg: 'bg-amber-900/10 bg-gradient-to-br from-amber-900/20 to-transparent', border: 'border-amber-500/20' };
+          case 'slim_chance': return { bg: 'bg-orange-900/10 bg-gradient-to-br from-orange-900/20 to-transparent', border: 'border-orange-500/20' };
+          default: return { bg: 'bg-zinc-900/80', border: 'border-white/5' };
+      }
+  };
+
+  const PickSetStatusText = ({ statusData }: { statusData: ReturnType<typeof getSetStatus> }) => {
+      if (!statusData) return null;
+      const { statusId, guaranteed, possible } = statusData;
+      
+      switch (statusId) {
+          case 'passed':
+              return (
+                  <div className="text-emerald-400 text-[11px] font-bold shrink-0">
+                      已达成
+                  </div>
+              );
+          case 'failed':
+              return (
+                  <div className="text-rose-500 text-[11px] font-bold shrink-0">
+                      未达成
+                  </div>
+              );
+          case 'great_chance':
+              return (
+                  <div className="text-blue-400 text-[11px] font-bold shrink-0" title={`需要${5 - guaranteed}题，剩余${possible}题`}>
+                      形势大好 {guaranteed}/5通过
+                  </div>
+              );
+          case 'uncertain':
+              return (
+                  <div className="text-amber-500 text-[11px] font-bold shrink-0" title={`需要${5 - guaranteed}题，剩余${possible}题`}>
+                      胜负难测 {guaranteed}/5通过
+                  </div>
+              );
+          case 'slim_chance':
+              return (
+                  <div className="text-orange-500 text-[11px] font-bold shrink-0" title={`需要${5 - guaranteed}题，剩余${possible}题`}>
+                      希望渺茫 {guaranteed}/5通过
+                  </div>
+              );
+          default:
+              return null;
+      }
   };
 
   return (
@@ -346,7 +528,7 @@ export default function App() {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
       `}</style>
       
-      <div className="h-screen w-full bg-[#070b09] text-zinc-200 font-sans flex flex-col relative overflow-hidden select-none">
+      <div className="h-[100dvh] w-full bg-[#070b09] text-zinc-200 font-sans flex flex-col relative overflow-hidden select-none">
         {/* Ambient Glow Lights */}
         <div className="absolute top-[20%] left-[20%] w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[130px] pointer-events-none z-0" />
         <div className="absolute bottom-[20%] right-[10%] w-[600px] h-[500px] bg-blue-500/5 rounded-full blur-[140px] pointer-events-none z-0" />
@@ -388,7 +570,7 @@ export default function App() {
         </div>
 
         {/* Outer App Container */}
-        <div className="w-full flex-1 max-w-full relative z-10 flex flex-col lg:flex-row gap-6 p-4 lg:p-6 overflow-hidden">
+        <div className="w-full flex-1 max-w-full relative z-10 flex flex-col lg:flex-row gap-4 lg:gap-6 p-3 lg:p-6 overflow-y-auto lg:overflow-hidden">
           {viewMode === 'home' && (
             <HomeView 
               newNickname={newNickname} 
@@ -403,15 +585,30 @@ export default function App() {
           {viewMode === 'edit' && (
             <>
               {/* Left Sidebar */}
-              <div className="w-full lg:w-[300px] flex flex-col bg-zinc-900/60 border border-white/5 rounded-lg shrink-0 shadow-xl relative backdrop-blur-md overflow-hidden">
-                <div className="p-6 bg-zinc-900/40 shrink-0 border-b border-white/5">
-                    <h2 className="text-[15px] font-bold tracking-wide mb-2 text-zinc-100 flex items-center gap-2">
-                       当前活跃的竞猜
-                    </h2>
-                    <p className="text-[11px] text-zinc-400 font-medium leading-relaxed">当前正在编辑属于 <span className="text-blue-400 font-bold">{newNickname}</span> 的预测方案。</p>
+              <div className="w-full lg:w-[300px] flex flex-col bg-zinc-900/60 border border-white/5 rounded-lg shrink-0 shadow-xl relative backdrop-blur-md lg:overflow-hidden">
+                <div className="p-4 lg:p-6 bg-zinc-900/40 shrink-0 lg:border-b border-white/5 flex flex-col sm:flex-row lg:flex-col justify-between sm:items-center lg:items-start gap-4">
+                    <div>
+                        <h2 className="text-[14px] lg:text-[15px] font-bold tracking-wide mb-1 lg:mb-2 text-zinc-100 flex items-center gap-2">
+                           当前活跃的竞猜
+                        </h2>
+                        <p className="text-[10px] lg:text-[11px] text-zinc-400 font-medium leading-relaxed">正在编辑 <span className="text-blue-400 font-bold">{newNickname}</span></p>
+                    </div>
+                    
+                    <div className="flex lg:hidden items-center gap-2 w-full sm:w-auto">
+                        <input 
+                            type="text" 
+                            value={newNickname}
+                            onChange={e => setNewNickname(e.target.value)}
+                            className="bg-black/40 border border-white/5 rounded px-3 py-2 text-xs text-zinc-100 outline-none focus:border-blue-500/50 flex-1 min-w-0 shadow-inner"
+                            placeholder="预测 ID"
+                        />
+                        <button onClick={handleSavePick} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors rounded flex items-center gap-1.5 shrink-0 shadow-lg shadow-blue-900/20">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> 保存
+                        </button>
+                    </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 flex flex-col gap-4 sm:gap-6 z-10">
+                <div className="hidden lg:flex flex-1 overflow-y-auto px-6 py-6 flex-col gap-6 z-10">
                     <div className="flex flex-col gap-2">
                       <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">预测 ID</label>
                       <input 
@@ -429,10 +626,10 @@ export default function App() {
               </div>
 
               {/* Right Main Pick'Em Board */}
-              <div className="flex-1 flex flex-col bg-zinc-900/60 border border-white/5 rounded-lg shadow-xl relative backdrop-blur-md overflow-hidden">
+              <div className="flex-1 flex flex-col bg-zinc-900/60 border border-white/5 rounded-lg shadow-xl relative backdrop-blur-md overflow-hidden min-h-[600px] lg:min-h-0">
                 {/* Tabs Header */}
-                <div className="h-12 border-b border-white/5 flex items-center px-4 justify-between bg-black/20 shrink-0">
-                    <div className="flex bg-zinc-950 p-1 rounded gap-0.5 border border-white/5">
+                <div className="h-12 border-b border-white/5 flex items-center px-4 justify-between bg-black/20 shrink-0 gap-4 overflow-x-auto custom-scrollbar">
+                    <div className="flex bg-zinc-950 p-1 rounded gap-0.5 border border-white/5 shrink-0">
                       {[
                           { id: 'stage1', label: '第一阶段' },
                           { id: 'stage2', label: '第二阶段' },
@@ -445,7 +642,7 @@ export default function App() {
                               key={tab.id}
                               onClick={() => setActiveStage(tab.id as StageKey)}
                               className={cn(
-                                "px-3 py-1.5 rounded-[2px] text-[11px] font-bold cursor-pointer transition-colors flex items-center",
+                                "px-3 py-1.5 rounded-[2px] text-[11px] font-bold cursor-pointer transition-colors flex items-center whitespace-nowrap",
                                 isActive ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
                               )}
                             >
@@ -464,7 +661,7 @@ export default function App() {
                           onClick={() => {
                               setPicks(prev => ({
                                 ...prev,
-                                [activeStage]: prev[activeStage].map(s => ({ ...s, teamId: undefined }))
+                                [activeStage]: (prev[activeStage] || defaultPicks[activeStage] || []).map(s => ({ ...s, teamId: undefined }))
                               }));
                           }}
                           className="p-1.5 border border-white/10 hover:bg-white/20 rounded-[3px] transition-colors opacity-80 text-zinc-400 group flex items-center justify-center w-7 h-7"
@@ -475,53 +672,55 @@ export default function App() {
                     </div>
                 </div>
                 {/* Content Area */}
-                <div className="flex-1 flex flex-col xl:flex-row overflow-hidden relative">
+                <div className="flex-1 flex flex-col xl:flex-row min-h-0 overflow-hidden relative">
                   {/* Team Drag Source Pool */}
-                  <div className="w-full xl:w-[320px] max-h-[35vh] xl:max-h-none p-4 lg:p-6 flex flex-col border-b xl:border-r border-white/5 bg-zinc-900/30 shrink-0 z-10 shadow-[5px_0_15px_rgba(0,0,0,0.2)]">
-                      <div className="text-[12px] font-bold text-zinc-400 mb-2 xl:mb-6 flex items-center gap-2">
-                          <Clock className="w-4 h-4 opacity-60"/> {getStageStatus(activeStage)}
-                      </div>
-                      
-                      <div className="flex items-center gap-2 mb-4">
-                          <div className="w-[24px] h-[24px] bg-black/40 flex items-center justify-center rounded-full opacity-60">
-                            <div className="w-[14px] h-[14px] border-2 border-dashed border-zinc-500 rounded-full"></div>
-                          </div>
-                          <p className="text-[11px] text-zinc-500 font-medium">点击队伍选择，然后点击下方槽位填入；或直接拖动。</p>
-                      </div>
+                  {activeStage !== 'playoffs' && (
+                    <div className="w-full xl:w-[320px] max-h-[35vh] xl:max-h-none p-4 lg:p-6 flex flex-col min-h-0 overflow-hidden border-b xl:border-r border-white/5 bg-zinc-900/30 shrink-0 z-10 shadow-[5px_0_15px_rgba(0,0,0,0.2)]">
+                        <div className="text-[12px] font-bold text-zinc-400 mb-2 xl:mb-6 flex items-center gap-2">
+                            <Clock className="w-4 h-4 opacity-60"/> {getStageStatus(activeStage)}
+                        </div>
+                        
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="w-[24px] h-[24px] bg-black/40 flex items-center justify-center rounded-full opacity-60">
+                              <div className="w-[14px] h-[14px] border-2 border-dashed border-zinc-500 rounded-full"></div>
+                            </div>
+                            <p className="text-[11px] text-zinc-500 font-medium">点击队伍选择，然后点击下方槽位填入；或直接拖动。</p>
+                        </div>
 
-                      {activeStage !== 'stage1' && activeStage !== 'playoffs' && currentPoolTeams.length < 16 && (
-                          <div className="text-[11px] text-orange-400/90 mb-4 bg-orange-500/10 p-3 rounded border border-orange-500/20 shadow-inner">
-                            请先在上一阶段选择8支晋级队伍。
-                          </div>
-                      )}
+                        {activeStage !== 'stage1' && activeStage !== 'playoffs' && currentPoolTeams.length < 16 && (
+                            <div className="text-[11px] text-orange-400/90 mb-4 bg-orange-500/10 p-3 rounded border border-orange-500/20 shadow-inner">
+                              请先在上一阶段选择8支晋级队伍。
+                            </div>
+                        )}
 
-                      <div className="grid grid-cols-4 sm:grid-cols-6 xl:grid-cols-3 gap-3 flex-1 content-start overflow-y-auto pr-2 xl:pb-10 min-h-[120px]">
-                          {currentPoolTeams.map(team => {
-                              const isPlaced = currentSlots.some(s => s.teamId === team.id);
-                              const isSelected = selectedTeamId === team.id;
-                              return (
-                                <div 
-                                    key={team.id}
-                                    draggable={!isPlaced}
-                                    onDragStart={(e) => { e.dataTransfer.setData('teamId', team.id); e.dataTransfer.effectAllowed = 'move'; }}
-                                    onClick={() => {
-                                        if (isPlaced) return;
-                                        setSelectedTeamId(isSelected ? null : team.id);
-                                    }}
-                                    className={cn(
-                                      "w-14 h-14 sm:w-[76px] sm:h-[76px] mx-auto flex items-center justify-center rounded-[6px] transition-all bg-black/20 hover:bg-white/10",
-                                      isPlaced ? "opacity-15 grayscale pointer-events-none" : "cursor-pointer active:cursor-grabbing border",
-                                      isSelected ? "border-blue-500 bg-blue-500/10 shadow-[0_0_10px_rgba(59,130,246,0.5)]" : "border-transparent hover:border-white/20 hover:shadow-md"
-                                    )}
-                                >
-                                    <div className="w-10 h-10 sm:w-[54px] sm:h-[54px] flex items-center justify-center pointer-events-none">
-                                      <TeamLogo team={team} fallbackClasses="rounded-[4px] text-xs sm:text-[15px]" />
-                                    </div>
-                                </div>
-                              );
-                          })}
-                      </div>
-                  </div>
+                        <div className="grid grid-cols-4 sm:grid-cols-6 xl:grid-cols-3 gap-3 flex-1 content-start overflow-y-auto pr-2 pb-2 xl:pb-10 min-h-[50px] custom-scrollbar">
+                            {currentPoolTeams.map(team => {
+                                const isPlaced = currentSlots.some(s => s.teamId === team.id);
+                                const isSelected = selectedTeamId === team.id;
+                                return (
+                                  <div 
+                                      key={team.id}
+                                      draggable={!isPlaced}
+                                      onDragStart={(e) => { e.dataTransfer.setData('teamId', team.id); e.dataTransfer.effectAllowed = 'copyMove'; }}
+                                      onClick={() => {
+                                          if (isPlaced) return;
+                                          setSelectedTeamId(isSelected ? null : team.id);
+                                      }}
+                                      className={cn(
+                                        "w-12 h-12 sm:w-[76px] sm:h-[76px] mx-auto flex items-center justify-center rounded-[6px] transition-all bg-black/20 hover:bg-white/10",
+                                        isPlaced ? "opacity-15 grayscale pointer-events-none" : "cursor-pointer active:cursor-grabbing border",
+                                        isSelected ? "border-blue-500 bg-blue-500/10 shadow-[0_0_10px_rgba(59,130,246,0.5)]" : "border-transparent hover:border-white/20 hover:shadow-md"
+                                      )}
+                                  >
+                                      <div className="w-8 h-8 sm:w-[54px] sm:h-[54px] flex items-center justify-center pointer-events-none">
+                                        <TeamLogo team={team} fallbackClasses="rounded-[4px] text-[10px] sm:text-[15px]" />
+                                      </div>
+                                  </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                  )}
                   
                   {/* Main PickEm Area Layout */}
                   <div className="flex-1 flex flex-col min-w-0 bg-zinc-950/20 overflow-hidden xl:mx-4 xl:my-4 rounded-xl xl:border border-white/5 relative shadow-inner">
@@ -536,21 +735,21 @@ export default function App() {
                                       setSelectedTeamId(null);
                                     } else if (teamId) {
                                       // Smart advance logic for Playoffs
-                                      const isQF = slotId.startsWith('qf-');
-                                      const isSF = slotId.startsWith('sf-');
-                                      const isFinal = slotId.startsWith('final-');
+                                      const isQF = slotId.includes('qf-');
+                                      const isSF = slotId.includes('sf-');
+                                      const isFinal = slotId.includes('final-');
 
                                       if (isQF) {
-                                          const qfNum = parseInt(slotId.split('-')[1]);
-                                          const targetSf = `sf-${Math.ceil(qfNum / 2)}`;
+                                          const qfNum = parseInt(slotId.split('-')[2]);
+                                          const targetSf = `playoffs-sf-${Math.ceil(qfNum / 2)}`;
                                           handleAssignSlot(teamId, targetSf);
                                       } else if (isSF) {
-                                          const sfNum = parseInt(slotId.split('-')[1]);
-                                          const targetFinal = `final-${Math.ceil(sfNum / 2)}`;
+                                          const sfNum = parseInt(slotId.split('-')[2]);
+                                          const targetFinal = `playoffs-final-${Math.ceil(sfNum / 2)}`;
                                           handleAssignSlot(teamId, targetFinal);
                                       } else if (isFinal) {
-                                          handleAssignSlot(teamId, 'champion');
-                                      } else if (slotId === 'champion') {
+                                          handleAssignSlot(teamId, 'playoffs-champion');
+                                      } else if (slotId.includes('champion')) {
                                           handleClear(slotId);
                                       } else {
                                           handleClear(slotId);
@@ -567,7 +766,7 @@ export default function App() {
                               </div>
                               
                               {/* Bottom: Playable Slots */}
-                              <div className="w-full bg-zinc-950/80 backdrop-blur-md shrink-0 shadow-[0_-15px_30px_rgba(0,0,0,0.5)] border-t border-white/5 z-20 overflow-y-auto p-4 xl:p-6 pb-6 relative">
+                              <div className="w-full bg-zinc-950/80 backdrop-blur-md shrink-0 shadow-[0_-15px_30px_rgba(0,0,0,0.5)] border-t border-white/5 z-20 overflow-y-auto p-4 xl:p-6 pb-6 relative flex-1 xl:flex-none">
                                   <PickEmDock 
                                     slots={currentSlots} 
                                     showResults={showResults} 
@@ -606,7 +805,7 @@ export default function App() {
                           >
                               导出为图片
                           </button>
-                          <div className="flex bg-black/40 p-1 rounded-md border border-white/5">
+                          <div className="flex bg-black/40 p-1 rounded-md border border-white/5 overflow-x-auto custom-scrollbar shrink-0 max-w-full">
                               {['stage1', 'stage2', 'stage3', 'playoffs'].map(tabId => {
                                   const stageLabel = tabId === 'stage1' ? '第一阶段' : tabId === 'stage2' ? '第二阶段' : tabId === 'stage3' ? '第三阶段' : '决胜阶段';
                                   return (
@@ -614,7 +813,7 @@ export default function App() {
                                       key={`sum-${tabId}`}
                                       onClick={() => setActiveStage(tabId as StageKey)}
                                       className={cn(
-                                        "px-3 py-1 text-[11px] font-bold rounded-[2px] cursor-pointer transition-colors",
+                                        "px-3 py-1 text-[11px] font-bold rounded-[2px] cursor-pointer transition-colors whitespace-nowrap shrink-0",
                                         activeStage === tabId ? "bg-white/10 text-white" : "text-zinc-500 hover:text-zinc-300"
                                       )}
                                     >
@@ -664,7 +863,7 @@ export default function App() {
                                       </div>
                                       <MiniPlayoffsBracket 
                                           slots={PLAYOFFS_SLOTS.map((s) => {
-                                              const pick = theirPicks.find(p => p.id === s.id);
+                                              const pick = theirPicks.find(p => p.id === s.id || p.id === `playoffs-${s.id}`);
                                               return { ...s, teamId: pick?.teamId || null, resultStatus: 'unknown' };
                                           })}
                                       />
@@ -682,7 +881,7 @@ export default function App() {
                             const freqDiff = (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0);
                             if (freqDiff !== 0) return freqDiff;
                             return a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => ({ ...s, resultStatus: checkPrediction(s.teamId, '3-0', ACTUAL_RESULTS[activeStage]) }));
+                          }).map(s => ({ ...s, resultStatus: checkPrediction(s.teamId, '3-0', activeStage) }));
 
                           const picksAdvance = theirPicks.filter(s => s.type === 'advance');
                           const sortedAdvancePicks = [...picksAdvance].sort((a, b) => {
@@ -694,7 +893,7 @@ export default function App() {
                             const freqDiff = (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0);
                             if (freqDiff !== 0) return freqDiff;
                             return a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => ({ ...s, resultStatus: checkPrediction(s.teamId, 'advance', ACTUAL_RESULTS[activeStage]) }));
+                          }).map(s => ({ ...s, resultStatus: checkPrediction(s.teamId, 'advance', activeStage) }));
 
                           const elimPicks = theirPicks.filter(s => s.type === '0-3');
                           const sortedElimPicks = [...elimPicks].sort((a, b) => {
@@ -706,12 +905,16 @@ export default function App() {
                             const freqDiff = (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0);
                             if (freqDiff !== 0) return freqDiff;
                             return a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => ({ ...s, resultStatus: checkPrediction(s.teamId, '0-3', ACTUAL_RESULTS[activeStage]) }));
+                          }).map(s => ({ ...s, resultStatus: checkPrediction(s.teamId, '0-3', activeStage) }));
+                          
+                          const statusData = getSetStatus(theirPicks, activeStage);
+                          const statusStyles = getStatusStyles(statusData);
                           
                           return (
-                              <div key={participant.id} className="bg-zinc-900/80 border border-white/5 p-4 rounded-lg shadow-sm flex flex-col gap-4">
-                                <div className="flex items-center gap-3 border-b border-white/5 pb-3">
+                              <div key={participant.id} className={cn("p-4 rounded-lg flex flex-col gap-4 border", statusStyles.bg, statusStyles.border)}>
+                                <div className={cn("flex items-center justify-between border-b pb-3", statusStyles.border)}>
                                     <div className="font-bold text-sm text-zinc-200">{participant.name}</div>
+                                    <PickSetStatusText statusData={statusData} />
                                 </div>
                                 <MiniPicksDisplay 
                                     title30="3:0 晋级"
@@ -918,7 +1121,7 @@ export default function App() {
                                        <div className={imageExportStyle === 'compact' ? "flex-1" : ""}>
                                            <MiniPlayoffsBracket 
                                                slots={PLAYOFFS_SLOTS.map((s) => {
-                                                   const pick = theirPicks.find(p => p.id === s.id);
+                                                   const pick = theirPicks.find(p => p.id === s.id || p.id === `playoffs-${s.id}`);
                                                    return { ...s, teamId: pick?.teamId || null, resultStatus: 'unknown' };
                                                })}
                                                compact={imageExportStyle === 'compact'}
@@ -937,7 +1140,7 @@ export default function App() {
                             if (!aKey) return 1;
                             if (!bKey) return -1;
                             return (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0) || a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => ({ ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, '3-0', ACTUAL_RESULTS[activeStage]) : undefined }));
+                          }).map(s => ({ ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, '3-0', activeStage) : undefined }));
 
                           const picksAdvance = theirPicks.filter(s => s.type === 'advance');
                           const sortedAdvancePicks = [...picksAdvance].sort((a, b) => {
@@ -947,7 +1150,7 @@ export default function App() {
                             if (!aKey) return 1;
                             if (!bKey) return -1;
                             return (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0) || a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => ({ ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, 'advance', ACTUAL_RESULTS[activeStage]) : undefined }));
+                          }).map(s => ({ ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, 'advance', activeStage) : undefined }));
 
                           const elimPicks = theirPicks.filter(s => s.type === '0-3');
                           const sortedElimPicks = [...elimPicks].sort((a, b) => {
@@ -957,12 +1160,18 @@ export default function App() {
                             if (!aKey) return 1;
                             if (!bKey) return -1;
                             return (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0) || a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => ({ ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, '0-3', ACTUAL_RESULTS[activeStage]) : undefined }));
+                          }).map(s => ({ ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, '0-3', activeStage) : undefined }));
+                          
+                          const statusData = getSetStatus(theirPicks, activeStage);
+                          const statusStyles = getStatusStyles(statusData);
                           
                           if (imageExportStyle === 'compact') {
                               return (
-                                  <div key={participant.id} className={`flex items-center gap-4 py-3 px-5 ${(index !== 0 || imageExportIncludeResults) ? 'border-t border-white/5' : ''}`}>
-                                      <div className="font-bold text-sm text-zinc-200 w-32 shrink-0 break-words line-clamp-2 leading-snug">{participant.name}</div>
+                                  <div key={participant.id} className={cn(`flex items-center gap-4 py-3 px-5 ${(index !== 0 || imageExportIncludeResults) ? 'border-t' : ''}`, statusStyles.border, statusStyles.bg)}>
+                                      <div className="font-bold text-sm text-zinc-200 w-32 shrink-0 break-words line-clamp-2 leading-snug flex flex-col gap-1.5">
+                                          {participant.name}
+                                          <PickSetStatusText statusData={statusData} />
+                                      </div>
                                       <div className="flex-1">
                                           <MiniPicksDisplay 
                                               title30="3:0 晋级"
@@ -980,9 +1189,10 @@ export default function App() {
                           }
                           
                           return (
-                              <div key={participant.id} className="bg-zinc-900/80 border border-white/5 p-5 rounded-lg shadow-sm flex flex-col gap-4">
-                                <div className="flex items-center gap-3 border-b border-white/5 pb-3">
+                              <div key={participant.id} className={cn("border p-5 rounded-lg flex flex-col gap-4", statusStyles.bg, statusStyles.border)}>
+                                <div className={cn("flex items-center justify-between border-b pb-3", statusStyles.border)}>
                                     <div className="font-bold text-base text-zinc-200">{participant.name}</div>
+                                    <PickSetStatusText statusData={statusData} />
                                 </div>
                                 <MiniPicksDisplay 
                                     title30="3:0 晋级"

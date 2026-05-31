@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { PickSet } from '../types';
-import { Plus, Download, Upload, CheckSquare, Square } from 'lucide-react';
+import { Plus, Download, Upload, CheckSquare, Square, Trash2 } from 'lucide-react';
 import { Modal } from '../components/Modal';
-import { savePickSet } from '../lib/db';
+import { savePickSet, deletePickSet } from '../lib/db';
 
 const CheckboxList: React.FC<{
     items: { id: string, name: string, date: string }[];
@@ -57,6 +57,9 @@ export const HomeView: React.FC<{
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importedPicks, setImportedPicks] = useState<PickSet[]>([]);
   const [importSelectedIds, setImportSelectedIds] = useState<string[]>([]);
+  
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   const handleOpenExport = () => {
       setExportSelectedIds(communityPicks.map(p => p.id));
@@ -65,7 +68,7 @@ export const HomeView: React.FC<{
 
   const handleExportSubmit = () => {
       if (exportSelectedIds.length === 0) {
-          alert("请至少选择一项导出！");
+          setAlertMessage("请至少选择一项导出！");
           return;
       }
       const dataToExport = communityPicks.filter(p => exportSelectedIds.includes(p.id));
@@ -93,10 +96,10 @@ export const HomeView: React.FC<{
                   setImportSelectedIds(data.map(p => p.id));
                   setShowImportModal(true);
               } else {
-                  alert("数据格式不正确");
+                  setAlertMessage("数据格式不正确");
               }
           } catch (err) {
-              alert("读取文件失败或格式不正确");
+              setAlertMessage("读取文件失败或格式不正确");
           }
       };
       reader.readAsText(file);
@@ -105,7 +108,7 @@ export const HomeView: React.FC<{
 
   const handleImportSubmit = async () => {
       if (importSelectedIds.length === 0) {
-          alert("请至少选择一项导入！");
+          setAlertMessage("请至少选择一项导入！");
           return;
       }
       const dataToImport = importedPicks.filter(p => importSelectedIds.includes(p.id));
@@ -113,7 +116,14 @@ export const HomeView: React.FC<{
           await savePickSet(pick);
       }
       setShowImportModal(false);
-      alert(`成功导入 ${dataToImport.length} 条竞猜数据！`);
+      setAlertMessage(`成功导入 ${dataToImport.length} 条竞猜数据！`);
+      if (refreshPicks) refreshPicks();
+  };
+  
+  const handleConfirmDelete = async () => {
+      if (!deleteTargetId) return;
+      await deletePickSet(deleteTargetId);
+      setDeleteTargetId(null);
       if (refreshPicks) refreshPicks();
   };
 
@@ -181,12 +191,20 @@ export const HomeView: React.FC<{
                                     <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-0.5 truncate">保存时间：{new Date(p.createdAt).toLocaleString()}</p>
                                 </div>
                             </div>
-                            <button 
-                                onClick={() => handleEditExisting(p)}
-                                className="shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/5 hover:bg-white/10 text-white text-[10px] sm:text-xs font-bold rounded transition-colors"
-                            >
-                                进入
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => handleEditExisting(p)}
+                                    className="shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/5 hover:bg-white/10 text-white text-[10px] sm:text-xs font-bold rounded transition-colors"
+                                >
+                                    进入
+                                </button>
+                                <button 
+                                    onClick={() => setDeleteTargetId(p.id)}
+                                    className="shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 text-[10px] sm:text-xs font-bold rounded transition-colors flex items-center gap-1.5"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -231,6 +249,40 @@ export const HomeView: React.FC<{
                     className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20"
                 >
                     确认导入 ({importSelectedIds.length})
+                </button>
+            </div>
+        </Modal>
+        
+        <Modal isOpen={!!deleteTargetId} onClose={() => setDeleteTargetId(null)} title="确认删除">
+            <div className="py-4">
+                <p className="text-sm text-zinc-300">您确定要删除此竞猜吗？该操作无法恢复。</p>
+            </div>
+            <div className="mt-4 pt-4 border-t border-white/5 flex justify-end gap-3 shrink-0">
+                <button 
+                    onClick={() => setDeleteTargetId(null)}
+                    className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white text-sm font-bold rounded transition-colors"
+                >
+                    取消
+                </button>
+                <button 
+                    onClick={handleConfirmDelete}
+                    className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-bold rounded transition-colors shadow-lg shadow-rose-900/20"
+                >
+                    确认删除
+                </button>
+            </div>
+        </Modal>
+        
+        <Modal isOpen={!!alertMessage} onClose={() => setAlertMessage(null)} title="提示">
+            <div className="py-4">
+                <p className="text-sm text-zinc-300">{alertMessage}</p>
+            </div>
+            <div className="mt-4 pt-4 border-t border-white/5 flex justify-end shrink-0">
+                <button 
+                    onClick={() => setAlertMessage(null)}
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors rounded-md"
+                >
+                    知道了
                 </button>
             </div>
         </Modal>

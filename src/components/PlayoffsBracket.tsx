@@ -1,98 +1,157 @@
 import React from 'react';
 import { PickSlot } from '../types';
 import { cn } from '../lib/utils';
-import { SlotBox } from './SlotBox';
+import { useFitScale } from '../utils/hooks';
 import { TEAMS } from '../data/teams';
+import { TeamLogo } from './TeamLogo';
+
+const W = 180;
+const H = 40;
+
+const nodes: Record<string, { x: number, y: number }> = {
+  'qf-1': { x: 0, y: 20 },
+  'qf-2': { x: 0, y: 70 },
+  'qf-3': { x: 0, y: 170 },
+  'qf-4': { x: 0, y: 220 },
+  'qf-5': { x: 0, y: 370 },
+  'qf-6': { x: 0, y: 420 },
+  'qf-7': { x: 0, y: 520 },
+  'qf-8': { x: 0, y: 570 },
+  'sf-1': { x: 260, y: 45 },
+  'sf-2': { x: 260, y: 195 },
+  'sf-3': { x: 260, y: 395 },
+  'sf-4': { x: 260, y: 545 },
+  'final-1': { x: 520, y: 120 },
+  'final-2': { x: 520, y: 470 },
+  'champion': { x: 780, y: 295 },
+};
+
+const edges = [
+  ['qf-1', 'sf-1'], ['qf-2', 'sf-1'],
+  ['qf-3', 'sf-2'], ['qf-4', 'sf-2'],
+  ['qf-5', 'sf-3'], ['qf-6', 'sf-3'],
+  ['qf-7', 'sf-4'], ['qf-8', 'sf-4'],
+  ['sf-1', 'final-1'], ['sf-2', 'final-1'],
+  ['sf-3', 'final-2'], ['sf-4', 'final-2'],
+  ['final-1', 'champion'], ['final-2', 'champion']
+];
+
+const DrawPath: React.FC<{ fromId: string, toId: string }> = ({ fromId, toId }) => {
+    const p1 = nodes[fromId];
+    const p2 = nodes[toId];
+    if (!p1 || !p2) return null;
+    
+    const sx = p1.x + W;
+    const sy = p1.y + H / 2;
+    const ex = p2.x;
+    const ey = p2.y + H / 2;
+    const midX = sx + (ex - sx) / 2;
+    
+    const R = 16;
+    const dirY = Math.sign(ey - sy);
+    const r = Math.min(R, Math.abs(ey - sy) / 2);
+
+    let d = "";
+    if (Math.abs(ey - sy) < 1) {
+        d = `M ${sx} ${sy} L ${ex} ${ey}`;
+    } else {
+        d = `M ${sx} ${sy} L ${midX - r} ${sy} Q ${midX} ${sy} ${midX} ${sy + r * dirY} L ${midX} ${ey - r * dirY} Q ${midX} ${ey} ${midX + r} ${ey} L ${ex} ${ey}`;
+    }
+    
+    return (
+        <path 
+            d={d} 
+            stroke="rgba(255,255,255,0.15)" 
+            strokeWidth="1.5" 
+            fill="none" 
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    );
+};
+
+const BracketSlot: React.FC<{ 
+    slot: PickSlot | undefined, 
+    readOnly: boolean, 
+    onDrop: any, 
+    onClick: any, 
+    emptyTitle: string 
+}> = ({ slot, readOnly, onDrop, onClick, emptyTitle }) => {
+    const team = TEAMS.find(t => t.id === slot?.teamId);
+    
+    return (
+        <div 
+            draggable={!readOnly && !!team}
+            onDragStart={(e) => {
+                if (readOnly || !team || !slot) return e.preventDefault();
+                e.dataTransfer.setData('teamId', team.id);
+                e.dataTransfer.setData('sourceSlotId', slot.id);
+                e.dataTransfer.effectAllowed = 'copyMove';
+            }}
+            onDrop={readOnly ? undefined : (e) => slot && onDrop && onDrop(e, slot.id)}
+            onDragOver={readOnly ? undefined : e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+            onClick={readOnly ? undefined : () => slot && onClick && onClick(slot.id, slot.teamId)}
+            className={cn(
+                "w-[180px] h-[40px] rounded-[6px] flex items-center px-3 gap-3 border transition-colors cursor-pointer relative overflow-hidden",
+                team ? "bg-zinc-900 border-white/20 hover:border-white/40" : "bg-zinc-950/40 border-white/10 border-dashed hover:border-zinc-500",
+                readOnly && !team && "opacity-60 cursor-default"
+            )}
+        >
+            {team ? (
+                <>
+                    <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                        <TeamLogo team={team} fallbackClasses="text-[10px]" />
+                    </div>
+                    <span className="font-bold text-zinc-200 text-sm">{team.name}</span>
+                </>
+            ) : (
+                <span className="text-xs font-semibold mx-auto tracking-widest text-zinc-500" style={{ letterSpacing: '0.1em' }}>{emptyTitle}</span>
+            )}
+        </div>
+    );
+};
 
 export const PlayoffsBracket: React.FC<{ 
   slots: PickSlot[], 
-  readOnly?: boolean, 
+  readOnly?: boolean,
   onDrop?: (e: React.DragEvent, slotId: string) => void,
   onClick?: (slotId: string, teamId: string | null) => void,
 }> = ({ slots, readOnly = false, onDrop, onClick }) => {
-  const getSlot = (id: string) => slots.find(s => s.id.includes(id)) || { id, type: 'qf', teamId: null } as PickSlot;
+  const { containerRef, scale } = useFitScale(960, 640);
 
-  const renderMatch = (slot1Id: string, slot2Id: string, border: string) => (
-    <div className="flex flex-col gap-1 w-full relative z-10 p-4 border border-transparent shadow shadow-black/20 rounded-xl bg-zinc-950/60 backdrop-blur-sm shadow-inner transition-transform hover:scale-105">
-        <SlotBox slot={getSlot(slot1Id)} readOnly={readOnly} border={border} onDrop={onDrop} onClick={onClick} />
-        <SlotBox slot={getSlot(slot2Id)} readOnly={readOnly} border={border} onDrop={onDrop} onClick={onClick} />
-    </div>
-  );
+  const getSlot = (id: string) => slots.find(s => s.id === id || s.id === `playoffs-${id}`);
 
   return (
-    <div className="w-full mx-auto p-8 overflow-x-auto custom-scrollbar flex justify-center">
-        <div className="flex items-stretch min-w-[800px] h-[640px] relative pointer-events-auto select-none">
-            
-            {/* Quarterfinals Area */}
-            <div className="flex flex-col w-32 relative">
-                <div className="absolute -top-8 w-full text-center font-black text-xs text-zinc-500 uppercase tracking-widest pb-2 border-b border-white/10">1/4 决赛</div>
-                {[1, 3, 5, 7].map((num) => (
-                    <div key={`qf-${num}`} className="flex-1 flex flex-col justify-center relative">
-                        {renderMatch(`qf-${num}`, `qf-${num+1}`, 'border-white/10')}
-                    </div>
-                ))}
-            </div>
+      <div ref={containerRef} className="w-full h-full flex flex-col items-center justify-center overflow-visible select-none z-10 min-w-0 min-h-0 relative py-8">
+          <div 
+             style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }} 
+             className="w-[960px] h-[640px] relative pointer-events-none transition-transform duration-75 flex-shrink-0"
+          >
+              <svg className="absolute inset-0 w-full h-full z-0 pointer-events-none" style={{ left: 0, top: 0 }}>
+                  {edges.map(([from, to], i) => <DrawPath key={i} fromId={from} toId={to} />)}
+              </svg>
 
-            {/* QF to SF Connector */}
-            <div className="w-10 xl:w-16 h-full relative pointer-events-none">
-                <svg className="w-full h-full absolute inset-0" preserveAspectRatio="none">
-                    <line x1="0" y1="12.5%" x2="50%" y2="12.5%" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
-                    <line x1="0" y1="37.5%" x2="50%" y2="37.5%" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
-                    <line x1="50%" y1="12.5%" x2="50%" y2="37.5%" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
-                    <line x1="50%" y1="25%" x2="100%" y2="25%" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
-
-                    <line x1="0" y1="62.5%" x2="50%" y2="62.5%" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
-                    <line x1="0" y1="87.5%" x2="50%" y2="87.5%" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
-                    <line x1="50%" y1="62.5%" x2="50%" y2="87.5%" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
-                    <line x1="50%" y1="75%" x2="100%" y2="75%" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
-                </svg>
-            </div>
-
-            {/* Semifinals Area */}
-            <div className="flex flex-col w-32 relative">
-                <div className="absolute -top-8 w-full text-center font-black text-xs text-blue-500/80 uppercase tracking-widest pb-2 border-b border-blue-500/20">半决赛</div>
-                {[1, 3].map((num) => (
-                    <div key={`sf-${num}`} className="flex-1 flex flex-col justify-center relative">
-                        {renderMatch(`sf-${num}`, `sf-${num+1}`, 'border-blue-500/30')}
-                    </div>
-                ))}
-            </div>
-
-            {/* SF to Final Connector */}
-            <div className="w-10 xl:w-16 h-full relative pointer-events-none">
-                <svg className="w-full h-full absolute inset-0" preserveAspectRatio="none">
-                    <line x1="0" y1="25%" x2="50%" y2="25%" stroke="rgba(59,130,246,0.3)" strokeWidth="2" />
-                    <line x1="0" y1="75%" x2="50%" y2="75%" stroke="rgba(59,130,246,0.3)" strokeWidth="2" />
-                    <line x1="50%" y1="25%" x2="50%" y2="75%" stroke="rgba(59,130,246,0.3)" strokeWidth="2" />
-                    <line x1="50%" y1="50%" x2="100%" y2="50%" stroke="rgba(59,130,246,0.3)" strokeWidth="2" />
-                </svg>
-            </div>
-
-            {/* Final Area */}
-            <div className="flex flex-col justify-center w-32 relative">
-                <div className="absolute -top-8 w-full text-center font-black text-xs text-purple-500/80 uppercase tracking-widest pb-2 border-b border-purple-500/20">总决赛</div>
-                {renderMatch('final-1', 'final-2', 'border-purple-500/50')}
-            </div>
-
-            {/* Final to Champion Connector */}
-            <div className="w-10 xl:w-16 h-full relative pointer-events-none">
-                <svg className="w-full h-full absolute inset-0" preserveAspectRatio="none">
-                    <line x1="0" y1="50%" x2="100%" y2="50%" stroke="rgba(168,85,247,0.5)" strokeWidth="2" />
-                </svg>
-            </div>
-
-            {/* Champion Area */}
-            <div className="flex flex-col justify-center w-36 relative">
-                <div className="absolute -top-8 w-full text-center font-black text-xs text-yellow-500/80 uppercase tracking-widest pb-2 border-b border-yellow-500/20">竞猜冠军</div>
-                <div className="absolute top-[260px] w-full transform flex flex-col items-center gap-1 z-20">
-                     <span className="text-yellow-500 font-black tracking-widest text-sm drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]">CHAMPION</span>
-                </div>
-                <div className="scale-[1.3] transform origin-center z-10 mx-auto">
-                    <SlotBox slot={getSlot('champion')} readOnly={readOnly} border="border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.3)] bg-yellow-500/10" onDrop={onDrop} onClick={onClick} />
-                </div>
-            </div>
-
-        </div>
-    </div>
+              {Object.entries(nodes).map(([id, pos]) => {
+                  const isCol1 = id.startsWith('qf-');
+                  const emptyTitle = isCol1 ? '待定' : '作出您的选择';
+                  
+                  return (
+                      <div 
+                          key={id} 
+                          style={{ left: pos.x, top: pos.y }} 
+                          className="absolute pointer-events-auto shadow-sm"
+                      >
+                          <BracketSlot 
+                              slot={getSlot(id) || { id, type: id.split('-')[0] as any, teamId: null }} 
+                              readOnly={readOnly} 
+                              onDrop={onDrop} 
+                              onClick={onClick} 
+                              emptyTitle={emptyTitle} 
+                          />
+                      </div>
+                  );
+              })}
+          </div>
+      </div>
   );
 };
