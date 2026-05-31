@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "IEM Cologne 2026 Pick'Em Simulator",
+  "description": "IEM Cologne 2026 Major tournament Pick'Em simulator with community statistics and visual bracket connectors.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
