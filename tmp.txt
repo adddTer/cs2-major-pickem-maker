@@ -1,0 +1,22 @@
+555:                 onClick={() => setViewMode('home')}
+561:                 onClick={() => {
+573:                 onClick={() => setViewMode('summary')}
+614:                        <button onClick={handleSavePick} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors rounded flex items-center gap-1.5 shrink-0 shadow-lg shadow-blue-900/20">
+631:                    <button onClick={handleSavePick} className="mt-auto px-5 py-3 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors rounded-md flex justify-center items-center gap-2 shadow-lg shadow-blue-900/20">
+652:                              onClick={() => setActiveStage(tab.id as StageKey)}
+670:                          onClick={() => {
+714:                                      onClick={() => {
+741:                                onClick={(slotId, teamId) => {
+784:                                    onClick={(slotId, teamId) => {
+809:                              onClick={() => {
+823:                                      onClick={() => setActiveStage(tabId as StageKey)}
+954:                          onClick={() => setExportPreviewUrl(null)}
+960:                          onClick={async () => {
+979:                          onClick={handleDownloadImage}
+990:                  onClick={() => setImageExportIncludeResults(!imageExportIncludeResults)}
+997:                  onClick={() => setImageExportShowTeamNames(!imageExportShowTeamNames)}
+1007:                          onClick={() => setImageExportStyle('standard')}
+1011:                          onClick={() => setImageExportStyle('compact')}
+1021:                      onClick={() => setImageExportIds(imageExportIds.length === communityPicks.length ? [] : communityPicks.map(p => p.id))}
+1033:                                  onClick={() => setImageExportIds(prev => prev.includes(item.id) ? prev.filter(x => x !== item.id) : [...prev, item.id])}
+1044:                      onClick={handleGeneratePreview}

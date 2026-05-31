@@ -143,11 +143,11 @@ export default function App() {
                        
     if (isComplete) return `比赛已结束`;
 
-    const dates: Record<string, { start: Date, end: Date }> = {
-      stage1: { start: new Date('2026-06-02T00:00:00Z'), end: new Date('2026-06-05T23:59:59Z') },
-      stage2: { start: new Date('2026-06-06T00:00:00Z'), end: new Date('2026-06-09T23:59:59Z') },
-      stage3: { start: new Date('2026-06-11T00:00:00Z'), end: new Date('2026-06-15T23:59:59Z') },
-      playoffs: { start: new Date('2026-06-18T00:00:00Z'), end: new Date('2026-06-21T23:59:59Z') },
+    const dates: Record<string, { start: Date, end: Date, label?: string }> = {
+      stage1: { start: new Date('2026-06-02T10:30:00Z'), end: new Date('2026-06-05T23:59:59Z') },
+      stage2: { start: new Date('2026-06-06T10:30:00Z'), end: new Date('2026-06-09T23:59:59Z') },
+      stage3: { start: new Date('2026-06-11T09:00:00Z'), end: new Date('2026-06-15T23:59:59Z') },
+      playoffs: { start: new Date('2026-06-18T13:45:00Z'), end: new Date('2026-06-21T15:00:00Z') }, // Playoffs start June 18 21:45, Final June 21 23:00 (end of tournament)
     };
     
     const { start, end } = dates[stage];
@@ -157,13 +157,19 @@ export default function App() {
       const diff = start.getTime() - now.getTime();
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-      if (days > 0) return `距离开始还有 ${days} 天`;
-      return `距离开始还有 ${hours} 小时`;
-    } else if (now >= start && now <= end) {
-      return `比赛进行中`;
-    } else {
-      return `比赛已结束`;
+      const mins = Math.floor((diff / (1000 * 60)) % 60);
+      
+      const formatTime = (d: Date) => {
+          const loc = (d.getTime() + 8 * 60 * 60 * 1000);
+          const dt = new Date(loc);
+          return `${dt.getUTCMonth()+1}月${dt.getUTCDate()}日 ${dt.getUTCHours().toString().padStart(2, '0')}:${dt.getUTCMinutes().toString().padStart(2, '0')}`;
+      };
+
+      if (days > 0) return `${formatTime(start)} 开始 (还剩 ${days} 天)`;
+      if (hours > 0) return `${formatTime(start)} 开始 (还剩 ${hours} 小时)`;
+      return `${formatTime(start)} 开始 (还剩 ${mins} 分钟)`;
     }
+    return `比赛进行中`;
   };
 
   const getAvailableTeams = (stage: string) => {
@@ -464,14 +470,14 @@ export default function App() {
   };
 
   const getStatusStyles = (statusData: ReturnType<typeof getSetStatus>) => {
-      if (!statusData) return { bg: 'bg-zinc-900/80', border: 'border-white/5' };
+      if (!statusData) return { bg: 'bg-zinc-900/60', border: 'border-white/5' };
       switch (statusData.statusId) {
-          case 'passed': return { bg: 'bg-zinc-900/60 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/40 via-zinc-900/60 to-zinc-900/80', border: 'border-emerald-500/20' };
-          case 'failed': return { bg: 'bg-zinc-900/60 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-rose-900/40 via-zinc-900/60 to-zinc-900/80', border: 'border-rose-500/20' };
-          case 'great_chance': return { bg: 'bg-zinc-900/60 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900/40 via-zinc-900/60 to-zinc-900/80', border: 'border-blue-500/20' };
-          case 'uncertain': return { bg: 'bg-zinc-900/60 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-900/40 via-zinc-900/60 to-zinc-900/80', border: 'border-amber-500/20' };
-          case 'slim_chance': return { bg: 'bg-zinc-900/60 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-orange-900/40 via-zinc-900/60 to-zinc-900/80', border: 'border-orange-500/20' };
-          default: return { bg: 'bg-zinc-900/80', border: 'border-white/5' };
+          case 'passed': return { bg: 'bg-zinc-900/60 bg-gradient-to-bl from-emerald-500/20 via-transparent to-transparent', border: 'border-emerald-500/20' };
+          case 'failed': return { bg: 'bg-zinc-900/60 bg-gradient-to-bl from-rose-500/20 via-transparent to-transparent', border: 'border-rose-500/20' };
+          case 'great_chance': return { bg: 'bg-zinc-900/60 bg-gradient-to-bl from-blue-500/20 via-transparent to-transparent', border: 'border-blue-500/20' };
+          case 'uncertain': return { bg: 'bg-zinc-900/60 bg-gradient-to-bl from-amber-500/20 via-transparent to-transparent', border: 'border-amber-500/20' };
+          case 'slim_chance': return { bg: 'bg-zinc-900/60 bg-gradient-to-bl from-orange-500/20 via-transparent to-transparent', border: 'border-orange-500/20' };
+          default: return { bg: 'bg-zinc-900/60', border: 'border-white/5' };
       }
   };
 
