@@ -5,6 +5,7 @@ import { BracketMatch } from '../types';
 import { cn } from '../lib/utils';
 import { useFitScale } from '../utils/hooks';
 import { TeamLogo } from './TeamLogo';
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 const MatchParticipant = ({ teamId }: { teamId?: string }) => {
     const team = TEAMS.find(t => t.id === teamId);
@@ -24,17 +25,31 @@ const MatchParticipant = ({ teamId }: { teamId?: string }) => {
 
 const MatchLine: React.FC<{ match?: BracketMatch }> = ({ match }) => {
     const hasResult = match?.score1 !== undefined && match?.score2 !== undefined;
+    
+    let displayLeft = match?.score1;
+    let displayRight = match?.score2;
+    
+    if (match?.format === 'bo1' && match.maps?.[0]) {
+        displayLeft = match.maps[0].score1;
+        displayRight = match.maps[0].score2;
+    }
+
     return (
-        <div className="flex items-center gap-2 mx-auto relative z-10">
+        <div className="flex items-center gap-2 mx-auto relative z-10 w-full px-2 justify-center">
             <MatchParticipant teamId={match?.team1Id} />
             {hasResult ? (
-                <div className="flex items-center justify-center gap-1 min-w-[24px]">
-                    <span className={cn("text-[11px] font-bold", match.score1! > match.score2! ? "text-emerald-400" : "text-zinc-500")}>{match.score1}</span>
-                    <span className="text-[9px] text-zinc-700">-</span>
-                    <span className={cn("text-[11px] font-bold", match.score2! > match.score1! ? "text-emerald-400" : "text-zinc-500")}>{match.score2}</span>
+                <div className="flex flex-col items-center justify-center min-w-[28px] shrink-0">
+                    <div className="flex items-center justify-center gap-1">
+                        <span className={cn("text-[11px] font-bold", (displayLeft ?? 0) > (displayRight ?? 0) ? "text-emerald-400 drop-shadow-sm" : "text-zinc-500")}>{displayLeft}</span>
+                        <span className="text-[9px] text-zinc-700">-</span>
+                        <span className={cn("text-[11px] font-bold", (displayRight ?? 0) > (displayLeft ?? 0) ? "text-emerald-400 drop-shadow-sm" : "text-zinc-500")}>{displayRight}</span>
+                    </div>
+                    {match.format === 'bo3' && (
+                         <span className="text-[8px] text-zinc-600 uppercase font-mono tracking-tighter -mt-1 scale-75">BO3</span>
+                    )}
                 </div>
             ) : (
-                <span className="text-[10px] text-zinc-600/80 font-medium w-[24px] text-center uppercase tracking-widest">vs</span>
+                <span className="text-[10px] text-zinc-600/80 font-medium w-[28px] text-center uppercase tracking-widest shrink-0">vs</span>
             )}
             <MatchParticipant teamId={match?.team2Id} />
         </div>
@@ -76,8 +91,6 @@ const AbsoluteBox = ({ p, children }: { p: any, children: React.ReactNode }) => 
 );
 
 export const SwissBracket = ({ activeStage }: { activeStage: string }) => {
-    const { containerRef, scale } = useFitScale(860, 560);
-    
     const pos = {
         g00: { id: 'g00', x: 90, y: 280, o1: 65, o2: 65 },
         
@@ -119,37 +132,45 @@ export const SwissBracket = ({ activeStage }: { activeStage: string }) => {
     };
 
     return (
-        <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-visible select-none z-10 min-w-0 min-h-0 relative">
-            <div 
-               style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }} 
-               className="w-[860px] h-[560px] relative pointer-events-none px-4 transition-transform duration-75 flex-shrink-0"
+        <div className="w-full h-full flex items-center justify-center overflow-hidden z-10 relative">
+            <TransformWrapper
+                initialScale={1}
+                minScale={0.3}
+                maxScale={2}
+                centerOnInit={true}
+                wheel={{ step: 0.1 }}
+                panning={{ velocityDisabled: false }}
             >
-                {/* SVG Connections */}
-                <svg className="absolute inset-0 w-full h-full z-0 opacity-45 pointer-events-none" style={{ left: 0, top: 0 }}>
-                    <defs>
-                        <linearGradient id="win-grad" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="#10b981" stopOpacity="0"/>
-                            <stop offset="100%" stopColor="#10b981" stopOpacity="1"/>
-                        </linearGradient>
-                        <linearGradient id="loss-grad" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="#f43f5e" stopOpacity="0"/>
-                            <stop offset="100%" stopColor="#f43f5e" stopOpacity="1"/>
-                        </linearGradient>
-                    </defs>
-                    {pathLines.map((l, i) => <DrawPath key={i} p1={l.p1} p2={l.p2} win={l.win} />)}
-                </svg>
+                <TransformComponent wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}>
+                    <div className="w-[860px] h-[560px] relative pointer-events-none px-4 flex-shrink-0">
+                        {/* SVG Connections */}
+                        <svg className="absolute inset-0 w-full h-full z-0 opacity-45 pointer-events-none" style={{ left: 0, top: 0 }}>
+                            <defs>
+                                <linearGradient id="win-grad" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%" stopColor="#10b981" stopOpacity="0"/>
+                                    <stop offset="100%" stopColor="#10b981" stopOpacity="1"/>
+                                </linearGradient>
+                                <linearGradient id="loss-grad" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%" stopColor="#f43f5e" stopOpacity="0"/>
+                                    <stop offset="100%" stopColor="#f43f5e" stopOpacity="1"/>
+                                </linearGradient>
+                            </defs>
+                            {pathLines.map((l, i) => <DrawPath key={i} p1={l.p1} p2={l.p2} win={l.win} />)}
+                        </svg>
 
-                {/* Swiss Bracket Boxes */}
-                <AbsoluteBox p={pos.g00}><GroupBox score="0:0" count={8} matches={getMatches('0:0')} /></AbsoluteBox>
-                <AbsoluteBox p={pos.g10}><GroupBox score="1:0" count={4} matches={getMatches('1:0')} /></AbsoluteBox>
-                <AbsoluteBox p={pos.g01}><GroupBox score="0:1" count={4} matches={getMatches('0:1')} /></AbsoluteBox>
-                <AbsoluteBox p={pos.g20}><GroupBox score="2:0" count={2} matches={getMatches('2:0')} /></AbsoluteBox>
-                <AbsoluteBox p={pos.g11}><GroupBox score="1:1" count={4} matches={getMatches('1:1')} /></AbsoluteBox>
-                <AbsoluteBox p={pos.g02}><GroupBox score="0:2" count={2} matches={getMatches('0:2')} /></AbsoluteBox>
-                <AbsoluteBox p={pos.g21}><GroupBox score="2:1" count={3} matches={getMatches('2:1')} /></AbsoluteBox>
-                <AbsoluteBox p={pos.g12}><GroupBox score="1:2" count={3} matches={getMatches('1:2')} /></AbsoluteBox>
-                <AbsoluteBox p={pos.g22}><GroupBox score="2:2" count={3} matches={getMatches('2:2')} /></AbsoluteBox>
-            </div>
+                        {/* Swiss Bracket Boxes */}
+                        <AbsoluteBox p={pos.g00}><GroupBox score="0:0" count={8} matches={getMatches('0:0')} /></AbsoluteBox>
+                        <AbsoluteBox p={pos.g10}><GroupBox score="1:0" count={4} matches={getMatches('1:0')} /></AbsoluteBox>
+                        <AbsoluteBox p={pos.g01}><GroupBox score="0:1" count={4} matches={getMatches('0:1')} /></AbsoluteBox>
+                        <AbsoluteBox p={pos.g20}><GroupBox score="2:0" count={2} matches={getMatches('2:0')} /></AbsoluteBox>
+                        <AbsoluteBox p={pos.g11}><GroupBox score="1:1" count={4} matches={getMatches('1:1')} /></AbsoluteBox>
+                        <AbsoluteBox p={pos.g02}><GroupBox score="0:2" count={2} matches={getMatches('0:2')} /></AbsoluteBox>
+                        <AbsoluteBox p={pos.g21}><GroupBox score="2:1" count={3} matches={getMatches('2:1')} /></AbsoluteBox>
+                        <AbsoluteBox p={pos.g12}><GroupBox score="1:2" count={3} matches={getMatches('1:2')} /></AbsoluteBox>
+                        <AbsoluteBox p={pos.g22}><GroupBox score="2:2" count={3} matches={getMatches('2:2')} /></AbsoluteBox>
+                    </div>
+                </TransformComponent>
+            </TransformWrapper>
         </div>
     );
 };

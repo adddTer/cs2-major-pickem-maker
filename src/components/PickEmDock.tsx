@@ -7,17 +7,45 @@ export const PickEmDock: React.FC<{
   slots: PickSlot[], 
   readOnly?: boolean, 
   showResults?: boolean, 
+  actualResults?: PickSlot[],
   onToggleResults?: () => void,
   onDrop?: (e: React.DragEvent, slotId: string) => void,
   onClick?: (slotId: string, teamId: string | null) => void,
-}> = ({ slots, readOnly = false, showResults = false, onToggleResults, onDrop, onClick }) => {
+}> = ({ slots, readOnly = false, showResults = false, actualResults = [], onToggleResults, onDrop, onClick }) => {
   let displaySlots = slots;
   if (showResults) {
-    const combinedSlots: (PickSlot & { resultStatus?: 'correct' | 'incorrect' | 'unknown' })[] = [];
+    const combinedSlots: PickSlot[] = [];
     let i = 0;
-    for (let j = 0; j < 2; j++) combinedSlots.push({ id: `r30-${i++}`, type: '3-0', teamId: undefined, resultStatus: 'unknown' });
-    for (let j = 0; j < 6; j++) combinedSlots.push({ id: `ra-${i++}`, type: 'advance', teamId: undefined, resultStatus: 'unknown' });
-    for (let j = 0; j < 2; j++) combinedSlots.push({ id: `r03-${i++}`, type: '0-3', teamId: undefined, resultStatus: 'unknown' });
+    
+    const getResultStatus = (teamId: string | undefined, expectedType: '3-0' | 'advance' | '0-3'): 'correct' | 'incorrect' | 'unknown' => {
+        if (!teamId) return 'unknown';
+        const userPick = slots.find(s => s.teamId === teamId);
+        if (!userPick) return 'incorrect';
+        if (userPick.type === expectedType) return 'correct';
+        return 'incorrect';
+    };
+
+    // 3:0 slots
+    const actual30 = actualResults.filter(r => r.type === '3-0');
+    for (let j = 0; j < 2; j++) {
+        const teamId = actual30[j]?.teamId || undefined;
+        combinedSlots.push({ id: `r30-${i++}`, type: '3-0', teamId, resultStatus: getResultStatus(teamId, '3-0') });
+    }
+    
+    // advance slots
+    const actualAdv = actualResults.filter(r => r.type === 'advance');
+    for (let j = 0; j < 6; j++) {
+        const teamId = actualAdv[j]?.teamId || undefined;
+        combinedSlots.push({ id: `ra-${i++}`, type: 'advance', teamId, resultStatus: getResultStatus(teamId, 'advance') });
+    }
+    
+    // 0:3 slots
+    const actual03 = actualResults.filter(r => r.type === '0-3');
+    for (let j = 0; j < 2; j++) {
+        const teamId = actual03[j]?.teamId || undefined;
+        combinedSlots.push({ id: `r03-${i++}`, type: '0-3', teamId, resultStatus: getResultStatus(teamId, '0-3') });
+    }
+    
     displaySlots = combinedSlots;
     readOnly = true;
   }
@@ -38,37 +66,37 @@ export const PickEmDock: React.FC<{
                   </button>
               </div>
           )}
-          <div className="flex flex-col xl:flex-row w-full max-w-[1400px] mx-auto gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 xl:flex w-full max-w-[1400px] mx-auto gap-3 sm:gap-4">
           {/* 3:0 (2 Slots) */}
-          <div className="flex-1 flex flex-col bg-zinc-900/60 rounded-xl border border-emerald-500/20 shadow-lg shadow-emerald-500/5 relative">
-              <div className="px-4 py-2 sm:py-3 bg-emerald-500/10 border-b border-emerald-500/20 flex flex-col items-center rounded-t-xl">
+          <div className="flex flex-col bg-zinc-900/60 rounded-xl border border-emerald-500/20 shadow-lg shadow-emerald-500/5 relative xl:flex-1 col-span-1">
+              <div className="px-2 py-2 sm:py-3 bg-emerald-500/10 border-b border-emerald-500/20 flex flex-col items-center rounded-t-xl">
                   <span className="text-emerald-400 font-black tracking-widest text-[14px] sm:text-[16px] leading-tight">3:0</span>
                   <span className="text-emerald-500/70 text-[10px] sm:text-[11px] font-bold">全胜晋级</span>
               </div>
-              <div className="p-3 sm:p-5 flex gap-3 sm:gap-5 justify-center flex-1 items-center bg-zinc-950/40 rounded-b-xl">
+              <div className="p-3 sm:p-5 flex gap-2 sm:gap-5 justify-center flex-1 items-center bg-zinc-950/40 rounded-b-xl flex-wrap">
                   {slots30.map(s => <SlotBox key={s.id} slot={s} readOnly={readOnly} border="border-emerald-500/30" onDrop={onDrop} onClick={onClick} />)}
               </div>
           </div>
           
-          {/* Advance (6 Slots) */}
-          <div className="flex-[2.5] flex flex-col bg-zinc-900/60 rounded-xl border border-blue-500/20 shadow-lg shadow-blue-500/5 relative">
-              <div className="px-4 py-2 sm:py-3 bg-blue-500/10 border-b border-blue-500/20 flex flex-col items-center rounded-t-xl">
-                  <span className="text-blue-400 font-black tracking-widest text-[14px] sm:text-[16px] leading-tight">3:1 / 3:2</span>
-                  <span className="text-blue-500/70 text-[10px] sm:text-[11px] font-bold">晋级</span>
-              </div>
-              <div className="p-3 sm:p-5 flex flex-wrap gap-3 sm:gap-5 justify-center flex-1 items-center bg-zinc-950/40 rounded-b-xl">
-                  {slotsAdv.map(s => <SlotBox key={s.id} slot={s} readOnly={readOnly} border="border-blue-500/30" onDrop={onDrop} onClick={onClick} />)}
-              </div>
-          </div>
-          
           {/* 0:3 (2 Slots) */}
-          <div className="flex-1 flex flex-col bg-zinc-900/60 rounded-xl border border-rose-500/20 shadow-lg shadow-rose-500/5 relative">
-              <div className="px-4 py-2 sm:py-3 bg-rose-500/10 border-b border-rose-500/20 flex flex-col items-center rounded-t-xl">
+          <div className="flex flex-col bg-zinc-900/60 rounded-xl border border-rose-500/20 shadow-lg shadow-rose-500/5 relative xl:flex-1 col-span-1 xl:order-last">
+              <div className="px-2 py-2 sm:py-3 bg-rose-500/10 border-b border-rose-500/20 flex flex-col items-center rounded-t-xl">
                   <span className="text-rose-400 font-black tracking-widest text-[14px] sm:text-[16px] leading-tight">0:3</span>
                   <span className="text-rose-500/70 text-[10px] sm:text-[11px] font-bold">全败淘汰</span>
               </div>
-              <div className="p-3 sm:p-5 flex gap-3 sm:gap-5 justify-center flex-1 items-center bg-zinc-950/40 rounded-b-xl">
+              <div className="p-3 sm:p-5 flex gap-2 sm:gap-5 justify-center flex-1 items-center bg-zinc-950/40 rounded-b-xl flex-wrap">
                   {slots03.map(s => <SlotBox key={s.id} slot={s} readOnly={readOnly} border="border-rose-500/30" onDrop={onDrop} onClick={onClick} />)}
+              </div>
+          </div>
+
+          {/* Advance (6 Slots) */}
+          <div className="flex flex-col bg-zinc-900/60 rounded-xl border border-blue-500/20 shadow-lg shadow-blue-500/5 relative xl:flex-[2.5] col-span-2">
+              <div className="px-2 py-2 sm:py-3 bg-blue-500/10 border-b border-blue-500/20 flex flex-col items-center rounded-t-xl">
+                  <span className="text-blue-400 font-black tracking-widest text-[14px] sm:text-[16px] leading-tight">3:1 / 3:2</span>
+                  <span className="text-blue-500/70 text-[10px] sm:text-[11px] font-bold">晋级</span>
+              </div>
+              <div className="p-3 sm:p-5 flex flex-wrap gap-2 sm:gap-5 justify-center flex-1 items-center bg-zinc-950/40 rounded-b-xl">
+                  {slotsAdv.map(s => <SlotBox key={s.id} slot={s} readOnly={readOnly} border="border-blue-500/30" onDrop={onDrop} onClick={onClick} />)}
               </div>
           </div>
       </div>

@@ -3,15 +3,23 @@ import { BracketMatch, PickSlot } from '../types';
 export const MATCHES: Record<string, Record<string, BracketMatch[]>> = {
     stage1: {
         '0:0': [
-            { team1Id: 'm80', team2Id: 'lynn' },
-            { team1Id: 'sinners', team2Id: 'flyquest' },
-            { team1Id: 'b8', team2Id: 'tyloo' },
-            { team1Id: 'mibr', team2Id: 'thunder' },
-            { team1Id: 'gamerlegion', team2Id: 'nrg' },
-            { team1Id: 'heroic', team2Id: 'sharks' },
-            { team1Id: 'betboom', team2Id: 'gaimin' },
-            { team1Id: 'big', team2Id: 'liquid' }
-        ]
+            { team1Id: 'm80', team2Id: 'lynn', format: 'bo1' },
+            { team1Id: 'sinners', team2Id: 'flyquest', format: 'bo1' },
+            { team1Id: 'b8', team2Id: 'tyloo', format: 'bo1' },
+            { team1Id: 'mibr', team2Id: 'thunder', format: 'bo1' },
+            { team1Id: 'gamerlegion', team2Id: 'nrg', format: 'bo1' },
+            { team1Id: 'heroic', team2Id: 'sharks', format: 'bo1' },
+            { team1Id: 'betboom', team2Id: 'gaimin', format: 'bo1' },
+            { team1Id: 'big', team2Id: 'liquid', format: 'bo1' }
+        ],
+        '1:0': [],
+        '0:1': [],
+        '2:0': [],
+        '1:1': [],
+        '0:2': [],
+        '2:1': [],
+        '1:2': [],
+        '2:2': []
     },
     stage2: {},
     stage3: {},

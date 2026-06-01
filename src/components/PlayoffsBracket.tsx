@@ -1,9 +1,10 @@
 import React from 'react';
 import { PickSlot } from '../types';
 import { cn } from '../lib/utils';
-import { useFitScale } from '../utils/hooks';
 import { TEAMS } from '../data/teams';
+import { ACTUAL_RESULTS } from '../data/matches';
 import { TeamLogo } from './TeamLogo';
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 const W = 180;
 const H = 40;
@@ -71,7 +72,7 @@ const DrawPath: React.FC<{ fromId: string, toId: string }> = ({ fromId, toId }) 
 };
 
 const BracketSlot: React.FC<{ 
-    slot: PickSlot | undefined, 
+    slot: (PickSlot & { resultStatus?: 'correct'|'incorrect'|'unknown' }) | undefined, 
     readOnly: boolean, 
     onDrop: any, 
     onClick: any, 
@@ -93,8 +94,10 @@ const BracketSlot: React.FC<{
             onClick={readOnly ? undefined : () => slot && onClick && onClick(slot.id, slot.teamId)}
             className={cn(
                 "w-[180px] h-[40px] rounded-[6px] flex items-center px-3 gap-3 border transition-colors cursor-pointer relative overflow-hidden",
-                team ? "bg-zinc-900 border-white/20 hover:border-white/40" : "bg-zinc-950/40 border-white/10 border-dashed hover:border-zinc-500",
-                readOnly && !team && "opacity-60 cursor-default"
+                team ? "bg-zinc-800 border-white/20 hover:border-white/40 shadow-sm hover:bg-zinc-700/80" : "bg-zinc-800/40 border-white/20 hover:border-white/40 border-dashed shadow-inner text-zinc-400",
+                readOnly && !team && "opacity-60 cursor-default",
+                slot?.resultStatus === 'correct' ? "border-emerald-500/60 bg-emerald-500/15" : "",
+                slot?.resultStatus === 'incorrect' ? "border-rose-500/40 bg-rose-500/10" : ""
             )}
         >
             {team ? (
@@ -114,44 +117,73 @@ const BracketSlot: React.FC<{
 export const PlayoffsBracket: React.FC<{ 
   slots: PickSlot[], 
   readOnly?: boolean,
+  showResults?: boolean,
   onDrop?: (e: React.DragEvent, slotId: string) => void,
   onClick?: (slotId: string, teamId: string | null) => void,
-}> = ({ slots, readOnly = false, onDrop, onClick }) => {
-  const { containerRef, scale } = useFitScale(960, 640);
+}> = ({ slots, readOnly = false, showResults = false, onDrop, onClick }) => {
+  const getSlot = (id: string) => {
+      const baseSlot = slots.find(s => s.id === id || s.id === `playoffs-${id}`) || { id, type: id.split('-')[0] as any, teamId: null };
+      
+      if (!showResults) return baseSlot;
 
-  const getSlot = (id: string) => slots.find(s => s.id === id || s.id === `playoffs-${id}`);
+      // When showing results, evaluate correct/incorrect
+      const actuals = ACTUAL_RESULTS['playoffs'] || [];
+      const actualMatch = actuals.find(a => a.type === baseSlot.type && a.id.includes(id.replace('playoffs-', '')));
+      
+      let resultStatus: 'correct' | 'incorrect' | 'unknown' = 'unknown';
+      if (baseSlot.teamId) {
+          const isCorrect = actuals.some(a => a.teamId === baseSlot.teamId && a.type === baseSlot.type);
+          if (isCorrect) {
+              resultStatus = 'correct';
+          } else {
+              // If this slot type is fully filled in actuals, and this isn't correct, it's incorrect
+              const typeCount = actuals.filter(a => a.type === baseSlot.type).length;
+              const maxForType = baseSlot.type === 'qf' ? 8 : baseSlot.type === 'sf' ? 4 : baseSlot.type === 'final' ? 2 : 1;
+              if (typeCount >= maxForType) resultStatus = 'incorrect';
+          }
+      }
+      return { ...baseSlot, resultStatus };
+  };
 
   return (
-      <div ref={containerRef} className="w-full h-full flex flex-col items-center justify-center overflow-visible select-none z-10 min-w-0 min-h-0 relative py-8">
-          <div 
-             style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }} 
-             className="w-[960px] h-[640px] relative pointer-events-none transition-transform duration-75 flex-shrink-0"
+      <div className="w-full h-full flex flex-col items-center justify-center overflow-hidden z-10 relative">
+          <TransformWrapper
+              initialScale={1}
+              minScale={0.3}
+              maxScale={2}
+              centerOnInit={true}
+              wheel={{ step: 0.1 }}
+              panning={{ velocityDisabled: false }}
           >
-              <svg className="absolute inset-0 w-full h-full z-0 pointer-events-none" style={{ left: 0, top: 0 }}>
-                  {edges.map(([from, to], i) => <DrawPath key={i} fromId={from} toId={to} />)}
-              </svg>
+              <TransformComponent wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}>
+                  <div className="w-[960px] h-[640px] relative pointer-events-none transition-transform flex-shrink-0">
+                      <svg className="absolute inset-0 w-full h-full z-0 pointer-events-none" style={{ left: 0, top: 0 }}>
+                          {edges.map(([from, to], i) => <DrawPath key={i} fromId={from} toId={to} />)}
+                      </svg>
 
-              {Object.entries(nodes).map(([id, pos]) => {
-                  const isCol1 = id.startsWith('qf-');
-                  const emptyTitle = isCol1 ? '待定' : '作出您的选择';
-                  
-                  return (
-                      <div 
-                          key={id} 
-                          style={{ left: pos.x, top: pos.y }} 
-                          className="absolute pointer-events-auto shadow-sm"
-                      >
-                          <BracketSlot 
-                              slot={getSlot(id) || { id, type: id.split('-')[0] as any, teamId: null }} 
-                              readOnly={readOnly} 
-                              onDrop={onDrop} 
-                              onClick={onClick} 
-                              emptyTitle={emptyTitle} 
-                          />
-                      </div>
-                  );
-              })}
-          </div>
+                      {Object.entries(nodes).map(([id, pos]) => {
+                          const isCol1 = id.startsWith('qf-');
+                          const emptyTitle = isCol1 ? '待定' : '作出您的选择';
+                          
+                          return (
+                              <div 
+                                  key={id} 
+                                  style={{ left: pos.x, top: pos.y }} 
+                                  className="absolute pointer-events-auto shadow-sm"
+                              >
+                                  <BracketSlot 
+                                      slot={getSlot(id) || { id, type: id.split('-')[0] as any, teamId: null }} 
+                                      readOnly={readOnly || isCol1} 
+                                      onDrop={onDrop} 
+                                      onClick={onClick} 
+                                      emptyTitle={emptyTitle} 
+                                  />
+                              </div>
+                          );
+                      })}
+                  </div>
+              </TransformComponent>
+          </TransformWrapper>
       </div>
   );
 };

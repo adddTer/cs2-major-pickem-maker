@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { TEAMS, INITIAL_SLOTS, PLAYOFFS_SLOTS } from './data/teams';
 import { ACTUAL_RESULTS, MATCHES } from './data/matches';
 import { PickSlot, SlotType, PickSet } from './types';
 import { cn } from './lib/utils';
+import { ExportContext } from './lib/ExportContext';
 import { Trophy, RefreshCw, Clock, Users, Edit3, CheckCircle2, Home, CheckSquare, Square, Download, Copy } from 'lucide-react';
 import { SwissBracket } from './components/SwissBracket';
 import { PickEmDock } from './components/PickEmDock';
@@ -13,6 +14,8 @@ import { HomeView } from './views/HomeView';
 import { TeamLogo } from './components/TeamLogo';
 import { Modal } from './components/Modal';
 
+import { simulateSwiss } from './utils/simulateSwiss';
+
 export default function App() {
   type StageKey = 'stage1' | 'stage2' | 'stage3' | 'playoffs';
   type ViewMode = 'home' | 'edit' | 'summary';
@@ -20,6 +23,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [newNickname, setNewNickname] = useState('');
   const [activeStage, setActiveStage] = useState<StageKey>('stage1');
+  
   const [showResults, setShowResults] = useState(false);
   const [communityPicks, setCommunityPicks] = useState<PickSet[]>([]);
   const [currentPickSetId, setCurrentPickSetId] = useState<string | null>(null);
@@ -39,6 +43,7 @@ export default function App() {
   const [imageExportStyle, setImageExportStyle] = useState<'standard' | 'compact'>('standard');
   const [isExportingImage, setIsExportingImage] = useState(false);
   const [exportPreviewUrl, setExportPreviewUrl] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<'bracket' | 'picks'>('picks');
   const exportContainerRef = React.useRef<HTMLDivElement>(null);
 
   const handleGeneratePreview = async () => {
@@ -158,16 +163,10 @@ export default function App() {
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
       const mins = Math.floor((diff / (1000 * 60)) % 60);
-      
-      const formatTime = (d: Date) => {
-          const loc = (d.getTime() + 8 * 60 * 60 * 1000);
-          const dt = new Date(loc);
-          return `${dt.getUTCMonth()+1}月${dt.getUTCDate()}日 ${dt.getUTCHours().toString().padStart(2, '0')}:${dt.getUTCMinutes().toString().padStart(2, '0')}`;
-      };
 
-      if (days > 0) return `${formatTime(start)} 开始 (还剩 ${days} 天)`;
-      if (hours > 0) return `${formatTime(start)} 开始 (还剩 ${hours} 小时)`;
-      return `${formatTime(start)} 开始 (还剩 ${mins} 分钟)`;
+      if (days > 0) return `距离开始还剩 ${days}天 ${hours}小时`;
+      if (hours > 0) return `距离开始还剩 ${hours}小时 ${mins}分钟`;
+      return `距离开始还剩 ${mins}分钟`;
     }
     return `比赛进行中`;
   };
@@ -202,6 +201,10 @@ export default function App() {
     if (!currentPoolTeams.find(t => t.id === teamId)) return;
 
     setPicks(prev => {
+        if (activeStage === 'playoffs' && slotId.includes('qf-')) {
+            return prev; // Do not overwrite the pre-determined 8 teams
+        }
+
         const nextStage = [...(prev[activeStage] || defaultPicks[activeStage] || [])];
         const targetIdx = nextStage.findIndex(s => s.id === slotId);
         
@@ -304,6 +307,10 @@ export default function App() {
 
   const handleClear = (slotId: string) => {
       setPicks(prev => {
+          if (activeStage === 'playoffs' && slotId.includes('qf-')) {
+              return prev; // Do not clear the pre-determined 8 teams
+          }
+
           const nextStage = [...(prev[activeStage] || defaultPicks[activeStage] || [])];
           const idx = nextStage.findIndex(s => s.id === slotId);
           if (idx === -1) return prev;
@@ -340,7 +347,56 @@ export default function App() {
       });
   };
 
-  const getTeamRecords = (stage: string) => {
+  const getScheduledMatches = (stage: string) => {
+      const stageMatchesMap = MATCHES[stage];
+      if (!stageMatchesMap) return [];
+      
+      const scheduledMatches: { t1: string, t2: string }[] = [];
+      Object.values(stageMatchesMap).forEach(batch => {
+          batch.forEach(m => {
+              if (m.team1Id && m.team2Id && m.score1 === undefined && m.score2 === undefined) {
+                  scheduledMatches.push({ t1: m.team1Id, t2: m.team2Id });
+              }
+          });
+      });
+      return scheduledMatches;
+  };
+
+  const simulatedFutures = useMemo(() => {
+      if (activeStage === 'playoffs') return [];
+      
+      const stageMatchesMap = MATCHES[activeStage];
+      if (!stageMatchesMap) return [];
+      
+      const allTeamsSet = new Set<string>();
+      const pastMatches: { t1: string, t2: string, winner: string }[] = [];
+      const scheduledMatches: { t1: string, t2: string }[] = [];
+      
+      Object.values(stageMatchesMap).forEach(batch => {
+          batch.forEach(m => {
+              if (m.team1Id) allTeamsSet.add(m.team1Id);
+              if (m.team2Id) allTeamsSet.add(m.team2Id);
+              
+              if (m.team1Id && m.team2Id) {
+                  if (m.score1 !== undefined && m.score2 !== undefined) {
+                      const winner = m.score1 > m.score2 ? m.team1Id : (m.score2 > m.score1 ? m.team2Id : '');
+                      if (winner) {
+                          pastMatches.push({ t1: m.team1Id, t2: m.team2Id, winner });
+                      }
+                  } else {
+                      scheduledMatches.push({ t1: m.team1Id, t2: m.team2Id });
+                  }
+              }
+          });
+      });
+      
+      const allTeams = Array.from(allTeamsSet);
+      if (allTeams.length !== 16) return []; 
+
+      return simulateSwiss(allTeams, pastMatches, scheduledMatches, 200);
+  }, [activeStage]);
+
+  const getTeamRecords = useCallback((stage: string) => {
       const records: Record<string, { w: number; l: number }> = {};
       const matchesMap = MATCHES[stage] || {};
       
@@ -351,13 +407,30 @@ export default function App() {
           if (isNaN(w) || isNaN(l)) return;
           
           matches.forEach(m => {
+              const hasResult = m.score1 !== undefined && m.score2 !== undefined;
+              let t1Win = false;
+              let t2Win = false;
+              if (hasResult) {
+                 if (m.format === 'bo1') {
+                     t1Win = m.score1 === 1;
+                     t2Win = m.score2 === 1;
+                 } else {
+                     t1Win = m.score1 === 2;
+                     t2Win = m.score2 === 2;
+                 }
+              }
+
               if (m.team1Id) {
+                  const newW = w + (t1Win ? 1 : 0);
+                  const newL = l + (hasResult && !t1Win ? 1 : 0);
                   const cur = records[m.team1Id] || { w: 0, l: 0 };
-                  if (w + l >= cur.w + cur.l) records[m.team1Id] = { w, l };
+                  if (newW + newL >= cur.w + cur.l) records[m.team1Id] = { w: newW, l: newL };
               }
               if (m.team2Id) {
+                  const newW = w + (t2Win ? 1 : 0);
+                  const newL = l + (hasResult && !t2Win ? 1 : 0);
                   const cur = records[m.team2Id] || { w: 0, l: 0 };
-                  if (w + l >= cur.w + cur.l) records[m.team2Id] = { w, l };
+                  if (newW + newL >= cur.w + cur.l) records[m.team2Id] = { w: newW, l: newL };
               }
           });
       });
@@ -374,12 +447,31 @@ export default function App() {
           }
       });
       return records;
-  };
+  }, []);
 
-  const checkPrediction = (teamId: string | null, type: SlotType, stage: string): 'correct' | 'incorrect' | 'unknown' => {
+  const getComputedActuals = useCallback((stage: string) => {
+      let actuals = ACTUAL_RESULTS[stage] || [];
+      const records = getTeamRecords(stage);
+      
+      if (stage !== 'playoffs') {
+          const computedActuals: PickSlot[] = [];
+          Object.entries(records).forEach(([tid, r]) => {
+              if (r.w === 3 && r.l === 0) computedActuals.push({ id: `r30-${tid}`, type: '3-0', teamId: tid });
+              else if (r.w === 3 && r.l > 0) computedActuals.push({ id: `ra-${tid}`, type: 'advance', teamId: tid });
+              else if (r.l === 3 && r.w === 0) computedActuals.push({ id: `r03-${tid}`, type: '0-3', teamId: tid });
+              else if (r.l === 3 && r.w > 0) computedActuals.push({ id: `rx-${tid}`, type: 'eliminated' as any, teamId: tid });
+          });
+          actuals = [ ...actuals, ...computedActuals ];
+      }
+      return actuals;
+  }, [getTeamRecords]);
+
+  const activeStageActuals = useMemo(() => getComputedActuals(activeStage), [activeStage, getComputedActuals]);
+
+  const checkPrediction = useCallback((teamId: string | null, type: SlotType, stage: string): 'correct' | 'incorrect' | 'unknown' => {
       if (!teamId) return 'unknown';
       
-      const actuals = ACTUAL_RESULTS[stage] || [];
+      const actuals = getComputedActuals(stage);
       
       if (stage === 'playoffs') {
           if (!actuals || actuals.length === 0) return 'unknown';
@@ -402,11 +494,11 @@ export default function App() {
           const isCorrect = actuals.some(a => a.teamId === teamId && a.type === type);
           if (isCorrect) return 'correct';
           
-          // If they are in actuals but with a DIFFERENT type, e.g. picked 3-0 but got advance
-          // Wait, 'advance' pick is correct if the team is '3-0' or 'advance'.
           if (type === 'advance') {
               const actualType = actuals.find(a => a.teamId === teamId)?.type;
-              if (actualType === '3-0' || actualType === 'advance') return 'correct';
+              if (actualType === 'advance') return 'correct';
+              if (actualType === '3-0') return 'incorrect'; // 3-0 teams don't count for advance
+              if (actualType === '0-3') return 'incorrect';
           }
           return 'incorrect';
       }
@@ -417,10 +509,14 @@ export default function App() {
       
       if (type === '3-0') {
           if (record.l > 0) return 'incorrect'; 
+          if (record.w === 3 && record.l === 0) return 'correct';
       } else if (type === '0-3') {
           if (record.w > 0) return 'incorrect'; 
+          if (record.l === 3 && record.w === 0) return 'correct';
       } else if (type === 'advance') {
           if (record.l === 3) return 'incorrect'; 
+          if (record.w === 3 && record.l > 0) return 'correct';
+          if (record.w === 3 && record.l === 0) return 'incorrect'; // 3-0 doesn't count for normal advance slot
       }
       
       // Check if all spots for a type are filled
@@ -429,7 +525,7 @@ export default function App() {
       if (type === 'advance' && actuals.filter(a => a.type === 'advance' || a.type === '3-0').length >= 8) return 'incorrect';
       
       return 'unknown';
-  };
+  }, [getComputedActuals, getTeamRecords]);
 
   const getSetStatus = (theirPicks: PickSlot[], stage: string) => {
       if (stage === 'playoffs') return null;
@@ -447,26 +543,152 @@ export default function App() {
       if (filledPicks.length < 10) {
           return null;
       }
+
+      // Compute clashes based on scheduled matches
+      const clashes: { slotId: string, withSlotId: string, type: 'x-one' | 'x-fail' | 'x-pass' }[] = [];
+      const scheduled = getScheduledMatches(stage);
       
+      for (let i = 0; i < theirPicks.length; i++) {
+        for (let j = i + 1; j < theirPicks.length; j++) {
+            const p1 = theirPicks[i];
+            const p2 = theirPicks[j];
+            if (!p1.teamId || !p2.teamId) continue;
+            if (checkPrediction(p1.teamId, p1.type, stage) !== 'unknown') continue;
+            if (checkPrediction(p2.teamId, p2.type, stage) !== 'unknown') continue;
+            
+            const isPlaying = scheduled.some(m => 
+                (m.t1 === p1.teamId && m.t2 === p2.teamId) ||
+                (m.t1 === p2.teamId && m.t2 === p1.teamId)
+            );
+            
+            if (isPlaying) {
+                const r1 = records[p1.teamId];
+                if (r1) {
+                    if (r1.w === 2 && r1.l === 0) {
+                       if (p1.type === '3-0' && p2.type === '3-0') {
+                           clashes.push({ slotId: p1.id, withSlotId: p2.id, type: 'x-one' });
+                           clashes.push({ slotId: p2.id, withSlotId: p1.id, type: 'x-one' });
+                       } else if (p1.type === 'advance' && p2.type === 'advance') {
+                           clashes.push({ slotId: p1.id, withSlotId: p2.id, type: 'x-fail' });
+                           clashes.push({ slotId: p2.id, withSlotId: p1.id, type: 'x-fail' });
+                       }
+                    } else if (r1.w === 0 && r1.l === 2) {
+                       if (p1.type === '0-3' && p2.type === '0-3') {
+                           clashes.push({ slotId: p1.id, withSlotId: p2.id, type: 'x-one' });
+                           clashes.push({ slotId: p2.id, withSlotId: p1.id, type: 'x-one' });
+                       } else if (p1.type === 'advance' && p2.type === 'advance') {
+                           clashes.push({ slotId: p1.id, withSlotId: p2.id, type: 'x-fail' });
+                           clashes.push({ slotId: p2.id, withSlotId: p1.id, type: 'x-fail' });
+                       }
+                    } else if (r1.w === 2 && r1.l === 1) {
+                       if (p1.type === 'advance' && p2.type === 'advance') {
+                           clashes.push({ slotId: p1.id, withSlotId: p2.id, type: 'x-pass' });
+                           clashes.push({ slotId: p2.id, withSlotId: p1.id, type: 'x-pass' });
+                       }
+                    } else if (r1.w === 1 && r1.l === 2) {
+                       if (p1.type === 'advance' && p2.type === 'advance') {
+                           clashes.push({ slotId: p1.id, withSlotId: p2.id, type: 'x-fail' });
+                           clashes.push({ slotId: p2.id, withSlotId: p1.id, type: 'x-fail' });
+                       }
+                    } else if (r1.w === 2 && r1.l === 2) {
+                       if (p1.type === 'advance' && p2.type === 'advance') {
+                           clashes.push({ slotId: p1.id, withSlotId: p2.id, type: 'x-one' });
+                           clashes.push({ slotId: p2.id, withSlotId: p1.id, type: 'x-one' });
+                       }
+                    }
+                }
+            }
+        }
+      }
+
+      // Check baseline
       let guaranteed = 0;
-      let possible = 0;
+      let mathematicallyIncorrect = 0;
       theirPicks.forEach(p => {
+          if (!p.teamId) {
+             mathematicallyIncorrect++;
+             return;
+          }
           const status = checkPrediction(p.teamId, p.type, stage);
           if (status === 'correct') guaranteed++;
-          else if (status === 'unknown') possible++;
+          else if (status === 'incorrect') mathematicallyIncorrect++;
       });
+      
+      // Apply exact bounds from deterministic internal clashes
+      const processedClashes = new Set<string>();
+      clashes.forEach(c => {
+          const pairKey = [c.slotId, c.withSlotId].sort().join('-');
+          if (processedClashes.has(pairKey)) return;
+          processedClashes.add(pairKey);
+          
+          if (c.type === 'x-pass') {
+              guaranteed++;
+          } else if (c.type === 'x-fail') {
+              mathematicallyIncorrect++;
+          } else if (c.type === 'x-one') {
+              guaranteed++;
+              mathematicallyIncorrect++;
+          }
+      });
+      
+      let possible = 10 - guaranteed - mathematicallyIncorrect;
+      if (possible < 0) possible = 0;
+      
+      let passingProbability = 0;
+      
+      if (simulatedFutures.length > 0) {
+          let maxPossibleScore = 0;
+          let minPossibleScore = 15;
+          let passingFuturesCount = 0;
+
+          simulatedFutures.forEach(future => {
+              let score = 0;
+              theirPicks.forEach(p => {
+                  if (!p.teamId) return;
+                  const status = checkPrediction(p.teamId, p.type, stage);
+                  if (status === 'correct') {
+                      score++;
+                  } else if (status === 'unknown') {
+                      if (p.type === '3-0' && future.teams30.has(p.teamId)) score++;
+                      else if (p.type === '0-3' && future.teams03.has(p.teamId)) score++;
+                      else if (p.type === 'advance' && future.teamsAdvance.has(p.teamId)) score++;
+                  }
+              });
+              if (score >= 5) passingFuturesCount++;
+              if (score > maxPossibleScore) maxPossibleScore = score;
+              if (score < minPossibleScore) minPossibleScore = score;
+          });
+          
+          passingProbability = passingFuturesCount / simulatedFutures.length;
+
+          const simulatedPossible = Math.max(0, maxPossibleScore - guaranteed);
+          if (simulatedPossible < possible) {
+              possible = simulatedPossible;
+          }
+          if (minPossibleScore > guaranteed) {
+              guaranteed = minPossibleScore;
+              // mathematicallyIncorrect goes up because possible also shrinks relatively
+              possible = Math.max(0, maxPossibleScore - guaranteed);
+          }
+      }
       
       let statusId = 'unknown';
       if (guaranteed >= 5) statusId = 'passed';
       else if (guaranteed + possible < 5) statusId = 'failed';
       else {
-          const needed = 5 - Math.max(guaranteed, 0);
-          const ratio = needed / (possible || 1);
-          if (ratio <= 0.4) statusId = 'great_chance';
-          else if (ratio > 0.7) statusId = 'slim_chance';
-          else statusId = 'uncertain';
+          if (simulatedFutures.length > 0) {
+              if (passingProbability >= 0.8) statusId = 'great_chance';
+              else if (passingProbability <= 0.2) statusId = 'slim_chance';
+              else statusId = 'uncertain';
+          } else {
+              const needed = 5 - Math.max(guaranteed, 0);
+              const margin = possible - needed;
+              if (margin >= 3) statusId = 'great_chance';
+              else if (margin === 0) statusId = 'slim_chance';
+              else statusId = 'uncertain';
+          }
       }
-      return { statusId, guaranteed, possible };
+      return { statusId, guaranteed, mathematicallyIncorrect, possible, passingProbability, clashes };
   };
 
   const getStatusStyles = (statusData: ReturnType<typeof getSetStatus>) => {
@@ -483,37 +705,45 @@ export default function App() {
 
   const PickSetStatusText = ({ statusData }: { statusData: ReturnType<typeof getSetStatus> }) => {
       if (!statusData) return null;
-      const { statusId, guaranteed, possible } = statusData;
+      const { statusId, guaranteed, mathematicallyIncorrect } = statusData;
+      
+      const countsNode = (
+        <span className="flex items-center gap-1.5 ml-2 font-mono bg-black/20 px-1.5 py-0.5 rounded text-[10px]">
+            <span className="text-emerald-400">✓ {guaranteed}</span>
+            <span className="text-zinc-600/80">|</span>
+            <span className="text-rose-400 text-[11px]">✗</span><span className="text-rose-400 -ml-0.5">{mathematicallyIncorrect}</span>
+        </span>
+      );
       
       switch (statusId) {
           case 'passed':
               return (
-                  <div className="text-emerald-400 text-[11px] font-bold shrink-0 opacity-90">
-                      已达成
+                  <div className="flex items-center text-emerald-400 text-[11px] font-bold shrink-0 opacity-90">
+                      已达成 {countsNode}
                   </div>
               );
           case 'failed':
               return (
-                  <div className="text-rose-500 text-[11px] font-bold shrink-0 opacity-90">
-                      未达成
+                  <div className="flex items-center text-rose-500 text-[11px] font-bold shrink-0 opacity-90">
+                      未达成 {countsNode}
                   </div>
               );
           case 'great_chance':
               return (
-                  <div className="text-blue-400 text-[11px] font-bold shrink-0 opacity-90" title={`需要${5 - guaranteed}题，剩余${possible}题`}>
-                      形势大好 {guaranteed}/5通过
+                  <div className="flex items-center text-blue-400 text-[11px] font-bold shrink-0 opacity-90">
+                      形势大好 {countsNode}
                   </div>
               );
           case 'uncertain':
               return (
-                  <div className="text-amber-500 text-[11px] font-bold shrink-0 opacity-90" title={`需要${5 - guaranteed}题，剩余${possible}题`}>
-                      胜负难测 {guaranteed}/5通过
+                  <div className="flex items-center text-amber-500 text-[11px] font-bold shrink-0 opacity-90">
+                      胜负难测 {countsNode}
                   </div>
               );
           case 'slim_chance':
               return (
-                  <div className="text-orange-500 text-[11px] font-bold shrink-0 opacity-90" title={`需要${5 - guaranteed}题，剩余${possible}题`}>
-                      希望渺茫 {guaranteed}/5通过
+                  <div className="flex items-center text-orange-500 text-[11px] font-bold shrink-0 opacity-90">
+                      希望渺茫 {countsNode}
                   </div>
               );
           default:
@@ -667,7 +897,10 @@ export default function App() {
                           onClick={() => {
                               setPicks(prev => ({
                                 ...prev,
-                                [activeStage]: (prev[activeStage] || defaultPicks[activeStage] || []).map(s => ({ ...s, teamId: undefined }))
+                                [activeStage]: (prev[activeStage] || defaultPicks[activeStage] || []).map(s => {
+                                    if (activeStage === 'playoffs' && s.id.includes('qf-')) return s;
+                                    return { ...s, teamId: undefined };
+                                })
                               }));
                           }}
                           className="p-1.5 border border-white/10 hover:bg-white/20 rounded-[3px] transition-colors opacity-80 text-zinc-400 group flex items-center justify-center w-7 h-7"
@@ -678,16 +911,25 @@ export default function App() {
                     </div>
                 </div>
                 {/* Content Area */}
-                <div className="flex-1 flex flex-col xl:flex-row min-h-0 overflow-hidden relative">
+                <div className="flex-1 flex flex-col xl:flex-row overflow-y-auto xl:overflow-hidden min-h-0 relative">
+                  
+                  {/* Mobile View Toggle */}
+                  {activeStage !== 'playoffs' && (
+                      <div className="xl:hidden flex items-center justify-center p-3 bg-zinc-900 border-b border-white/5 gap-3 shrink-0 z-20 sticky top-0">
+                          <button onClick={() => setMobileView('picks')} className={cn("flex-1 py-2.5 text-sm font-bold rounded-[8px] transition-all", mobileView === 'picks' ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/20 shadow-inner' : 'text-zinc-500 bg-black/20 hover:text-zinc-300 border border-transparent')}>选择竞猜</button>
+                          <button onClick={() => setMobileView('bracket')} className={cn("flex-1 py-2.5 text-sm font-bold rounded-[8px] transition-all", mobileView === 'bracket' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20 shadow-inner' : 'text-zinc-500 bg-black/20 hover:text-zinc-300 border border-transparent')}>查看对阵图</button>
+                      </div>
+                  )}
+
                   {/* Team Drag Source Pool */}
                   {activeStage !== 'playoffs' && (
-                    <div className="w-full xl:w-[320px] max-h-[35vh] xl:max-h-none p-4 lg:p-6 flex flex-col min-h-0 overflow-hidden border-b xl:border-r border-white/5 bg-zinc-900/30 shrink-0 z-10 shadow-[5px_0_15px_rgba(0,0,0,0.2)]">
+                    <div className={cn("w-full xl:w-[320px] p-4 lg:p-6 flex-col border-b xl:border-r border-white/5 bg-zinc-900/30 shrink-0 z-10 xl:overflow-hidden", mobileView === 'picks' ? 'flex' : 'hidden xl:flex')}>
                         <div className="text-[12px] font-bold text-zinc-400 mb-2 xl:mb-6 flex items-center gap-2">
                             <Clock className="w-4 h-4 opacity-60"/> {getStageStatus(activeStage)}
                         </div>
                         
                         <div className="flex items-center gap-2 mb-4">
-                            <div className="w-[24px] h-[24px] bg-black/40 flex items-center justify-center rounded-full opacity-60">
+                            <div className="w-[24px] h-[24px] bg-black/40 flex items-center justify-center rounded-full opacity-60 shrink-0">
                               <div className="w-[14px] h-[14px] border-2 border-dashed border-zinc-500 rounded-full"></div>
                             </div>
                             <p className="text-[11px] text-zinc-500 font-medium">点击队伍选择，然后点击下方槽位填入；或直接拖动。</p>
@@ -699,7 +941,7 @@ export default function App() {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-4 sm:grid-cols-6 xl:grid-cols-3 gap-3 flex-1 content-start overflow-y-auto pr-2 pb-2 xl:pb-10 min-h-[50px] custom-scrollbar">
+                        <div className="grid grid-rows-2 grid-flow-col auto-cols-max overflow-x-auto xl:auto-cols-auto xl:grid-rows-none xl:grid-flow-row xl:grid-cols-3 gap-2 sm:gap-3 flex-none xl:flex-1 content-start xl:overflow-y-auto pr-2 pb-2 xl:pb-10 custom-scrollbar">
                             {currentPoolTeams.map(team => {
                                 const isPlaced = currentSlots.some(s => s.teamId === team.id);
                                 const isSelected = selectedTeamId === team.id;
@@ -713,12 +955,12 @@ export default function App() {
                                           setSelectedTeamId(isSelected ? null : team.id);
                                       }}
                                       className={cn(
-                                        "w-12 h-12 sm:w-[76px] sm:h-[76px] mx-auto flex items-center justify-center rounded-[6px] transition-all bg-black/20 hover:bg-white/10",
+                                        "w-[48px] h-[48px] sm:w-[68px] sm:h-[68px] xl:w-[76px] xl:h-[76px] xl:mx-auto flex items-center justify-center rounded-[6px] transition-all bg-black/20 hover:bg-white/10 shrink-0",
                                         isPlaced ? "opacity-15 grayscale pointer-events-none" : "cursor-pointer active:cursor-grabbing border",
                                         isSelected ? "border-blue-500 bg-blue-500/10 shadow-[0_0_10px_rgba(59,130,246,0.5)]" : "border-transparent hover:border-white/20 hover:shadow-md"
                                       )}
                                   >
-                                      <div className="w-8 h-8 sm:w-[54px] sm:h-[54px] flex items-center justify-center pointer-events-none">
+                                      <div className="w-[32px] h-[32px] sm:w-[46px] sm:h-[46px] xl:w-[54px] xl:h-[54px] flex items-center justify-center pointer-events-none">
                                         <TeamLogo team={team} fallbackClasses="rounded-[4px] text-[10px] sm:text-[15px]" />
                                       </div>
                                   </div>
@@ -729,11 +971,20 @@ export default function App() {
                   )}
                   
                   {/* Main PickEm Area Layout */}
-                  <div className="flex-1 flex flex-col min-w-0 bg-zinc-950/20 overflow-hidden xl:mx-4 xl:my-4 rounded-xl xl:border border-white/5 relative shadow-inner">
+                  <div className={cn("flex-1 flex flex-col min-w-0 overflow-hidden relative", mobileView === 'picks' && activeStage !== 'playoffs' ? 'bg-transparent' : 'bg-zinc-950/20 xl:mx-4 xl:my-4 rounded-xl xl:border border-white/5 shadow-inner')}>
                       {activeStage === 'playoffs' ? (
-                          <div className="flex-1 w-full h-full overflow-auto custom-scrollbar">
+                          <div className="flex-1 w-full min-h-[60vh] h-full relative">
+                              <div className="absolute top-4 right-4 z-20">
+                                  <button
+                                    onClick={() => setShowResults(!showResults)}
+                                    className={cn("px-3 py-1.5 border border-white/10 rounded-[3px] transition-colors text-[11px] font-bold", showResults ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]" : "bg-black/40 hover:bg-white/10 text-zinc-400")}
+                                  >
+                                    {showResults ? "隐藏实际赛果" : "展示比赛结果"}
+                                  </button>
+                              </div>
                               <PlayoffsBracket 
                                 slots={currentSlots} 
+                                showResults={showResults}
                                 onDrop={handleDrop}
                                 onClick={(slotId, teamId) => {
                                     if (selectedTeamId) {
@@ -767,27 +1018,40 @@ export default function App() {
                       ) : (
                           <>
                               {/* Top: Mock Background Swiss Bracket */}
-                              <div className="flex-1 min-h-[300px] items-center justify-center relative overflow-hidden hidden xl:flex">
+                              <div className={cn("w-full xl:flex-1 h-full xl:h-auto items-center justify-center relative overflow-hidden bg-zinc-950/40", mobileView === 'bracket' ? 'flex flex-1' : 'hidden xl:flex')}>
                                 <SwissBracket activeStage={activeStage} />
                               </div>
                               
                               {/* Bottom: Playable Slots */}
-                              <div className="w-full bg-zinc-950/80 backdrop-blur-md shrink-0 shadow-[0_-15px_30px_rgba(0,0,0,0.5)] border-t border-white/5 z-20 overflow-y-auto p-4 xl:p-6 pb-6 relative flex-1 xl:flex-none">
-                                  <PickEmDock 
-                                    slots={currentSlots} 
-                                    showResults={showResults} 
-                                    onToggleResults={() => setShowResults(!showResults)} 
-                                    onDrop={handleDrop}
-                                    onClick={(slotId, teamId) => {
-                                        if (selectedTeamId) {
-                                          handleAssignSlot(selectedTeamId, slotId);
-                                          setSelectedTeamId(null);
-                                        } else if (teamId) {
-                                          handleClear(slotId);
-                                        }
-                                    }}
-                                  />
-                              </div>
+                              {(() => {
+                                  const statusData = activeStage !== 'playoffs' ? getSetStatus(currentSlots, activeStage) : null;
+                                  return (
+                                      <div className={cn("w-full bg-zinc-950/80 backdrop-blur-md shrink-0 shadow-[0_-15px_30px_rgba(0,0,0,0.5)] border-t border-white/5 z-20 overflow-y-auto p-4 xl:p-6 pb-6 lg:flex-none relative", mobileView === 'picks' ? 'flex-1 xl:flex-none block' : 'hidden xl:block')}>
+                                          <PickEmDock 
+                                            slots={currentSlots.map(s => {
+                                                const clash = statusData?.clashes?.find(c => c.slotId === s.id);
+                                                return { 
+                                                    ...s, 
+                                                    resultStatus: showResults ? checkPrediction(s.teamId, s.type, activeStage) : undefined, 
+                                                    clashType: !showResults ? clash?.type : undefined 
+                                                };
+                                            })} 
+                                            actualResults={activeStageActuals}
+                                            showResults={showResults} 
+                                            onToggleResults={() => setShowResults(!showResults)} 
+                                            onDrop={handleDrop}
+                                            onClick={(slotId, teamId) => {
+                                                if (selectedTeamId) {
+                                                  handleAssignSlot(selectedTeamId, slotId);
+                                                  setSelectedTeamId(null);
+                                                } else if (teamId) {
+                                                  handleClear(slotId);
+                                                }
+                                            }}
+                                          />
+                                      </div>
+                                  );
+                              })()}
                           </>
                       )}
                   </div>
@@ -838,16 +1102,16 @@ export default function App() {
                           </div>
                           {activeStage === 'playoffs' ? (
                               <MiniPlayoffsBracket 
-                                  slots={PLAYOFFS_SLOTS.map((s, i) => ({ ...s, teamId: ACTUAL_RESULTS[activeStage]?.filter(x => x.type === s.type)[i]?.teamId || ACTUAL_RESULTS[activeStage]?.[i]?.teamId, resultStatus: 'unknown' }))}
+                                  slots={PLAYOFFS_SLOTS.map((s, i) => ({ ...s, teamId: ACTUAL_RESULTS[activeStage]?.filter(x => x.type === s.type)[i]?.teamId || undefined, resultStatus: 'unknown' }))}
                               />
                           ) : (
                               <MiniPicksDisplay 
                                   title30="3:0 晋级"
-                                  slots30={Array(2).fill(null).map((_, i) => ({ id: `r30-${i}`, type: '3-0' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === '3-0')[i]?.teamId || ACTUAL_RESULTS[activeStage]?.[i]?.teamId, resultStatus: 'unknown' }))}
+                                  slots30={Array(2).fill(null).map((_, i) => ({ id: `r30-${i}`, type: '3-0' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === '3-0')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
                                   titleAdvance="3:1 3:2 晋级"
-                                  slotsAdvance={Array(6).fill(null).map((_, i) => ({ id: `ra-${i}`, type: 'advance' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === 'advance')[i]?.teamId || ACTUAL_RESULTS[activeStage]?.[i+2]?.teamId, resultStatus: 'unknown' }))}
+                                  slotsAdvance={Array(6).fill(null).map((_, i) => ({ id: `ra-${i}`, type: 'advance' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === 'advance')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
                                   title03="0:3 淘汰"
-                                  slots03={Array(2).fill(null).map((_, i) => ({ id: `r03-${i}`, type: '0-3' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === '0-3')[i]?.teamId || ACTUAL_RESULTS[activeStage]?.[i+8]?.teamId, resultStatus: 'unknown' }))}
+                                  slots03={Array(2).fill(null).map((_, i) => ({ id: `r03-${i}`, type: '0-3' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === '0-3')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
                               />
                           )}
                       </div>
@@ -877,6 +1141,9 @@ export default function App() {
                               );
                           }
 
+                          const statusData = getSetStatus(theirPicks, activeStage);
+                          const statusStyles = getStatusStyles(statusData);
+
                           const picks30 = theirPicks.filter(s => s.type === '3-0');
                           const sorted30Picks = [...picks30].sort((a, b) => {
                             const aKey = a.teamId ? `adv-${a.teamId}` : null;
@@ -887,7 +1154,10 @@ export default function App() {
                             const freqDiff = (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0);
                             if (freqDiff !== 0) return freqDiff;
                             return a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => ({ ...s, resultStatus: checkPrediction(s.teamId, '3-0', activeStage) }));
+                          }).map(s => {
+                              const clash = statusData?.clashes?.find(c => c.slotId === s.id);
+                              return { ...s, resultStatus: showResults ? checkPrediction(s.teamId, '3-0', activeStage) : undefined, clashType: !showResults ? clash?.type : undefined };
+                          });
 
                           const picksAdvance = theirPicks.filter(s => s.type === 'advance');
                           const sortedAdvancePicks = [...picksAdvance].sort((a, b) => {
@@ -899,7 +1169,10 @@ export default function App() {
                             const freqDiff = (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0);
                             if (freqDiff !== 0) return freqDiff;
                             return a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => ({ ...s, resultStatus: checkPrediction(s.teamId, 'advance', activeStage) }));
+                          }).map(s => {
+                              const clash = statusData?.clashes?.find(c => c.slotId === s.id);
+                              return { ...s, resultStatus: showResults ? checkPrediction(s.teamId, 'advance', activeStage) : undefined, clashType: !showResults ? clash?.type : undefined };
+                          });
 
                           const elimPicks = theirPicks.filter(s => s.type === '0-3');
                           const sortedElimPicks = [...elimPicks].sort((a, b) => {
@@ -911,10 +1184,10 @@ export default function App() {
                             const freqDiff = (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0);
                             if (freqDiff !== 0) return freqDiff;
                             return a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => ({ ...s, resultStatus: checkPrediction(s.teamId, '0-3', activeStage) }));
-                          
-                          const statusData = getSetStatus(theirPicks, activeStage);
-                          const statusStyles = getStatusStyles(statusData);
+                          }).map(s => {
+                              const clash = statusData?.clashes?.find(c => c.slotId === s.id);
+                              return { ...s, resultStatus: showResults ? checkPrediction(s.teamId, '0-3', activeStage) : undefined, clashType: !showResults ? clash?.type : undefined };
+                          });
                           
                           return (
                               <div key={participant.id} className={cn("p-4 rounded-lg flex flex-col gap-4 border", statusStyles.bg, statusStyles.border)}>
@@ -1052,12 +1325,13 @@ export default function App() {
 
       {/* Hidden container for image export */}
       {(showImageExportModal || isExportingImage) && (
-          <div className="absolute left-[-9999px] top-[-9999px]">
-              <div 
-                  ref={exportContainerRef} 
-                  className="bg-[#070b09] p-8 w-max min-w-[500px] max-w-[1000px] flex flex-col gap-6"
-                  style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif' }}
-              >
+          <ExportContext.Provider value={true}>
+              <div className="absolute left-[-9999px] top-[-9999px]">
+                  <div 
+                      ref={exportContainerRef} 
+                      className="bg-[#070b09] p-8 w-max min-w-[500px] max-w-[1200px] flex flex-col gap-6"
+                      style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif' }}
+                  >
                   <div className="flex flex-col items-center justify-center border-b border-white/10 pb-6 mb-2">
                        <h1 className="text-2xl font-black text-white tracking-widest flex items-center gap-2">IEM Cologne 2026 - {activeStage === 'stage1' ? '第一阶段' : activeStage === 'stage2' ? '第二阶段' : activeStage === 'stage3' ? '第三阶段' : '决胜阶段'}</h1>
                   </div>
@@ -1066,23 +1340,25 @@ export default function App() {
                           <div className="flex items-center gap-2 border-b border-emerald-500/20 pb-3">
                               <h3 className="text-base font-bold text-emerald-400 tracking-wider">实际比赛结果</h3>
                           </div>
-                          {activeStage === 'playoffs' ? (
-                              <MiniPlayoffsBracket 
-                                  slots={PLAYOFFS_SLOTS.map((s, i) => ({ ...s, teamId: ACTUAL_RESULTS[activeStage]?.[i]?.teamId, resultStatus: 'unknown' }))}
-                                  showTeamNames={imageExportShowTeamNames}
-                              />
-                          ) : (
-                              <MiniPicksDisplay 
-                                  title30="3:0 晋级"
-                                  slots30={Array(2).fill(null).map((_, i) => ({ id: `r30-${i}`, type: '3-0' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.[i]?.teamId, resultStatus: 'unknown' }))}
-                                  titleAdvance="3:1 3:2 晋级"
-                                  slotsAdvance={Array(6).fill(null).map((_, i) => ({ id: `ra-${i}`, type: 'advance' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.[i+2]?.teamId, resultStatus: 'unknown' }))}
-                                  title03="0:3 淘汰"
-                                  slots03={Array(2).fill(null).map((_, i) => ({ id: `r03-${i}`, type: '0-3' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.[i+8]?.teamId, resultStatus: 'unknown' }))}
-                                  compact={false}
-                                  showTeamNames={imageExportShowTeamNames}
-                              />
-                          )}
+                    {activeStage === 'playoffs' ? (
+                        <MiniPlayoffsBracket 
+                            slots={PLAYOFFS_SLOTS.map((s, i) => ({ ...s, teamId: ACTUAL_RESULTS[activeStage]?.filter(x => x.type === s.type)[i]?.teamId || undefined, resultStatus: 'unknown' }))}
+                            showTeamNames={imageExportShowTeamNames}
+                            isExport={true}
+                        />
+                    ) : (
+                        <MiniPicksDisplay 
+                            title30="3:0 晋级"
+                            slots30={Array(2).fill(null).map((_, i) => ({ id: `r30-${i}`, type: '3-0' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === '3-0')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
+                            titleAdvance="3:1 3:2 晋级"
+                            slotsAdvance={Array(6).fill(null).map((_, i) => ({ id: `ra-${i}`, type: 'advance' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === 'advance')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
+                            title03="0:3 淘汰"
+                            slots03={Array(2).fill(null).map((_, i) => ({ id: `r03-${i}`, type: '0-3' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === '0-3')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
+                            compact={false}
+                            showTeamNames={imageExportShowTeamNames}
+                            isExport={true}
+                        />
+                    )}
                       </div>
                   )}
                   <div className={`grid ${imageExportStyle === 'compact' ? 'grid-cols-1 gap-0 bg-zinc-900/80 border border-white/5 rounded-lg shadow-sm overflow-hidden' : 'grid-cols-1 gap-6'}`}>
@@ -1092,20 +1368,22 @@ export default function App() {
                                <div className="flex-1">
                                    {activeStage === 'playoffs' ? (
                                        <MiniPlayoffsBracket 
-                                           slots={PLAYOFFS_SLOTS.map((s, i) => ({ ...s, teamId: ACTUAL_RESULTS[activeStage]?.filter(x => x.type === s.type)[i]?.teamId || ACTUAL_RESULTS[activeStage]?.[i]?.teamId, resultStatus: 'unknown' }))}
+                                           slots={PLAYOFFS_SLOTS.map((s, i) => ({ ...s, teamId: ACTUAL_RESULTS[activeStage]?.filter(x => x.type === s.type)[i]?.teamId || undefined, resultStatus: 'unknown' }))}
                                            compact={true}
                                            showTeamNames={imageExportShowTeamNames}
+                                           isExport={true}
                                        />
                                    ) : (
                                        <MiniPicksDisplay 
                                            title30="3:0 晋级"
-                                           slots30={Array(2).fill(null).map((_, i) => ({ id: `r30-${i}`, type: '3-0' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === '3-0')[i]?.teamId || ACTUAL_RESULTS[activeStage]?.[i]?.teamId, resultStatus: 'unknown' }))}
+                                           slots30={Array(2).fill(null).map((_, i) => ({ id: `r30-${i}`, type: '3-0' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === '3-0')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
                                            titleAdvance="3:1 3:2 晋级"
-                                           slotsAdvance={Array(6).fill(null).map((_, i) => ({ id: `ra-${i}`, type: 'advance' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === 'advance')[i]?.teamId || ACTUAL_RESULTS[activeStage]?.[i+2]?.teamId, resultStatus: 'unknown' }))}
+                                           slotsAdvance={Array(6).fill(null).map((_, i) => ({ id: `ra-${i}`, type: 'advance' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === 'advance')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
                                            title03="0:3 淘汰"
-                                           slots03={Array(2).fill(null).map((_, i) => ({ id: `r03-${i}`, type: '0-3' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === '0-3')[i]?.teamId || ACTUAL_RESULTS[activeStage]?.[i+8]?.teamId, resultStatus: 'unknown' }))}
+                                           slots03={Array(2).fill(null).map((_, i) => ({ id: `r03-${i}`, type: '0-3' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter(s => s.type === '0-3')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
                                            compact={true}
                                            showTeamNames={imageExportShowTeamNames}
+                                           isExport={true}
                                        />
                                    )}
                                </div>
@@ -1132,11 +1410,15 @@ export default function App() {
                                                })}
                                                compact={imageExportStyle === 'compact'}
                                                showTeamNames={imageExportShowTeamNames}
+                                               isExport={true}
                                            />
                                        </div>
                                    </div>
                               );
                           }
+
+                          const statusData = getSetStatus(theirPicks, activeStage);
+                          const statusStyles = getStatusStyles(statusData);
 
                           const picks30 = theirPicks.filter(s => s.type === '3-0');
                           const sorted30Picks = [...picks30].sort((a, b) => {
@@ -1146,7 +1428,10 @@ export default function App() {
                             if (!aKey) return 1;
                             if (!bKey) return -1;
                             return (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0) || a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => ({ ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, '3-0', activeStage) : undefined }));
+                          }).map(s => {
+                              const clash = statusData?.clashes?.find(c => c.slotId === s.id);
+                              return { ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, '3-0', activeStage) : undefined, clashType: !imageExportIncludeResults ? clash?.type : undefined };
+                          });
 
                           const picksAdvance = theirPicks.filter(s => s.type === 'advance');
                           const sortedAdvancePicks = [...picksAdvance].sort((a, b) => {
@@ -1156,7 +1441,10 @@ export default function App() {
                             if (!aKey) return 1;
                             if (!bKey) return -1;
                             return (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0) || a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => ({ ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, 'advance', activeStage) : undefined }));
+                          }).map(s => {
+                              const clash = statusData?.clashes?.find(c => c.slotId === s.id);
+                              return { ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, 'advance', activeStage) : undefined, clashType: !imageExportIncludeResults ? clash?.type : undefined };
+                          });
 
                           const elimPicks = theirPicks.filter(s => s.type === '0-3');
                           const sortedElimPicks = [...elimPicks].sort((a, b) => {
@@ -1166,10 +1454,10 @@ export default function App() {
                             if (!aKey) return 1;
                             if (!bKey) return -1;
                             return (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0) || a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => ({ ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, '0-3', activeStage) : undefined }));
-                          
-                          const statusData = getSetStatus(theirPicks, activeStage);
-                          const statusStyles = getStatusStyles(statusData);
+                          }).map(s => {
+                              const clash = statusData?.clashes?.find(c => c.slotId === s.id);
+                              return { ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, '0-3', activeStage) : undefined, clashType: !imageExportIncludeResults ? clash?.type : undefined };
+                          });
                           
                           if (imageExportStyle === 'compact') {
                               return (
@@ -1188,6 +1476,7 @@ export default function App() {
                                               slots03={sortedElimPicks}
                                               compact={true}
                                               showTeamNames={imageExportShowTeamNames}
+                                              isExport={true}
                                           />
                                       </div>
                                   </div>
@@ -1208,6 +1497,7 @@ export default function App() {
                                     title03="0:3 淘汰"
                                     slots03={sortedElimPicks}
                                     showTeamNames={imageExportShowTeamNames}
+                                    isExport={true}
                                 />
                               </div>
                           )
@@ -1215,6 +1505,7 @@ export default function App() {
                   </div>
               </div>
           </div>
+          </ExportContext.Provider>
       )}
     </>
   );
