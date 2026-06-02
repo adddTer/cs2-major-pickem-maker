@@ -597,6 +597,15 @@ export default function App() {
                            clashes.push({ slotId: p1.id, withSlotId: p2.id, type: 'x-one' });
                            clashes.push({ slotId: p2.id, withSlotId: p1.id, type: 'x-one' });
                        }
+                    } else {
+                       if ((r1.w === 0 || r1.w === 1) && r1.l === 0 && p1.type === '3-0' && p2.type === '3-0') {
+                           clashes.push({ slotId: p1.id, withSlotId: p2.id, type: 'x-fail' });
+                           clashes.push({ slotId: p2.id, withSlotId: p1.id, type: 'x-fail' });
+                       }
+                       if (r1.w === 0 && (r1.l === 0 || r1.l === 1) && p1.type === '0-3' && p2.type === '0-3') {
+                           clashes.push({ slotId: p1.id, withSlotId: p2.id, type: 'x-fail' });
+                           clashes.push({ slotId: p2.id, withSlotId: p1.id, type: 'x-fail' });
+                       }
                     }
                 }
             }
@@ -606,22 +615,17 @@ export default function App() {
       // Check baseline
       let guaranteed = 0;
       let mathematicallyIncorrect = 0;
-      let actualCorrect = 0;
-      let actualIncorrect = 0;
       theirPicks.forEach(p => {
           if (!p.teamId) {
              mathematicallyIncorrect++;
-             actualIncorrect++;
              return;
           }
           const status = checkPrediction(p.teamId, p.type, stage);
           if (status === 'correct') {
               guaranteed++;
-              actualCorrect++;
           }
           else if (status === 'incorrect') {
               mathematicallyIncorrect++;
-              actualIncorrect++;
           }
       });
       
@@ -676,11 +680,6 @@ export default function App() {
           if (simulatedPossible < possible) {
               possible = simulatedPossible;
           }
-          if (minPossibleScore > guaranteed) {
-              guaranteed = minPossibleScore;
-              // mathematicallyIncorrect goes up because possible also shrinks relatively
-              possible = Math.max(0, maxPossibleScore - guaranteed);
-          }
       }
       
       let statusId = 'unknown';
@@ -699,7 +698,7 @@ export default function App() {
               else statusId = 'uncertain';
           }
       }
-      return { statusId, guaranteed, mathematicallyIncorrect, actualCorrect, actualIncorrect, possible, passingProbability, clashes };
+      return { statusId, guaranteed, mathematicallyIncorrect, possible, passingProbability, clashes };
   };
 
   const getStatusStyles = (statusData: ReturnType<typeof getSetStatus>) => {
@@ -716,13 +715,13 @@ export default function App() {
 
   const PickSetStatusText = ({ statusData }: { statusData: ReturnType<typeof getSetStatus> }) => {
       if (!statusData) return null;
-      const { statusId, actualCorrect, actualIncorrect } = statusData;
+      const { statusId, guaranteed, mathematicallyIncorrect } = statusData;
       
       const countsNode = (
         <span className="flex items-center gap-1.5 ml-2 font-mono bg-black/20 px-1.5 py-0.5 rounded text-[10px]">
-            <span className="text-emerald-400">✓ {actualCorrect}</span>
+            <span className="text-emerald-400">✓ {guaranteed}</span>
             <span className="text-zinc-600/80">|</span>
-            <span className="text-rose-400 text-[11px]">✗</span><span className="text-rose-400 -ml-0.5">{actualIncorrect}</span>
+            <span className="text-rose-400 text-[11px]">✗</span><span className="text-rose-400 -ml-0.5">{mathematicallyIncorrect}</span>
         </span>
       );
       

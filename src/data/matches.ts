@@ -7,13 +7,23 @@ export const MATCHES: Record<string, Record<string, BracketMatch[]>> = {
             { team1Id: 'sinners', team2Id: 'flyquest', format: 'bo1', score1: 0, score2: 1, maps: [{ score1: 14, score2: 16 }] },
             { team1Id: 'b8', team2Id: 'tyloo', format: 'bo1' , score1: 1, score2: 0, maps: [{ score1: 13, score2: 6 }] },
             { team1Id: 'mibr', team2Id: 'thunder', format: 'bo1', score1: 0, score2: 1, maps: [{ score1: 6, score2: 13 }] },
-            { team1Id: 'gamerlegion', team2Id: 'nrg', format: 'bo1' },
-            { team1Id: 'heroic', team2Id: 'sharks', format: 'bo1' },
-            { team1Id: 'betboom', team2Id: 'gaimin', format: 'bo1' },
-            { team1Id: 'big', team2Id: 'liquid', format: 'bo1' }
+            { team1Id: 'gamerlegion', team2Id: 'nrg', format: 'bo1' , score1: 1, score2: 0, maps: [{ score1: 13, score2: 10 }] },
+            { team1Id: 'heroic', team2Id: 'sharks', format: 'bo1', score1: 0, score2: 1, maps: [{ score1: 10, score2: 13 }] },
+            { team1Id: 'betboom', team2Id: 'gaimin', format: 'bo1' , score1: 1, score2: 0, maps: [{ score1: 13, score2: 4 }] },
+            { team1Id: 'big', team2Id: 'liquid', format: 'bo1' , score1: 0, score2: 1, maps: [{ score1: 10, score2: 13 }] }
         ],
-        '1:0': [],
-        '0:1': [],
+        '1:0': [
+            { team1Id: 'gamerlegion', team2Id: 'flyquest', format: 'bo1' },
+            { team1Id: 'b8', team2Id: 'thunder', format: 'bo1' },
+            { team1Id: 'betboom', team2Id: 'liquid', format: 'bo1' },
+            { team1Id: 'm80', team2Id: 'sharks', format: 'bo1' }
+        ],
+        '0:1': [
+            { team1Id: 'heroic', team2Id: 'lynn', format: 'bo1' },
+            { team1Id: 'big', team2Id: 'gaimin', format: 'bo1' },
+            { team1Id: 'mibr', team2Id: 'tyloo', format: 'bo1' },
+            { team1Id: 'sinners', team2Id: 'nrg', format: 'bo1' }
+        ],
         '2:0': [],
         '1:1': [],
         '0:2': [],
