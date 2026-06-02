@@ -17,7 +17,7 @@ const MatchParticipant = ({ teamId }: { teamId?: string }) => {
         );
     }
     return (
-        <div className="w-[32px] h-[32px] shrink-0 rounded-full bg-zinc-950/80 border border-white/10 flex items-center justify-center font-bold text-zinc-500 text-[11px] shadow-inner pb-[1px] relative zoom-in-95 animate-in">
+        <div className="w-[32px] h-[32px] shrink-0 rounded-[4px] bg-zinc-950/80 border border-white/10 flex items-center justify-center font-bold text-zinc-500 text-[11px] shadow-inner pb-[1px] relative zoom-in-95 animate-in">
             ?
         </div>
     );
@@ -60,7 +60,7 @@ const GroupBox = ({ score, count, matches = [] }: { score: string, count: number
     return (
         <div className="bg-zinc-900/60 border border-white/5 rounded-[8px] p-4 pt-6 pb-4 flex flex-col items-center relative shadow-lg w-[136px] shrink-0 z-10 backdrop-blur-sm pointer-events-auto">
             <div className="absolute top-1.5 right-2 text-[11px] font-bold text-zinc-500 uppercase tracking-tighter">{score}</div>
-            <div className="flex flex-col gap-[8px] w-full items-center justify-center relative">
+            <div className="flex flex-col gap-[2px] w-full items-center justify-center relative">
                 {Array.from({ length: count }).map((_, i) => (
                     <MatchLine key={i} match={matches[i]} />
                 ))}
@@ -91,7 +91,7 @@ const ResultGroup = ({ score, count, win, teams = [] }: { score: string, count: 
             win ? "bg-emerald-900/60 border-emerald-500/20" : "bg-rose-950/60 border-rose-500/20"
         )}>
             <div className={cn("absolute top-1.5 right-2 text-[11px] font-bold uppercase tracking-tighter", win ? "text-emerald-500/80" : "text-rose-500/80")}>{score}</div>
-            <div className="flex flex-col gap-[8px] w-full items-center justify-center relative">
+            <div className="flex flex-col gap-[2px] w-full items-center justify-center relative">
                 {Array.from({ length: count }).map((_, i) => (
                     <div key={i} className="flex justify-center w-full min-h-[32px]">
                         <MatchParticipant teamId={teams[i]} />

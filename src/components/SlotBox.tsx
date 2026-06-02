@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { PickSlot } from '../types';
 import { cn } from '../lib/utils';
 import { TEAMS } from '../data/teams';
 import { TeamLogo } from './TeamLogo';
+import { ExportContext } from '../lib/ExportContext';
 import { CheckCircle2, XCircle, Swords, AlertCircle } from 'lucide-react';
 
 export const SlotBox: React.FC<{ 
@@ -16,6 +17,7 @@ export const SlotBox: React.FC<{
   const team = TEAMS.find(t => t.id === slot.teamId);
   const isSm = size === 'sm';
   const isXs = size === 'xs';
+  const isExport = useContext(ExportContext);
   return (
      <div 
         draggable={!readOnly && !!team}
@@ -29,12 +31,13 @@ export const SlotBox: React.FC<{
         onDragOver={readOnly ? undefined : e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
         onClick={readOnly ? undefined : () => onClick && onClick(slot.id, slot.teamId)}
          className={cn(
-           "rounded-[12px] bg-zinc-900/60 backdrop-blur-md shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] flex items-center justify-center transition-all duration-300 group relative border shrink-0", 
+           "rounded-[12px] bg-zinc-900/60 flex items-center justify-center transition-all duration-300 group relative border shrink-0", 
+           !isExport && "backdrop-blur-md shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]",
            isXs ? "w-7 h-7 sm:w-8 sm:h-8 rounded-md" : isSm ? "w-9 h-9 sm:w-11 sm:h-11" : "w-[3.25rem] h-[3.25rem] md:w-[68px] md:h-[68px] z-10",
            readOnly && !slot.resultStatus ? "" : !readOnly ? "hover:bg-zinc-800/80 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.5)]" : "",
-           slot.resultStatus === 'correct' ? "border-emerald-500/60 bg-emerald-500/15 shadow-[0_0_15px_rgba(16,185,129,0.2)]" : 
+           slot.resultStatus === 'correct' ? cn("border-emerald-500/60 bg-emerald-500/15", !isExport && "shadow-[0_0_15px_rgba(16,185,129,0.2)]") : 
            slot.resultStatus === 'incorrect' ? "border-rose-500/40 bg-rose-500/10" : 
-           team ? cn("border-white/15 bg-zinc-800 shadow-md hover:bg-zinc-700/80", border) : "border-white/20 hover:border-white/40 border-dashed bg-zinc-800/40 shadow-inner",
+           team ? cn("border-white/15 bg-zinc-800 hover:bg-zinc-700/80", !isExport && "shadow-md", border) : "border-white/20 hover:border-white/40 border-dashed bg-zinc-800/40 shadow-inner",
            slot.clashType === 'x-one' && slot.resultStatus === 'unknown' && "border-amber-500/30 bg-amber-500/5",
            slot.clashType === 'x-fail' && slot.resultStatus === 'unknown' && "border-rose-500/30 bg-rose-500/5",
            slot.clashType === 'x-pass' && slot.resultStatus === 'unknown' && "border-emerald-500/30 bg-emerald-500/5"

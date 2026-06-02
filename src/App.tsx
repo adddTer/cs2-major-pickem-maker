@@ -606,14 +606,23 @@ export default function App() {
       // Check baseline
       let guaranteed = 0;
       let mathematicallyIncorrect = 0;
+      let actualCorrect = 0;
+      let actualIncorrect = 0;
       theirPicks.forEach(p => {
           if (!p.teamId) {
              mathematicallyIncorrect++;
+             actualIncorrect++;
              return;
           }
           const status = checkPrediction(p.teamId, p.type, stage);
-          if (status === 'correct') guaranteed++;
-          else if (status === 'incorrect') mathematicallyIncorrect++;
+          if (status === 'correct') {
+              guaranteed++;
+              actualCorrect++;
+          }
+          else if (status === 'incorrect') {
+              mathematicallyIncorrect++;
+              actualIncorrect++;
+          }
       });
       
       // Apply exact bounds from deterministic internal clashes
@@ -690,7 +699,7 @@ export default function App() {
               else statusId = 'uncertain';
           }
       }
-      return { statusId, guaranteed, mathematicallyIncorrect, possible, passingProbability, clashes };
+      return { statusId, guaranteed, mathematicallyIncorrect, actualCorrect, actualIncorrect, possible, passingProbability, clashes };
   };
 
   const getStatusStyles = (statusData: ReturnType<typeof getSetStatus>) => {
@@ -707,13 +716,13 @@ export default function App() {
 
   const PickSetStatusText = ({ statusData }: { statusData: ReturnType<typeof getSetStatus> }) => {
       if (!statusData) return null;
-      const { statusId, guaranteed, mathematicallyIncorrect } = statusData;
+      const { statusId, actualCorrect, actualIncorrect } = statusData;
       
       const countsNode = (
         <span className="flex items-center gap-1.5 ml-2 font-mono bg-black/20 px-1.5 py-0.5 rounded text-[10px]">
-            <span className="text-emerald-400">✓ {guaranteed}</span>
+            <span className="text-emerald-400">✓ {actualCorrect}</span>
             <span className="text-zinc-600/80">|</span>
-            <span className="text-rose-400 text-[11px]">✗</span><span className="text-rose-400 -ml-0.5">{mathematicallyIncorrect}</span>
+            <span className="text-rose-400 text-[11px]">✗</span><span className="text-rose-400 -ml-0.5">{actualIncorrect}</span>
         </span>
       );
       
@@ -1039,7 +1048,7 @@ export default function App() {
                                                 return { 
                                                     ...s, 
                                                     resultStatus: showResults ? checkPrediction(s.teamId, s.type, activeStage) : undefined, 
-                                                    clashType: !showResults ? clash?.type : undefined 
+                                                    clashType: clash?.type 
                                                 };
                                             })} 
                                             actualResults={activeStageActuals}
@@ -1162,7 +1171,7 @@ export default function App() {
                             return a.teamId!.localeCompare(b.teamId!);
                           }).map(s => {
                               const clash = statusData?.clashes?.find(c => c.slotId === s.id);
-                              return { ...s, resultStatus: showResults ? checkPrediction(s.teamId, '3-0', activeStage) : undefined, clashType: !showResults ? clash?.type : undefined };
+                              return { ...s, resultStatus: checkPrediction(s.teamId, '3-0', activeStage), clashType: clash?.type };
                           });
 
                           const picksAdvance = theirPicks.filter(s => s.type === 'advance');
@@ -1177,7 +1186,7 @@ export default function App() {
                             return a.teamId!.localeCompare(b.teamId!);
                           }).map(s => {
                               const clash = statusData?.clashes?.find(c => c.slotId === s.id);
-                              return { ...s, resultStatus: showResults ? checkPrediction(s.teamId, 'advance', activeStage) : undefined, clashType: !showResults ? clash?.type : undefined };
+                              return { ...s, resultStatus: checkPrediction(s.teamId, 'advance', activeStage), clashType: clash?.type };
                           });
 
                           const elimPicks = theirPicks.filter(s => s.type === '0-3');
@@ -1192,7 +1201,7 @@ export default function App() {
                             return a.teamId!.localeCompare(b.teamId!);
                           }).map(s => {
                               const clash = statusData?.clashes?.find(c => c.slotId === s.id);
-                              return { ...s, resultStatus: showResults ? checkPrediction(s.teamId, '0-3', activeStage) : undefined, clashType: !showResults ? clash?.type : undefined };
+                              return { ...s, resultStatus: checkPrediction(s.teamId, '0-3', activeStage), clashType: clash?.type };
                           });
                           
                           return (
@@ -1436,7 +1445,7 @@ export default function App() {
                             return (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0) || a.teamId!.localeCompare(b.teamId!);
                           }).map(s => {
                               const clash = statusData?.clashes?.find(c => c.slotId === s.id);
-                              return { ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, '3-0', activeStage) : undefined, clashType: !imageExportIncludeResults ? clash?.type : undefined };
+                              return { ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, '3-0', activeStage) : undefined, clashType: clash?.type };
                           });
 
                           const picksAdvance = theirPicks.filter(s => s.type === 'advance');
@@ -1449,7 +1458,7 @@ export default function App() {
                             return (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0) || a.teamId!.localeCompare(b.teamId!);
                           }).map(s => {
                               const clash = statusData?.clashes?.find(c => c.slotId === s.id);
-                              return { ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, 'advance', activeStage) : undefined, clashType: !imageExportIncludeResults ? clash?.type : undefined };
+                              return { ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, 'advance', activeStage) : undefined, clashType: clash?.type };
                           });
 
                           const elimPicks = theirPicks.filter(s => s.type === '0-3');
@@ -1462,7 +1471,7 @@ export default function App() {
                             return (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0) || a.teamId!.localeCompare(b.teamId!);
                           }).map(s => {
                               const clash = statusData?.clashes?.find(c => c.slotId === s.id);
-                              return { ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, '0-3', activeStage) : undefined, clashType: !imageExportIncludeResults ? clash?.type : undefined };
+                              return { ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, '0-3', activeStage) : undefined, clashType: clash?.type };
                           });
                           
                           if (imageExportStyle === 'compact') {
