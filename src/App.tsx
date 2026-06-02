@@ -679,8 +679,8 @@ export default function App() {
       else if (guaranteed + possible < 5) statusId = 'failed';
       else {
           if (simulatedFutures.length > 0) {
-              if (passingProbability >= 0.8) statusId = 'great_chance';
-              else if (passingProbability <= 0.05 || (passingProbability <= 0.2 && completedMatchesCount >= 10)) statusId = 'slim_chance';
+              if (passingProbability >= 0.9 || (passingProbability >= 0.7 && completedMatchesCount >= 8)) statusId = 'great_chance';
+              else if ((passingProbability <= 0.01 && completedMatchesCount >= 4) || (passingProbability <= 0.1 && completedMatchesCount >= 10)) statusId = 'slim_chance';
               else statusId = 'uncertain';
           } else {
               const needed = 5 - Math.max(guaranteed, 0);
