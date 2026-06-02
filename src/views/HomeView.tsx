@@ -183,9 +183,6 @@ export const HomeView: React.FC<{
                     {communityPicks.map(p => (
                         <div key={p.id} className="flex sm:items-center justify-between p-3 sm:p-4 rounded-lg bg-zinc-900/80 border border-white/5 hover:border-white/20 transition-colors">
                             <div className="flex items-center gap-3 sm:gap-4 overflow-hidden pr-2">
-                                <div className="shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs sm:text-sm">
-                                    {p.name.charAt(0).toUpperCase()}
-                                </div>
                                 <div className="truncate">
                                     <h4 className="font-bold text-zinc-100 text-sm sm:text-base truncate">{p.name}</h4>
                                     <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-0.5 truncate">保存时间：{new Date(p.createdAt).toLocaleString()}</p>

@@ -3,8 +3,8 @@ import { BracketMatch, PickSlot } from '../types';
 export const MATCHES: Record<string, Record<string, BracketMatch[]>> = {
     stage1: {
         '0:0': [
-            { team1Id: 'm80', team2Id: 'lynn', format: 'bo1' },
-            { team1Id: 'sinners', team2Id: 'flyquest', format: 'bo1' },
+            { team1Id: 'm80', team2Id: 'lynn', format: 'bo1', score1: 1, score2: 0, maps: [{ score1: 13, score2: 8 }] },
+            { team1Id: 'sinners', team2Id: 'flyquest', format: 'bo1', score1: 0, score2: 1, maps: [{ score1: 14, score2: 16 }] },
             { team1Id: 'b8', team2Id: 'tyloo', format: 'bo1' },
             { team1Id: 'mibr', team2Id: 'thunder', format: 'bo1' },
             { team1Id: 'gamerlegion', team2Id: 'nrg', format: 'bo1' },

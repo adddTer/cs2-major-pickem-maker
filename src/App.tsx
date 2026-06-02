@@ -451,7 +451,7 @@ export default function App() {
 
   const getComputedActuals = useCallback((stage: string) => {
       let actuals = ACTUAL_RESULTS[stage] || [];
-      const records = getTeamRecords(stage);
+      const records = getTeamRecords(stage) as Record<string, { w: number; l: number }>;
       
       if (stage !== 'playoffs') {
           const computedActuals: PickSlot[] = [];
@@ -530,14 +530,16 @@ export default function App() {
   const getSetStatus = (theirPicks: PickSlot[], stage: string) => {
       if (stage === 'playoffs') return null;
       
-      const records = getTeamRecords(stage);
+      const records = getTeamRecords(stage) as Record<string, { w: number; l: number }>;
       
-      // Check if Round 1 is completely finished (all 16 teams must have played at least 1 match)
+      // Check if there is at least 1 match result
       const teamsWithRecords = Object.values(records).filter(r => (r.w + r.l) > 0);
-      if (teamsWithRecords.length < 16) {
+      if (teamsWithRecords.length === 0) {
           return null; 
       }
       
+      const completedMatchesCount = Object.values(records).reduce((sum, r) => sum + r.w + r.l, 0) / 2;
+
       // Check if all 10 picks are filled for Swiss stage
       const filledPicks = theirPicks.filter(p => p.teamId);
       if (filledPicks.length < 10) {
@@ -678,13 +680,13 @@ export default function App() {
       else {
           if (simulatedFutures.length > 0) {
               if (passingProbability >= 0.8) statusId = 'great_chance';
-              else if (passingProbability <= 0.2) statusId = 'slim_chance';
+              else if (passingProbability <= 0.05 || (passingProbability <= 0.2 && completedMatchesCount >= 10)) statusId = 'slim_chance';
               else statusId = 'uncertain';
           } else {
               const needed = 5 - Math.max(guaranteed, 0);
               const margin = possible - needed;
               if (margin >= 3) statusId = 'great_chance';
-              else if (margin === 0) statusId = 'slim_chance';
+              else if (margin === 0 && completedMatchesCount >= 4) statusId = 'slim_chance';
               else statusId = 'uncertain';
           }
       }
@@ -766,13 +768,17 @@ export default function App() {
       
       <div className="h-[100dvh] w-full bg-[#070b09] text-zinc-200 font-sans flex flex-col relative overflow-hidden select-none">
         {/* Ambient Glow Lights */}
-        <div className="absolute top-[20%] left-[20%] w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[130px] pointer-events-none z-0" />
-        <div className="absolute bottom-[20%] right-[10%] w-[600px] h-[500px] bg-blue-500/5 rounded-full blur-[140px] pointer-events-none z-0" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-sky-500/10 rounded-full blur-[150px] pointer-events-none z-0" />
         
         {/* Top Navbar */}
         <div className="h-14 border-b border-white/5 bg-zinc-900/40 backdrop-blur-md flex items-center px-2 sm:px-6 justify-between shrink-0 z-20 overflow-x-auto custom-scrollbar">
            <div className="flex items-center gap-1.5 sm:gap-2 mr-4 min-w-max">
-              <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 shrink-0" />
+              <img 
+                 src="https://img-cdn.hltv.org/eventlogo/2mt5dKGFBdIcxv37gayq1X.png?ixlib=java-2.1.0&w=100&s=d2e3f2b67dff6f0d9a599db4c3a7b881" 
+                 referrerPolicy="no-referrer" 
+                 className="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0" 
+                 alt="IEM Cologne 2026"
+              />
               <span className="text-[10px] sm:text-sm font-bold tracking-widest text-zinc-100 hidden sm:block">IEM Cologne Major 2026</span>
               <span className="text-[10px] sm:hidden font-bold tracking-widest text-zinc-100">Cologne 26</span>
            </div>

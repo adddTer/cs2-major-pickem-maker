@@ -12,9 +12,9 @@ export const PickEmDock: React.FC<{
   onDrop?: (e: React.DragEvent, slotId: string) => void,
   onClick?: (slotId: string, teamId: string | null) => void,
 }> = ({ slots, readOnly = false, showResults = false, actualResults = [], onToggleResults, onDrop, onClick }) => {
-  let displaySlots = slots;
+  let displaySlots: (PickSlot & { resultStatus?: 'correct' | 'incorrect' | 'unknown'; clashType?: 'x-one' | 'x-fail' | 'x-pass' })[] = slots;
   if (showResults) {
-    const combinedSlots: PickSlot[] = [];
+    const combinedSlots: (PickSlot & { resultStatus?: 'correct' | 'incorrect' | 'unknown'; clashType?: 'x-one' | 'x-fail' | 'x-pass' })[] = [];
     let i = 0;
     
     const getResultStatus = (teamId: string | undefined, expectedType: '3-0' | 'advance' | '0-3'): 'correct' | 'incorrect' | 'unknown' => {
@@ -29,21 +29,21 @@ export const PickEmDock: React.FC<{
     const actual30 = actualResults.filter(r => r.type === '3-0');
     for (let j = 0; j < 2; j++) {
         const teamId = actual30[j]?.teamId || undefined;
-        combinedSlots.push({ id: `r30-${i++}`, type: '3-0', teamId, resultStatus: getResultStatus(teamId, '3-0') });
+        combinedSlots.push({ id: `r30-${i++}`, type: '3-0', teamId: teamId || null, resultStatus: getResultStatus(teamId, '3-0') });
     }
     
     // advance slots
     const actualAdv = actualResults.filter(r => r.type === 'advance');
     for (let j = 0; j < 6; j++) {
         const teamId = actualAdv[j]?.teamId || undefined;
-        combinedSlots.push({ id: `ra-${i++}`, type: 'advance', teamId, resultStatus: getResultStatus(teamId, 'advance') });
+        combinedSlots.push({ id: `ra-${i++}`, type: 'advance', teamId: teamId || null, resultStatus: getResultStatus(teamId, 'advance') });
     }
     
     // 0:3 slots
     const actual03 = actualResults.filter(r => r.type === '0-3');
     for (let j = 0; j < 2; j++) {
         const teamId = actual03[j]?.teamId || undefined;
-        combinedSlots.push({ id: `r03-${i++}`, type: '0-3', teamId, resultStatus: getResultStatus(teamId, '0-3') });
+        combinedSlots.push({ id: `r03-${i++}`, type: '0-3', teamId: teamId || null, resultStatus: getResultStatus(teamId, '0-3') });
     }
     
     displaySlots = combinedSlots;
