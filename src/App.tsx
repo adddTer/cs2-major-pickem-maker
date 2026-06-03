@@ -32,6 +32,7 @@ export default function App() {
   const [showImageExportModal, setShowImageExportModal] = useState(false);
   const [imageExportIds, setImageExportIds] = useState<string[]>([]);
   const [imageExportIncludeResults, setImageExportIncludeResults] = useState(true);
+  const [imageExportShowProbabilities, setImageExportShowProbabilities] = useState(false);
   const [imageExportShowTeamNames, setImageExportShowTeamNames] = useState(false);
   const [imageExportStyle, setImageExportStyle] = useState<'standard' | 'compact'>('standard');
   const [isExportingImage, setIsExportingImage] = useState(false);
@@ -44,13 +45,22 @@ export default function App() {
 
   const {
       getScheduledMatches,
-      simulatedFutures,
+      simulatedFutures: useMatchSimulatedFutures,
+      runSimulationAsync,
       getTeamRecords,
       getComputedActuals,
       activeStageActuals,
       checkPrediction,
       getSetStatus,
   } = useMatchLogic(activeStage);
+
+  const [detailedFutures, setDetailedFutures] = useState<any>(null);
+  const [isSimulatingProbability, setIsSimulatingProbability] = useState(false);
+  const [simulationProgress, setSimulationProgress] = useState(0);
+
+  const simulatedFuturesForExport = imageExportShowProbabilities && detailedFutures 
+      ? detailedFutures 
+      : useMatchSimulatedFutures;
 
   const handleGeneratePreview = async () => {
     if (imageExportIds.length === 0) {
@@ -60,10 +70,22 @@ export default function App() {
     if (!exportContainerRef.current) return;
     setIsExportingImage(true);
     
+    if (imageExportShowProbabilities) {
+        setIsSimulatingProbability(true);
+        setSimulationProgress(0);
+        // We defer it slightly to let react render the loading state
+        await new Promise(r => setTimeout(r, 50));
+        const futures = await runSimulationAsync(100000, (p) => setSimulationProgress(p));
+        setDetailedFutures(futures);
+        setIsSimulatingProbability(false);
+        // Wait for React to finish re-rendering the probabilities before dom capture
+        await new Promise(r => setTimeout(r, 100));
+    }
+    
     setTimeout(() => {
         import('html-to-image').then(htmlToImage => {
             if (!exportContainerRef.current) return;
-            htmlToImage.toPng(exportContainerRef.current, { backgroundColor: '#070b09', pixelRatio: 3 })
+            htmlToImage.toPng(exportContainerRef.current.querySelector('#export-content') || exportContainerRef.current, { backgroundColor: '#070b09', pixelRatio: 3 })
                 .then(function (dataUrl) {
                     setExportPreviewUrl(dataUrl);
                     setIsExportingImage(false);
@@ -430,6 +452,8 @@ export default function App() {
         setExportPreviewUrl={setExportPreviewUrl}
         imageExportIncludeResults={imageExportIncludeResults}
         setImageExportIncludeResults={setImageExportIncludeResults}
+        imageExportShowProbabilities={imageExportShowProbabilities}
+        setImageExportShowProbabilities={setImageExportShowProbabilities}
         imageExportShowTeamNames={imageExportShowTeamNames}
         setImageExportShowTeamNames={setImageExportShowTeamNames}
         imageExportStyle={imageExportStyle}
@@ -447,6 +471,9 @@ export default function App() {
         getSetStatus={getSetStatus}
         itemFreq={itemFreq}
         checkPrediction={checkPrediction}
+        simulatedFutures={simulatedFuturesForExport}
+        isSimulatingProbability={isSimulatingProbability}
+        simulationProgress={simulationProgress}
         exportContainerRef={exportContainerRef}
       />
     </>

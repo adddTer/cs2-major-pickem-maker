@@ -25,21 +25,29 @@ export const MATCHES: Record<string, Record<string, BracketMatch[]>> = {
             { team1Id: 'sinners', team2Id: 'nrg', format: 'bo1', score1: 0, score2: 1, maps: [{ score1: 6, score2: 13 }] }
         ],
         '2:0': [
-            { team1Id: 'm80', team2Id: 'b8', format: 'bo3' },
-            { team1Id: 'gamerlegion', team2Id: 'betboom', format: 'bo3' }
+            { team1Id: 'm80', team2Id: 'b8', format: 'bo3', score1: 0, score2: 2 },
+            { team1Id: 'gamerlegion', team2Id: 'betboom', format: 'bo3', score1: 0, score2: 2 }
         ],
         '1:1': [
-            { team1Id: 'thunder', team2Id: 'big', format: 'bo1' },
-            { team1Id: 'liquid', team2Id: 'mibr', format: 'bo1' },
-            { team1Id: 'sharks', team2Id: 'lynn', format: 'bo1' },
-            { team1Id: 'nrg', team2Id: 'flyquest', format: 'bo1' }
+            { team1Id: 'thunder', team2Id: 'big', format: 'bo1', score1: 0, score2: 1, maps: [{ score1: 7, score2: 13 }] },
+            { team1Id: 'liquid', team2Id: 'mibr', format: 'bo1', score1: 0, score2: 1, maps: [{ score1: 10, score2: 13 }] },
+            { team1Id: 'sharks', team2Id: 'lynn', format: 'bo1', score1: 0, score2: 1, maps: [{ score1: 5, score2: 13 }] },
+            { team1Id: 'nrg', team2Id: 'flyquest', format: 'bo1', score1: 1, score2: 0, maps: [{ score1: 13, score2: 10 }] }
         ],
         '0:2': [
-            { team1Id: 'tyloo', team2Id: 'sinners', format: 'bo3' },
-            { team1Id: 'gaimin', team2Id: 'heroic', format: 'bo3' }
+            { team1Id: 'tyloo', team2Id: 'sinners', format: 'bo3', score1: 2, score2: 0 },
+            { team1Id: 'gaimin', team2Id: 'heroic', format: 'bo3', score1: 0, score2: 2 }
         ],
-        '2:1': [],
-        '1:2': [],
+        '2:1': [
+            { team1Id: 'gamerlegion', team2Id: 'big', format: 'bo3' },
+            { team1Id: 'm80', team2Id: 'nrg', format: 'bo3' },
+            { team1Id: 'mibr', team2Id: 'lynn', format: 'bo3' }
+        ],
+        '1:2': [
+            { team1Id: 'tyloo', team2Id: 'sharks', format: 'bo3' },
+            { team1Id: 'liquid', team2Id: 'heroic', format: 'bo3' },
+            { team1Id: 'thunder', team2Id: 'flyquest', format: 'bo3' }
+        ],
         '2:2': []
     },
     stage2: {},

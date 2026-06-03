@@ -5,13 +5,13 @@ import { SlotBox } from './SlotBox';
 import { TEAMS } from '../data/teams';
 
 export const MiniPlayoffsBracket: React.FC<{
-    slots: (PickSlot & { resultStatus?: 'correct'|'incorrect'|'unknown' })[];
+    slots: (PickSlot & { resultStatus?: 'correct'|'incorrect'|'unknown', clashType?: 'x-one'|'x-fail'|'x-pass' })[];
     compact?: boolean;
     showTeamNames?: boolean;
     isExport?: boolean;
 }> = ({ slots, compact, showTeamNames, isExport = false }) => {
     
-    const renderSlot = (s: PickSlot & { resultStatus?: 'correct'|'incorrect'|'unknown' }, i: number) => (
+    const renderSlot = (s: PickSlot & { resultStatus?: 'correct'|'incorrect'|'unknown', clashType?: 'x-one'|'x-fail'|'x-pass' }, i: number) => (
         <div key={s.id || i} className={`flex items-center gap-1.5 flex-col ${isExport ? 'w-[44px]' : 'w-[36px] sm:w-[44px]'}`}>
             <SlotBox slot={s} border="border-white/10" readOnly={true} size={compact ? "xs" : "sm"} />
             {showTeamNames && s.teamId && (

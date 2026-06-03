@@ -14,6 +14,8 @@ interface ImageExportModalProps {
   setExportPreviewUrl: (val: string | null) => void;
   imageExportIncludeResults: boolean;
   setImageExportIncludeResults: (val: boolean) => void;
+  imageExportShowProbabilities: boolean;
+  setImageExportShowProbabilities: (val: boolean) => void;
   imageExportShowTeamNames: boolean;
   setImageExportShowTeamNames: (val: boolean) => void;
   imageExportStyle: 'standard' | 'compact';
@@ -28,9 +30,12 @@ interface ImageExportModalProps {
   activeStage: StageKey;
   PLAYOFFS_SLOTS: any[];
   ACTUAL_RESULTS: any;
-  getSetStatus: (picks: any[], stage: string) => any;
+  getSetStatus: (picks: any[], stage: string, customFutures?: any[]) => any;
   itemFreq: Record<string, number>;
   checkPrediction: (teamId: string | null, type: SlotType, stage: string) => 'correct' | 'incorrect' | 'unknown';
+  simulatedFutures: any[];
+  isSimulatingProbability?: boolean;
+  simulationProgress?: number;
   exportContainerRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -38,6 +43,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
   showImageExportModal, setShowImageExportModal,
   exportPreviewUrl, setExportPreviewUrl,
   imageExportIncludeResults, setImageExportIncludeResults,
+  imageExportShowProbabilities, setImageExportShowProbabilities,
   imageExportShowTeamNames, setImageExportShowTeamNames,
   imageExportStyle, setImageExportStyle,
   imageExportIds, setImageExportIds,
@@ -51,6 +57,9 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
   getSetStatus,
   itemFreq,
   checkPrediction,
+  simulatedFutures,
+  isSimulatingProbability,
+  simulationProgress = 0,
   exportContainerRef
 }) => {
   return (
@@ -94,6 +103,18 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                       </button>
                   </div>
               </div>
+          ) : (isSimulatingProbability || isExportingImage) ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-5">
+                  <RefreshCw className="w-10 h-10 text-blue-500 animate-spin opacity-80" />
+                  <div className="text-zinc-200 font-bold text-lg text-center whitespace-pre-line leading-relaxed">
+                       {isSimulatingProbability ? `正在运行 100,000 次蒙特卡洛模拟... (${simulationProgress}%)\n计算精确概率，请稍候` : '渲染高清长图中...'}
+                  </div>
+                  {isSimulatingProbability && (
+                       <div className="w-full max-w-xs bg-zinc-800/80 rounded-full h-1.5 mt-2 overflow-hidden shadow-inner border border-white/5 relative">
+                           <div className="bg-blue-500 h-full transition-all duration-300 ease-out" style={{ width: `${simulationProgress}%` }}></div>
+                       </div>
+                  )}
+              </div>
           ) : (
           <div className="flex flex-col gap-4">
               <div 
@@ -102,6 +123,13 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
               >
                   <span className="text-sm font-bold text-zinc-200">包含实际比赛结果</span>
                   {imageExportIncludeResults ? <CheckSquare className="w-5 h-5 text-blue-400" /> : <Square className="w-5 h-5 text-zinc-500" />}
+              </div>
+              <div 
+                  className="flex items-center justify-between p-3 bg-zinc-800/50 rounded cursor-pointer border border-white/5"
+                  onClick={() => setImageExportShowProbabilities(!imageExportShowProbabilities)}
+              >
+                  <span className="text-sm font-bold text-zinc-200">显示概率而非对错</span>
+                  {imageExportShowProbabilities ? <CheckSquare className="w-5 h-5 text-blue-400" /> : <Square className="w-5 h-5 text-zinc-500" />}
               </div>
               <div 
                   className="flex items-center justify-between p-3 bg-zinc-800/50 rounded cursor-pointer border border-white/5"
@@ -256,8 +284,14 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                               );
                           }
 
-                          const statusData = getSetStatus(theirPicks, activeStage);
+                          const statusData = getSetStatus(theirPicks, activeStage, simulatedFutures);
                           const statusStyles = getStatusStyles(statusData);
+
+                          const decorateSlot = (s: any, type: SlotType) => {
+                              const clash = statusData?.clashes?.find((c: any) => c.slotId === s.id);
+                              let resultStatus = imageExportIncludeResults ? checkPrediction(s.teamId, type, activeStage) : undefined;
+                              return { ...s, resultStatus, clashType: clash?.type };
+                          };
 
                           const picks30 = theirPicks.filter(s => s.type === '3-0');
                           const sorted30Picks = [...picks30].sort((a, b) => {
@@ -267,10 +301,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                             if (!aKey) return 1;
                             if (!bKey) return -1;
                             return (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0) || a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => {
-                              const clash = statusData?.clashes?.find((c: any) => c.slotId === s.id);
-                              return { ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, '3-0', activeStage) : undefined, clashType: clash?.type };
-                          });
+                          }).map(s => decorateSlot(s, '3-0'));
 
                           const picksAdvance = theirPicks.filter(s => s.type === 'advance');
                           const sortedAdvancePicks = [...picksAdvance].sort((a, b) => {
@@ -280,10 +311,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                             if (!aKey) return 1;
                             if (!bKey) return -1;
                             return (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0) || a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => {
-                              const clash = statusData?.clashes?.find((c: any) => c.slotId === s.id);
-                              return { ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, 'advance', activeStage) : undefined, clashType: clash?.type };
-                          });
+                          }).map(s => decorateSlot(s, 'advance'));
 
                           const elimPicks = theirPicks.filter(s => s.type === '0-3');
                           const sortedElimPicks = [...elimPicks].sort((a, b) => {
@@ -293,17 +321,14 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                             if (!aKey) return 1;
                             if (!bKey) return -1;
                             return (itemFreq[bKey] || 0) - (itemFreq[aKey] || 0) || a.teamId!.localeCompare(b.teamId!);
-                          }).map(s => {
-                              const clash = statusData?.clashes?.find((c: any) => c.slotId === s.id);
-                              return { ...s, resultStatus: imageExportIncludeResults ? checkPrediction(s.teamId, '0-3', activeStage) : undefined, clashType: clash?.type };
-                          });
+                          }).map(s => decorateSlot(s, '0-3'));
                           
                           if (imageExportStyle === 'compact') {
                               return (
                                   <div key={participant.id} className={`flex items-center gap-4 py-3 px-5 ${(index !== 0 || imageExportIncludeResults) ? 'border-t' : ''} ${statusStyles.border} ${statusStyles.bg}`}>
                                       <div className="font-bold text-sm text-zinc-200 w-32 shrink-0 break-words line-clamp-2 leading-snug flex flex-col gap-1.5">
                                           {participant.name}
-                                          <PickSetStatusText statusData={statusData} />
+                                          <PickSetStatusText statusData={statusData} showProbability={imageExportShowProbabilities} />
                                       </div>
                                       <div className="flex-1">
                                           <MiniPicksDisplay 
@@ -326,7 +351,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                               <div key={participant.id} className={`border p-5 rounded-lg flex flex-col gap-4 ${statusStyles.bg} ${statusStyles.border}`}>
                                 <div className={`flex items-center justify-between border-b pb-3 ${statusStyles.border}`}>
                                     <div className="font-bold text-base text-zinc-200">{participant.name}</div>
-                                    <PickSetStatusText statusData={statusData} />
+                                    <PickSetStatusText statusData={statusData} showProbability={imageExportShowProbabilities} />
                                 </div>
                                 <MiniPicksDisplay 
                                     title30="3:0 晋级"

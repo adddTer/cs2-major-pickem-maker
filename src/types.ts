@@ -9,6 +9,7 @@ export interface Team {
 }
 
 export type SlotType = '3-0' | 'advance' | '0-3' | 'qf' | 'sf' | 'final' | 'champion';
+export type StageKey = 'stage1' | 'stage2' | 'stage3' | 'playoffs';
 
 export type MatchFormat = 'bo1' | 'bo3' | 'bo5';
 

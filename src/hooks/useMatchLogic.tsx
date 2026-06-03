@@ -1,9 +1,10 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { MATCHES, ACTUAL_RESULTS } from '../data/matches';
 import { PickSlot, SlotType } from '../types';
-import { simulateSwiss } from '../utils/simulateSwiss';
 
 export function useMatchLogic(activeStage: string) {
+    const [simulatedFutures, setSimulatedFutures] = useState<any>([]);
+
     const getScheduledMatches = (stage: string) => {
         const stageMatchesMap = MATCHES[stage];
         if (!stageMatchesMap) return [];
@@ -19,39 +20,76 @@ export function useMatchLogic(activeStage: string) {
         return scheduledMatches;
     };
 
-    const simulatedFutures = useMemo(() => {
-        if (activeStage === 'playoffs') return [];
-        
-        const stageMatchesMap = MATCHES[activeStage];
-        if (!stageMatchesMap) return [];
-        
-        const allTeamsSet = new Set<string>();
-        const pastMatches: { t1: string, t2: string, winner: string }[] = [];
-        const scheduledMatches: { t1: string, t2: string }[] = [];
-        
-        Object.values(stageMatchesMap).forEach(batch => {
-            batch.forEach(m => {
-                if (m.team1Id) allTeamsSet.add(m.team1Id);
-                if (m.team2Id) allTeamsSet.add(m.team2Id);
-                
-                if (m.team1Id && m.team2Id) {
-                    if (m.score1 !== undefined && m.score2 !== undefined) {
-                        const winner = m.score1 > m.score2 ? m.team1Id : (m.score2 > m.score1 ? m.team2Id : '');
-                        if (winner) {
-                            pastMatches.push({ t1: m.team1Id, t2: m.team2Id, winner });
+    const runSimulationAsync = useCallback((numSimulations: number, onProgress?: (progress: number) => void): Promise<any> => {
+        return new Promise((resolve) => {
+            if (activeStage === 'playoffs') {
+                resolve([]);
+                return;
+            }
+            
+            const stageMatchesMap = MATCHES[activeStage];
+            if (!stageMatchesMap) {
+                resolve([]);
+                return;
+            }
+            
+            const allTeamsSet = new Set<string>();
+            const pastMatches: { t1: string, t2: string, winner: string }[] = [];
+            const scheduledMatches: { t1: string, t2: string }[] = [];
+            
+            Object.values(stageMatchesMap).forEach(batch => {
+                batch.forEach(m => {
+                    if (m.team1Id) allTeamsSet.add(m.team1Id);
+                    if (m.team2Id) allTeamsSet.add(m.team2Id);
+                    
+                    if (m.team1Id && m.team2Id) {
+                        if (m.score1 !== undefined && m.score2 !== undefined) {
+                            const winner = m.score1 > m.score2 ? m.team1Id : (m.score2 > m.score1 ? m.team2Id : '');
+                            if (winner) {
+                                pastMatches.push({ t1: m.team1Id, t2: m.team2Id, winner });
+                            }
+                        } else {
+                            scheduledMatches.push({ t1: m.team1Id, t2: m.team2Id });
                         }
-                    } else {
-                        scheduledMatches.push({ t1: m.team1Id, t2: m.team2Id });
                     }
-                }
+                });
             });
+            
+            const allTeams = Array.from(allTeamsSet);
+            if (allTeams.length !== 16) {
+                resolve([]);
+                return;
+            }
+
+            const worker = new Worker(new URL('../workers/simulateWorker.ts', import.meta.url), { type: 'module' });
+            worker.onmessage = (e) => {
+                if (e.data.type === 'progress') {
+                    if (onProgress) onProgress(e.data.progress);
+                } else if (e.data.type === 'done') {
+                    resolve({
+                        isPacked: true,
+                        allTeams: e.data.allTeams,
+                        data: e.data.data
+                    });
+                    worker.terminate();
+                }
+            };
+            worker.postMessage({ allTeams, pastMatches, scheduledMatches, numSimulations });
+        });
+    }, [activeStage]);
+
+    useEffect(() => {
+        let isMounted = true;
+        setSimulatedFutures([]);
+        
+        runSimulationAsync(300).then(results => {
+            if (isMounted) {
+                setSimulatedFutures(results);
+            }
         });
         
-        const allTeams = Array.from(allTeamsSet);
-        if (allTeams.length !== 16) return []; 
-
-        return simulateSwiss(allTeams, pastMatches, scheduledMatches, 200);
-    }, [activeStage]);
+        return () => { isMounted = false; };
+    }, [runSimulationAsync]);
 
     const getTeamRecords = useCallback((stage: string) => {
         const records: Record<string, { w: number; l: number }> = {};
@@ -177,7 +215,7 @@ export function useMatchLogic(activeStage: string) {
         return 'unknown';
     }, [getComputedActuals, getTeamRecords]);
 
-    const getSetStatus = useCallback((theirPicks: PickSlot[], stage: string) => {
+    const getSetStatus = useCallback((theirPicks: PickSlot[], stage: string, customFutures?: any[]) => {
         if (stage === 'playoffs') return null;
         
         const records = getTeamRecords(stage) as Record<string, { w: number; l: number }>;
@@ -296,30 +334,71 @@ export function useMatchLogic(activeStage: string) {
         
         let passingProbability = 0;
         
-        if (simulatedFutures.length > 0) {
+        const checkValidFutures = (f: any) => f && (f.isPacked ? f.data.length > 0 : f.length > 0);
+        const futuresToUse = checkValidFutures(customFutures) ? customFutures : simulatedFutures;
+        
+        if (checkValidFutures(futuresToUse)) {
             let maxPossibleScore = 0;
             let minPossibleScore = 15;
             let passingFuturesCount = 0;
 
-            simulatedFutures.forEach(future => {
-                let score = 0;
-                theirPicks.forEach(p => {
-                    if (!p.teamId) return;
+            if (futuresToUse.isPacked) {
+                const picksMasks = theirPicks.map(p => {
+                    if (!p.teamId) return null;
+                    const teamIdx = futuresToUse.allTeams.indexOf(p.teamId);
                     const status = checkPrediction(p.teamId, p.type, stage);
-                    if (status === 'correct') {
-                        score++;
-                    } else if (status === 'unknown') {
-                        if (p.type === '3-0' && future.teams30.has(p.teamId)) score++;
-                        else if (p.type === '0-3' && future.teams03.has(p.teamId)) score++;
-                        else if (p.type === 'advance' && future.teamsAdvance.has(p.teamId)) score++;
+                    return { type: p.type, teamIdx, status };
+                }).filter(Boolean);
+
+                const numSims = futuresToUse.data.length / 3;
+                let curPassing = 0, curMax = 0, curMin = 15;
+                for (let i = 0; i < numSims; i++) {
+                    let score = 0;
+                    const mask30 = futuresToUse.data[i * 3];
+                    const mask03 = futuresToUse.data[i * 3 + 1];
+                    const maskAdv = futuresToUse.data[i * 3 + 2];
+
+                    for (let j = 0; j < picksMasks.length; j++) {
+                        const pm = picksMasks[j]!;
+                        if (pm.status === 'correct') {
+                            score++;
+                        } else if (pm.status === 'unknown' && pm.teamIdx >= 0) {
+                            const bit = 1 << pm.teamIdx;
+                            if (pm.type === '3-0' && (mask30 & bit)) score++;
+                            else if (pm.type === '0-3' && (mask03 & bit)) score++;
+                            else if (pm.type === 'advance' && (maskAdv & bit)) score++;
+                        }
                     }
+                    
+                    if (score >= 5) curPassing++;
+                    if (score > curMax) curMax = score;
+                    if (score < curMin) curMin = score;
+                }
+                passingFuturesCount = curPassing;
+                maxPossibleScore = curMax;
+                minPossibleScore = curMin;
+                passingProbability = curPassing / numSims;
+            } else {
+                futuresToUse.forEach(future => {
+                    let score = 0;
+                    theirPicks.forEach(p => {
+                        if (!p.teamId) return;
+                        const status = checkPrediction(p.teamId, p.type, stage);
+                        if (status === 'correct') {
+                            score++;
+                        } else if (status === 'unknown') {
+                            if (p.type === '3-0' && future.teams30.has(p.teamId)) score++;
+                            else if (p.type === '0-3' && future.teams03.has(p.teamId)) score++;
+                            else if (p.type === 'advance' && future.teamsAdvance.has(p.teamId)) score++;
+                        }
+                    });
+                    if (score >= 5) passingFuturesCount++;
+                    if (score > maxPossibleScore) maxPossibleScore = score;
+                    if (score < minPossibleScore) minPossibleScore = score;
                 });
-                if (score >= 5) passingFuturesCount++;
-                if (score > maxPossibleScore) maxPossibleScore = score;
-                if (score < minPossibleScore) minPossibleScore = score;
-            });
-            
-            passingProbability = passingFuturesCount / simulatedFutures.length;
+                
+                passingProbability = passingFuturesCount / futuresToUse.length;
+            }
 
             const simulatedPossible = Math.max(0, maxPossibleScore - guaranteed);
             if (simulatedPossible < possible) {
@@ -331,7 +410,7 @@ export function useMatchLogic(activeStage: string) {
         if (guaranteed >= 5) statusId = 'passed';
         else if (guaranteed + possible < 5) statusId = 'failed';
         else {
-            if (simulatedFutures.length > 0) {
+            if (checkValidFutures(futuresToUse)) {
                 if (passingProbability >= 0.9 || (passingProbability >= 0.7 && completedMatchesCount >= 8)) statusId = 'great_chance';
                 else if ((passingProbability <= 0.01 && completedMatchesCount >= 4) || (passingProbability <= 0.1 && completedMatchesCount >= 10)) statusId = 'slim_chance';
                 else statusId = 'uncertain';
@@ -349,6 +428,7 @@ export function useMatchLogic(activeStage: string) {
     return {
         getScheduledMatches,
         simulatedFutures,
+        runSimulationAsync,
         getTeamRecords,
         getComputedActuals,
         activeStageActuals,

@@ -5,11 +5,11 @@ import { TEAMS } from '../data/teams';
 
 export const MiniPicksDisplay: React.FC<{
     title30: string;
-    slots30: (PickSlot & { resultStatus?: 'correct'|'incorrect'|'unknown' })[];
+    slots30: (PickSlot & { resultStatus?: 'correct'|'incorrect'|'unknown', clashType?: 'x-one'|'x-fail'|'x-pass' })[];
     titleAdvance: string;
-    slotsAdvance: (PickSlot & { resultStatus?: 'correct'|'incorrect'|'unknown' })[];
+    slotsAdvance: (PickSlot & { resultStatus?: 'correct'|'incorrect'|'unknown', clashType?: 'x-one'|'x-fail'|'x-pass' })[];
     title03: string;
-    slots03: (PickSlot & { resultStatus?: 'correct'|'incorrect'|'unknown' })[];
+    slots03: (PickSlot & { resultStatus?: 'correct'|'incorrect'|'unknown', clashType?: 'x-one'|'x-fail'|'x-pass' })[];
     onSlotClick?: (slotId: string, teamId: string | null) => void;
     readOnly?: boolean;
     compact?: boolean;
@@ -17,7 +17,7 @@ export const MiniPicksDisplay: React.FC<{
     isExport?: boolean;
 }> = ({ title30, slots30, titleAdvance, slotsAdvance, title03, slots03, onSlotClick, readOnly = true, compact = false, showTeamNames = false, isExport = false }) => {
     
-    const renderSlot = (s: PickSlot & { resultStatus?: 'correct'|'incorrect'|'unknown' }, i: number) => (
+    const renderSlot = (s: PickSlot & { resultStatus?: 'correct'|'incorrect'|'unknown', clashType?: 'x-one'|'x-fail'|'x-pass' }, i: number) => (
         <div key={s.id || i} className={`flex items-center gap-1.5 flex-col ${isExport ? 'w-[44px]' : 'w-[36px] sm:w-[44px]'}`}>
             <SlotBox slot={s} border="border-white/10" readOnly={readOnly} size={compact ? "xs" : "sm"} onClick={onSlotClick} />
             {showTeamNames && s.teamId && (
