@@ -7,6 +7,8 @@ import { HomeView } from './views/HomeView';
 import { EditView } from './views/EditView';
 import { SummaryView } from './views/SummaryView';
 import { ImageExportModal } from './components/ImageExportModal';
+import { TextExportModal } from './components/TextExportModal';
+import { DialogManager, dialog } from './components/DialogManager';
 import { useMatchLogic } from './hooks/useMatchLogic';
 
 export default function App() {
@@ -49,6 +51,7 @@ export default function App() {
   
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [showImageExportModal, setShowImageExportModal] = useState(false);
+  const [showTextExportModal, setShowTextExportModal] = useState(false);
   const [imageExportIds, setImageExportIds] = useState<string[]>([]);
   const [imageExportIncludeResults, setImageExportIncludeResults] = useState(true);
   const [imageExportShowProbabilities, setImageExportShowProbabilities] = useState(false);
@@ -83,7 +86,7 @@ export default function App() {
 
   const handleGeneratePreview = async () => {
     if (imageExportIds.length === 0) {
-      alert("请至少选择一项");
+      dialog.alert("请至少选择一项");
       return;
     }
     if (!exportContainerRef.current) return;
@@ -112,7 +115,7 @@ export default function App() {
                 .catch(function (error) {
                     console.error('oops, something went wrong!', error);
                     setIsExportingImage(false);
-                    alert("截图生成失败");
+                    dialog.alert("截图生成失败");
                 });
         });
     }, 500);
@@ -320,7 +323,7 @@ export default function App() {
 
   const handleCreateNew = () => {
     if (!newNickname.trim()) {
-      alert("请输入您的昵称！");
+      dialog.alert("请输入您的昵称！");
       return;
     }
     const newId = `usr-${Date.now()}`;
@@ -341,7 +344,7 @@ export default function App() {
 
   const handleSavePick = async () => {
     if (!newNickname.trim()) {
-       alert("请先输入您的昵称！");
+       dialog.alert("请先输入您的昵称！");
        return;
     }
     if (!currentPickSetId) return;
@@ -358,7 +361,7 @@ export default function App() {
     const sets = await db.getAllPickSets();
     setCommunityPicks(sets.sort((a,b) => b.createdAt - a.createdAt));
     
-    alert("竞猜已保存！");
+    dialog.alert("竞猜已保存！");
     setViewMode('home');
   };
 
@@ -476,6 +479,7 @@ export default function App() {
               setShowProbabilityInSummary={setShowProbabilityInSummary}
               setImageExportIds={setImageExportIds}
               setShowImageExportModal={setShowImageExportModal}
+              setShowTextExportModal={setShowTextExportModal}
               activeStage={activeStage}
               setActiveStage={setActiveStage}
               ACTUAL_RESULTS={{ [activeStage]: activeStageActuals }}
@@ -520,6 +524,16 @@ export default function App() {
         simulationProgress={simulationProgress}
         exportContainerRef={exportContainerRef}
       />
+      <TextExportModal 
+        showModal={showTextExportModal}
+        setShowModal={setShowTextExportModal}
+        communityPicks={communityPicks}
+        sortedCommunityPicks={sortedCommunityPicks}
+        PLAYOFFS_SLOTS={PLAYOFFS_SLOTS}
+        ACTUAL_RESULTS={{ [activeStage]: activeStageActuals }}
+        checkPrediction={checkPrediction}
+      />
+      <DialogManager />
     </>
   );
 }

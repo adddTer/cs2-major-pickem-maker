@@ -1,6 +1,7 @@
 import React from 'react';
 import { Home, Edit3, Users, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { dialog } from './DialogManager';
 
 interface TopNavProps {
   viewMode: 'home' | 'edit' | 'summary';
@@ -40,7 +41,7 @@ export const TopNav: React.FC<TopNavProps> = ({ viewMode, setViewMode, currentPi
           <div 
              onClick={() => {
                 if (!currentPickSetId) {
-                    alert("请先从首页创建或选择竞猜 ID！");
+                    dialog.alert("请先从首页创建或选择竞猜 ID！");
                     return;
                 }
                 setViewMode('edit');

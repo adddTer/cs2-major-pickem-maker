@@ -11,6 +11,7 @@ interface SummaryViewProps {
   setShowProbabilityInSummary: (val: boolean) => void;
   setImageExportIds: (ids: string[]) => void;
   setShowImageExportModal: (val: boolean) => void;
+  setShowTextExportModal: (val: boolean) => void;
   activeStage: StageKey;
   setActiveStage: (val: StageKey) => void;
   ACTUAL_RESULTS: Record<string, PickSlot[]>;
@@ -27,6 +28,7 @@ export const SummaryView: React.FC<SummaryViewProps> = ({
   setShowProbabilityInSummary,
   setImageExportIds,
   setShowImageExportModal,
+  setShowTextExportModal,
   activeStage,
   setActiveStage,
   ACTUAL_RESULTS,
@@ -48,15 +50,25 @@ export const SummaryView: React.FC<SummaryViewProps> = ({
                   >
                       {showProbabilityInSummary ? "显示对错数量" : "显示通过概率"}
                   </button>
-                  <button 
-                      onClick={() => {
-                          setImageExportIds(communityPicks.map(p => p.id));
-                          setShowImageExportModal(true);
-                      }}
-                      className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 text-xs font-bold rounded flex items-center gap-1.5 transition-colors"
-                  >
-                      导出为图片
-                  </button>
+                  <div className="flex gap-2">
+                      <button 
+                          onClick={() => {
+                              setImageExportIds(communityPicks.map(p => p.id));
+                              setShowImageExportModal(true);
+                          }}
+                          className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 text-xs font-bold rounded flex items-center gap-1.5 transition-colors"
+                      >
+                          导出图片
+                      </button>
+                      <button 
+                          onClick={() => {
+                              setShowTextExportModal(true);
+                          }}
+                          className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 border border-emerald-500/30 text-xs font-bold rounded flex items-center gap-1.5 transition-colors"
+                      >
+                          导出文本
+                      </button>
+                  </div>
                   <div className="flex bg-black/40 p-1 rounded-md border border-white/5 overflow-x-auto custom-scrollbar shrink-0 max-w-full">
                       {['stage1', 'stage2', 'stage3', 'playoffs'].map(tabId => {
                           const stageLabel = tabId === 'stage1' ? '第一阶段' : tabId === 'stage2' ? '第二阶段' : tabId === 'stage3' ? '第三阶段' : '决胜阶段';

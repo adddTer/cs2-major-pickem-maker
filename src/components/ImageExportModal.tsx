@@ -3,6 +3,7 @@ import { PickSet, StageKey, SlotType } from '../types';
 import { Modal } from './Modal';
 import { ExportContext } from '../lib/ExportContext';
 import { RefreshCw, Copy, Download, CheckSquare, Square } from 'lucide-react';
+import { dialog } from './DialogManager';
 import { MiniPlayoffsBracket } from './MiniPlayoffsBracket';
 import { MiniPicksDisplay } from './MiniPicksDisplay';
 import { PickSetStatusText, getStatusStyles } from './PickSetStatus';
@@ -85,10 +86,10 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                                   await navigator.clipboard.write([
                                       new ClipboardItem({ [blob.type]: blob })
                                   ]);
-                                  alert('图片已复制到剪贴板！');
+                                  dialog.alert('图片已复制到剪贴板！');
                               } catch (err) {
                                   console.error(err);
-                                  alert('复制失败，请尝试直接下载。');
+                                  dialog.alert('复制失败，请尝试直接下载。');
                               }
                           }}
                           className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20 flex items-center gap-2"
