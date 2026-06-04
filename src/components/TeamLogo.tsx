@@ -9,6 +9,14 @@ export const TeamLogo = ({ team, fallbackClasses = "" }: { team: Team, fallbackC
   const isExport = useContext(ExportContext);
 
   if (!team.logo || imgFailed) {
+    if (team.id === 'tbd') {
+      return (
+        <div className={cn("flex items-center justify-center w-full h-full text-center overflow-hidden rounded-[2px] bg-transparent text-zinc-500 font-bold text-lg", fallbackClasses)}>
+          ?
+        </div>
+      );
+    }
+    
     return (
       <div 
         className={cn("flex flex-col items-center justify-center font-bold tracking-tighter w-full h-full text-center overflow-hidden rounded-[2px]", fallbackClasses)}

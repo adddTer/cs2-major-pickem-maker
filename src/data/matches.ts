@@ -44,9 +44,9 @@ export const MATCHES: Record<string, Record<string, BracketMatch[]>> = {
             { team1Id: 'mibr', team2Id: 'lynn', format: 'bo3' }
         ],
         '1:2': [
-            { team1Id: 'tyloo', team2Id: 'sharks', format: 'bo3' },
+            { team1Id: 'tyloo', team2Id: 'sharks', format: 'bo3', score1: 1, score2: 1 },
             { team1Id: 'liquid', team2Id: 'heroic', format: 'bo3' },
-            { team1Id: 'thunder', team2Id: 'flyquest', format: 'bo3' }
+            { team1Id: 'thunder', team2Id: 'flyquest', format: 'bo3', score1: 0, score2: 2 }
         ],
         '2:2': []
     },
@@ -56,7 +56,12 @@ export const MATCHES: Record<string, Record<string, BracketMatch[]>> = {
 };
 
 export const ACTUAL_RESULTS: Record<string, PickSlot[]> = {
-    stage1: [],
+    stage1: [
+        { id: 'act-30-1', type: '3-0', teamId: 'betboom' },
+        { id: 'act-30-2', type: '3-0', teamId: 'b8' },
+        { id: 'act-03-1', type: '0-3', teamId: 'sinners' },
+        { id: 'act-03-2', type: '0-3', teamId: 'gaimin' }
+    ],
     stage2: [],
     stage3: [],
     playoffs: []

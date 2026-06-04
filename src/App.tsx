@@ -10,6 +10,25 @@ import { ImageExportModal } from './components/ImageExportModal';
 import { useMatchLogic } from './hooks/useMatchLogic';
 
 export default function App() {
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [isRefreshingData, setIsRefreshingData] = useState(false);
+
+  const handleRefreshMatchData = async () => {
+    setIsRefreshingData(true);
+    await import('./utils/fetchE5Data').then(m => m.fetchAndPatchCSGOData());
+    loadPicks();
+    setDataLoaded(prev => !prev);
+    setTimeout(() => {
+        setIsRefreshingData(false);
+    }, 500);
+  };
+
+  useEffect(() => {
+    import('./utils/fetchE5Data').then(m => m.fetchAndPatchCSGOData()).then(() => {
+        setDataLoaded(true);
+    });
+  }, []);
+
   type ViewMode = 'home' | 'edit' | 'summary';
   
   const [viewMode, setViewMode] = useState<ViewMode>('home');
@@ -52,7 +71,7 @@ export default function App() {
       activeStageActuals,
       checkPrediction,
       getSetStatus,
-  } = useMatchLogic(activeStage);
+  } = useMatchLogic(activeStage, dataLoaded);
 
   const [detailedFutures, setDetailedFutures] = useState<any>(null);
   const [isSimulatingProbability, setIsSimulatingProbability] = useState(false);
@@ -170,8 +189,9 @@ export default function App() {
   }, [communityPicks, activeStage, itemFreq]);
 
   const getStageStatus = (stage: string) => {
-    const isComplete = (stage === 'playoffs' && ACTUAL_RESULTS[stage]?.length >= 15) || 
-                       (stage !== 'playoffs' && ACTUAL_RESULTS[stage]?.length >= 16);
+    const actualsForStage = getComputedActuals(stage) || [];
+    const isComplete = (stage === 'playoffs' && actualsForStage.length >= 15) || 
+                       (stage !== 'playoffs' && actualsForStage.length >= 16);
                        
     if (isComplete) return `比赛已结束`;
 
@@ -199,18 +219,40 @@ export default function App() {
   };
 
   const getAvailableTeams = (stage: string) => {
-    if (stage === 'playoffs') return TEAMS;
-    if (stage === 'stage1') return TEAMS.filter(t => t.startStage === 1);
+    if (stage === 'playoffs') {
+      const s3Actuals = getComputedActuals('stage3');
+      const s3Advanced = s3Actuals.filter(a => a.type === '3-0' || a.type === 'advance').map(a => a.teamId!);
+      if (s3Advanced.length === 8) {
+        return TEAMS.filter(t => t && s3Advanced.includes(t.id) && t.id !== 'tbd');
+      }
+      const s3AdvancedPicks = picks.stage3.filter(s => (s.type === '3-0' || s.type === 'advance') && s.teamId).map(s => s.teamId!);
+      return TEAMS.filter(t => t && s3AdvancedPicks.includes(t.id) && t.id !== 'tbd');
+    }
+    if (stage === 'stage1') return TEAMS.filter(t => t.startStage === 1 && t.id !== 'tbd');
     if (stage === 'stage2') {
-      const s1AdvancedIds = picks.stage1.filter(s => (s.type === '3-0' || s.type === 'advance') && s.teamId).map(s => s.teamId);
-      const s1Advanced = TEAMS.filter(t => t && s1AdvancedIds.includes(t.id));
-      const s2Direct = TEAMS.filter(t => t.startStage === 2);
+      let s1AdvancedIds: string[] = [];
+      const s1Actuals = getComputedActuals('stage1');
+      const actualAdvanced = s1Actuals.filter(a => a.type === '3-0' || a.type === 'advance').map(a => a.teamId!);
+      if (actualAdvanced.length === 8) {
+          s1AdvancedIds = actualAdvanced;
+      } else {
+          s1AdvancedIds = picks.stage1.filter(s => (s.type === '3-0' || s.type === 'advance') && s.teamId).map(s => s.teamId!);
+      }
+      const s1Advanced = TEAMS.filter(t => t && s1AdvancedIds.includes(t.id) && t.id !== 'tbd');
+      const s2Direct = TEAMS.filter(t => t.startStage === 2 && t.id !== 'tbd');
       return [...s1Advanced, ...s2Direct];
     }
     if (stage === 'stage3') {
-      const s2AdvancedIds = picks.stage2.filter(s => (s.type === '3-0' || s.type === 'advance') && s.teamId).map(s => s.teamId);
-      const s2Advanced = TEAMS.filter(t => t && s2AdvancedIds.includes(t.id));
-      const s3Direct = TEAMS.filter(t => t.startStage === 3);
+      let s2AdvancedIds: string[] = [];
+      const s2Actuals = getComputedActuals('stage2');
+      const actualAdvanced = s2Actuals.filter(a => a.type === '3-0' || a.type === 'advance').map(a => a.teamId!);
+      if (actualAdvanced.length === 8) {
+          s2AdvancedIds = actualAdvanced;
+      } else {
+          s2AdvancedIds = picks.stage2.filter(s => (s.type === '3-0' || s.type === 'advance') && s.teamId).map(s => s.teamId!);
+      }
+      const s2Advanced = TEAMS.filter(t => t && s2AdvancedIds.includes(t.id) && t.id !== 'tbd');
+      const s3Direct = TEAMS.filter(t => t.startStage === 3 && t.id !== 'tbd');
       return [...s2Advanced, ...s3Direct];
     }
     return [];
@@ -382,6 +424,8 @@ export default function App() {
            viewMode={viewMode}
            setViewMode={setViewMode}
            currentPickSetId={currentPickSetId}
+           handleRefresh={handleRefreshMatchData}
+           isRefreshing={isRefreshingData}
         />
 
         {/* Outer App Container */}
@@ -434,7 +478,7 @@ export default function App() {
               setShowImageExportModal={setShowImageExportModal}
               activeStage={activeStage}
               setActiveStage={setActiveStage}
-              ACTUAL_RESULTS={ACTUAL_RESULTS}
+              ACTUAL_RESULTS={{ [activeStage]: activeStageActuals }}
               PLAYOFFS_SLOTS={PLAYOFFS_SLOTS}
               sortedCommunityPicks={sortedCommunityPicks}
               getSetStatus={getSetStatus}
@@ -467,7 +511,7 @@ export default function App() {
         handleDownloadImage={handleDownloadImage}
         activeStage={activeStage}
         PLAYOFFS_SLOTS={PLAYOFFS_SLOTS}
-        ACTUAL_RESULTS={ACTUAL_RESULTS}
+        ACTUAL_RESULTS={{ [activeStage]: activeStageActuals }}
         getSetStatus={getSetStatus}
         itemFreq={itemFreq}
         checkPrediction={checkPrediction}

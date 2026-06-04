@@ -2,7 +2,7 @@ import { useMemo, useCallback, useState, useEffect } from 'react';
 import { MATCHES, ACTUAL_RESULTS } from '../data/matches';
 import { PickSlot, SlotType } from '../types';
 
-export function useMatchLogic(activeStage: string) {
+export function useMatchLogic(activeStage: string, dataLoaded?: boolean) {
     const [simulatedFutures, setSimulatedFutures] = useState<any>([]);
 
     const getScheduledMatches = (stage: string) => {
@@ -44,9 +44,18 @@ export function useMatchLogic(activeStage: string) {
                     
                     if (m.team1Id && m.team2Id) {
                         if (m.score1 !== undefined && m.score2 !== undefined) {
-                            const winner = m.score1 > m.score2 ? m.team1Id : (m.score2 > m.score1 ? m.team2Id : '');
-                            if (winner) {
-                                pastMatches.push({ t1: m.team1Id, t2: m.team2Id, winner });
+                            let isComplete = false;
+                            if (m.format === 'bo1') isComplete = m.score1 === 1 || m.score2 === 1;
+                            else if (m.format === 'bo3') isComplete = m.score1 === 2 || m.score2 === 2;
+                            else if (m.format === 'bo5') isComplete = m.score1 === 3 || m.score2 === 3;
+
+                            if (isComplete) {
+                                const winner = m.score1 > m.score2 ? m.team1Id : (m.score2 > m.score1 ? m.team2Id : '');
+                                if (winner) {
+                                    pastMatches.push({ t1: m.team1Id, t2: m.team2Id, winner });
+                                }
+                            } else {
+                                scheduledMatches.push({ t1: m.team1Id, t2: m.team2Id });
                             }
                         } else {
                             scheduledMatches.push({ t1: m.team1Id, t2: m.team2Id });
@@ -76,7 +85,7 @@ export function useMatchLogic(activeStage: string) {
             };
             worker.postMessage({ allTeams, pastMatches, scheduledMatches, numSimulations });
         });
-    }, [activeStage]);
+    }, [activeStage, dataLoaded]);
 
     useEffect(() => {
         let isMounted = true;
@@ -102,16 +111,23 @@ export function useMatchLogic(activeStage: string) {
             if (isNaN(w) || isNaN(l)) return;
             
             matches.forEach(m => {
-                const hasResult = m.score1 !== undefined && m.score2 !== undefined;
+                let hasResult = m.score1 !== undefined && m.score2 !== undefined;
                 let t1Win = false;
                 let t2Win = false;
                 if (hasResult) {
                    if (m.format === 'bo1') {
                        t1Win = m.score1 === 1;
                        t2Win = m.score2 === 1;
+                   } else if (m.format === 'bo5') {
+                       t1Win = m.score1 === 3;
+                       t2Win = m.score2 === 3;
                    } else {
                        t1Win = m.score1 === 2;
                        t2Win = m.score2 === 2;
+                   }
+                   
+                   if (!t1Win && !t2Win) {
+                       hasResult = false;
                    }
                 }
 
@@ -142,7 +158,7 @@ export function useMatchLogic(activeStage: string) {
             }
         });
         return records;
-    }, []);
+    }, [dataLoaded]);
 
     const getComputedActuals = useCallback((stage: string) => {
         let actuals = ACTUAL_RESULTS[stage] || [];

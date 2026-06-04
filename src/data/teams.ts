@@ -37,7 +37,10 @@ export const TEAMS: Team[] = [
   { id: 'tyloo', name: 'TYLOO', shortName: 'TYL', color: '#ff0000', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/hMPKtNMDxp07n3lrBEHCuq.svg?ixlib=java-2.1.0&s=6d22fc4af07d0cd9d31fcd7f3023af9a', startStage: 1 },
   { id: 'lynn', name: 'Lynn Vision Gaming (LVG)', shortName: 'LVG', color: '#aaaaaa', textColor: '#000000', logo: 'https://img-cdn.hltv.org/teamlogo/DPcHT21uWwK1hDD_3txlL9.png?ixlib=java-2.1.0&w=50&s=4b5d5a187f00caf9bbae2d0fcbca6ff6', startStage: 1 },
   { id: 'thunder', name: 'THUNDER dOWNUNDER', shortName: 'TDU', color: '#ff00ff', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/bSRhbVtvK3S64DVmh5XIgi.png?ixlib=java-2.1.0&w=50&s=83a402b5b6e8c40009d10e796645e479', startStage: 1 },
-  { id: 'flyquest', name: 'FlyQuest', shortName: 'FLY', color: '#00cc00', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/fmqTgF6Ziw0uied7MO3_ri.png?ixlib=java-2.1.0&w=50&s=255b5a4c460ad03161509ff7eb77b2dc', startStage: 1 }
+  { id: 'flyquest', name: 'FlyQuest', shortName: 'FLY', color: '#00cc00', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/fmqTgF6Ziw0uied7MO3_ri.png?ixlib=java-2.1.0&w=50&s=255b5a4c460ad03161509ff7eb77b2dc', startStage: 1 },
+  
+  // TBD Placeholder
+  { id: 'tbd', name: 'TBD', shortName: 'TBD', color: '#1e1e1e', textColor: '#888888', logo: '', startStage: 0 }
 ];
 
 export const INITIAL_SLOTS: PickSlot[] = [
