@@ -13,11 +13,17 @@ import { useMatchLogic } from './hooks/useMatchLogic';
 
 export default function App() {
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [dataLoadError, setDataLoadError] = useState(false);
   const [isRefreshingData, setIsRefreshingData] = useState(false);
 
   const handleRefreshMatchData = async () => {
     setIsRefreshingData(true);
-    await import('./utils/fetchE5Data').then(m => m.fetchAndPatchCSGOData());
+    try {
+        await import('./utils/fetchE5Data').then(m => m.fetchAndPatchCSGOData());
+        setDataLoadError(false);
+    } catch {
+        setDataLoadError(true);
+    }
     loadPicks();
     setDataLoaded(prev => !prev);
     setTimeout(() => {
@@ -26,9 +32,16 @@ export default function App() {
   };
 
   useEffect(() => {
-    import('./utils/fetchE5Data').then(m => m.fetchAndPatchCSGOData()).then(() => {
-        setDataLoaded(true);
-    });
+    import('./utils/fetchE5Data')
+        .then(m => m.fetchAndPatchCSGOData())
+        .then(() => {
+            setDataLoadError(false);
+            setDataLoaded(true);
+        })
+        .catch(() => {
+            setDataLoadError(true);
+            setDataLoaded(true);
+        });
   }, []);
 
   type ViewMode = 'home' | 'edit' | 'summary';
@@ -265,7 +278,8 @@ export default function App() {
   const currentSlots = picks[activeStage] || [];
   
   const handleAssignSlot = (teamId: string, slotId: string) => {
-    if (!currentPoolTeams.find(t => t.id === teamId)) return;
+    // Only enforce pool team check for swiss stages
+    if (activeStage !== 'playoffs' && !currentPoolTeams.find(t => t.id === teamId)) return;
 
     setPicks((prev: Record<string, PickSlot[]>) => {
         if (activeStage === 'playoffs' && slotId.includes('qf-')) return prev;
@@ -430,6 +444,12 @@ export default function App() {
            handleRefresh={handleRefreshMatchData}
            isRefreshing={isRefreshingData}
         />
+        
+        {dataLoadError && (
+          <div className="bg-rose-500/20 text-rose-300 px-4 py-2 text-sm text-center border-b border-rose-500/30 z-[100]">
+            数据加载失败或者无网络连接，暂时无法更新当前赛况。
+          </div>
+        )}
 
         {/* Outer App Container */}
         <div className="w-full flex-1 max-w-full relative z-10 flex flex-col lg:flex-row gap-4 lg:gap-6 p-3 lg:p-6 overflow-y-auto lg:overflow-hidden">

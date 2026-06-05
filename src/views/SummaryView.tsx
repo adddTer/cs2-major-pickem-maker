@@ -96,7 +96,14 @@ export const SummaryView: React.FC<SummaryViewProps> = ({
                   </div>
                   {activeStage === 'playoffs' ? (
                       <MiniPlayoffsBracket 
-                          slots={PLAYOFFS_SLOTS.map((s, i) => ({ ...s, teamId: ACTUAL_RESULTS[activeStage]?.filter((x: any) => x.type === s.type)[i]?.teamId || undefined, resultStatus: 'unknown' }))}
+                          slots={PLAYOFFS_SLOTS.map((s) => {
+                              const sTypeIdx = PLAYOFFS_SLOTS.filter(x => x.type === s.type).findIndex(x => x.id === s.id);
+                              return { 
+                                  ...s, 
+                                  teamId: ACTUAL_RESULTS[activeStage]?.filter((x: any) => x.type === s.type)[sTypeIdx]?.teamId || undefined, 
+                                  resultStatus: 'unknown' 
+                              };
+                          })}
                       />
                   ) : (
                       <MiniPicksDisplay 
@@ -128,7 +135,16 @@ export const SummaryView: React.FC<SummaryViewProps> = ({
                               <MiniPlayoffsBracket 
                                   slots={PLAYOFFS_SLOTS.map((s) => {
                                       const pick = theirPicks.find(p => p.id === s.id || p.id === `playoffs-${s.id}`);
-                                      return { ...s, teamId: pick?.teamId || null, resultStatus: 'unknown' };
+                                      let teamId = pick?.teamId || null;
+                                      
+                                      // Auto-fill QF slots from ACTUAL_RESULTS since users don't pick them
+                                      if (s.type === 'qf' && !teamId) {
+                                          const qfActuals = ACTUAL_RESULTS[activeStage]?.filter((x: any) => x.type === 'qf') || [];
+                                          const sTypeIdx = PLAYOFFS_SLOTS.filter(x => x.type === 'qf').findIndex(x => x.id === s.id);
+                                          teamId = qfActuals[sTypeIdx]?.teamId || null;
+                                      }
+                                      
+                                      return { ...s, teamId: teamId, resultStatus: 'unknown' };
                                   })}
                               />
                           </div>

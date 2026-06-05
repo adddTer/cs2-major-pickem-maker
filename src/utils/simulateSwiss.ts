@@ -89,39 +89,63 @@ export function simulateSwiss(
             // For each group, do a greedy matching
             for (const key in groups) {
                 const groupTeams = groups[key];
-                // Shuffle groupTeams
-                groupTeams.sort(() => Math.random() - 0.5);
                 
-                for (let i = 0; i < groupTeams.length; i++) {
-                    const t1 = groupTeams[i];
+                // Buchholz score calculation
+                const getBuchholz = (t: string) => {
+                    let score = 0;
+                    for (const opp of played[t]) {
+                        score += (records[opp].w - records[opp].l);
+                    }
+                    return score;
+                };
+
+                const getInitialSeed = (t: string) => {
+                    return allTeams.indexOf(t);
+                };
+
+                // Sort teams by Buchholz, then Initial Seed
+                groupTeams.sort((a, b) => {
+                    const bA = getBuchholz(a);
+                    const bB = getBuchholz(b);
+                    if (bA !== bB) {
+                        return bB - bA; // Higher Buchholz first
+                    }
+                    return getInitialSeed(a) - getInitialSeed(b); // Lower index is better seed
+                });
+                
+                while (groupTeams.length > 0) {
+                    const t1 = groupTeams.shift()!;
                     if (matched.has(t1)) continue;
                     
-                    let bestMatch = null;
-                    // Try to find someone they haven't played
-                    for (let j = i + 1; j < groupTeams.length; j++) {
+                    let matchIdx = -1;
+                    // Match Highest vs Lowest: iterate from the end (lowest)
+                    for (let j = groupTeams.length - 1; j >= 0; j--) {
                         const t2 = groupTeams[j];
                         if (!matched.has(t2) && !played[t1].has(t2)) {
-                            bestMatch = t2;
+                            matchIdx = j;
                             break;
                         }
                     }
                     
-                    // If couldn't find unplayed, just pick the first unmatched
-                    if (!bestMatch) {
-                        for (let j = i + 1; j < groupTeams.length; j++) {
+                    // If couldn't find unplayed, pick the lowest unmatched
+                    if (matchIdx === -1) {
+                        for (let j = groupTeams.length - 1; j >= 0; j--) {
                             const t2 = groupTeams[j];
                             if (!matched.has(t2)) {
-                                bestMatch = t2;
+                                matchIdx = j;
                                 break;
                             }
                         }
                     }
 
-                    if (bestMatch) {
+                    if (matchIdx !== -1) {
+                        const bestMatch = groupTeams[matchIdx];
+                        groupTeams.splice(matchIdx, 1); // remove from array
+                        
                         matched.add(t1);
                         matched.add(bestMatch);
                         
-                        // Simulate match
+                        // Simulate match (50/50 probability)
                         const winner = Math.random() > 0.5 ? t1 : bestMatch;
                         const loser = winner === t1 ? bestMatch : t1;
                         

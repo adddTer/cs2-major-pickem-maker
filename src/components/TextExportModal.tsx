@@ -100,7 +100,16 @@ export const TextExportModal: React.FC<TextExportModalProps> = ({
       if (stage === 'playoffs') {
           let qs = '', ss = '', fs = '', cs = '';
           PLAYOFFS_SLOTS.forEach(s => {
-              const pick = picks.find(p => p.id === s.id || p.id === `playoffs-${s.id}`);
+              let pick = picks.find(p => p.id === s.id || p.id === `playoffs-${s.id}`);
+              
+              if (!pick && s.type === 'qf') {
+                  const qfActuals = ACTUAL_RESULTS[stage]?.filter((x: any) => x.type === 'qf') || [];
+                  const sTypeIdx = PLAYOFFS_SLOTS.filter(x => x.type === 'qf').findIndex(x => x.id === s.id);
+                  if (qfActuals[sTypeIdx]?.teamId) {
+                      pick = { id: s.id, type: 'qf', teamId: qfActuals[sTypeIdx].teamId };
+                  }
+              }
+
               if (!pick) return;
               const name = getTeamName(pick.teamId);
               const mark = (showCheckMarks && pick.teamId) ? (checkPrediction(pick.teamId, s.type, stage) === 'correct' ? ' [✓]' : checkPrediction(pick.teamId, s.type, stage) === 'incorrect' ? ' [✗]' : '') : '';

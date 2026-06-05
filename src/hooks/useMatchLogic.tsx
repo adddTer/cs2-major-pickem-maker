@@ -167,6 +167,8 @@ export function useMatchLogic(activeStage: string, dataLoaded?: boolean) {
         if (stage !== 'playoffs') {
             const computedActuals: PickSlot[] = [];
             Object.entries(records).forEach(([tid, r]) => {
+                if (actuals.some(a => a.teamId === tid)) return;
+                
                 if (r.w === 3 && r.l === 0) computedActuals.push({ id: `r30-${tid}`, type: '3-0', teamId: tid });
                 else if (r.w === 3 && r.l > 0) computedActuals.push({ id: `ra-${tid}`, type: 'advance', teamId: tid });
                 else if (r.l === 3 && r.w === 0) computedActuals.push({ id: `r03-${tid}`, type: '0-3', teamId: tid });
