@@ -1,3 +1,3 @@
 import React from 'react';
 
-export const ExportContext = React.createContext(false);
+export const ExportContext = React.createContext<boolean | number>(false);

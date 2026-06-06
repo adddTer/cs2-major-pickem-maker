@@ -27,8 +27,10 @@ export const TeamLogo = ({ team, fallbackClasses = "" }: { team: Team, fallbackC
     );
   }
 
-  // Force proxy for export to bypass CORS restrictions in html2canvas
-  const imgSrc = (useProxy || isExport) ? `https://wsrv.nl/?url=${encodeURIComponent(team.logo)}` : team.logo;
+  // Force proxy for export to bypass CORS restrictions in html-to-image
+  // We append a session ID to the URL if available to perfectly bust any internal html-to-image memoization cache
+  const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(team.logo)}`;
+  const imgSrc = (useProxy || !!isExport) ? proxyUrl : team.logo;
 
   return (
     <img 

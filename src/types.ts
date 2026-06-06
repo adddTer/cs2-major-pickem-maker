@@ -6,6 +6,14 @@ export interface Team {
   textColor: string;
   logo?: string;
   startStage?: number;
+  // Extended properties for Pre-match analysis
+  worldRank?: number;
+  recentForm?: ('W' | 'L' | 'D')[];
+  mapWinrates?: Array<{
+    mapName: string;
+    winRate: number;
+    matchesPlayed: number;
+  }>;
 }
 
 export type SlotType = '3-0' | 'advance' | '0-3' | 'qf' | 'sf' | 'final' | 'champion';
@@ -18,13 +26,40 @@ export interface MapScore {
   score2: number;
 }
 
+export interface VetoAction {
+  teamId: string;
+  action: 'BAN' | 'PICK' | 'LEFT';
+  mapName: string;
+  order: number;
+}
+
+export interface PlayerStats {
+  playerId: string;
+  nickname: string;
+  rating: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  adr?: number;
+  kast?: number;
+  isMVP?: boolean;
+  communityRating?: number;
+}
+
 export type BracketMatch = {
+  externalId?: string; // 5EPlay Match ID
   team1Id?: string;
   team2Id?: string;
   format?: MatchFormat;
   score1?: number;
   score2?: number;
   maps?: MapScore[];
+  status?: "past" | "live" | "upcoming";
+  scheduledTime?: number;
+  vetoes?: VetoAction[];
+  team1Stats?: PlayerStats[];
+  team2Stats?: PlayerStats[];
+  highlightVideoUrl?: string;
 };
 
 export interface PickSlot {

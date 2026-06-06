@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { TEAMS, INITIAL_SLOTS, PLAYOFFS_SLOTS } from './data/teams';
 import { ACTUAL_RESULTS } from './data/matches';
 import { PickSlot, PickSet, StageKey, SlotType } from './types';
@@ -46,7 +46,14 @@ export default function App() {
 
   type ViewMode = 'home' | 'edit' | 'summary';
   
-  const [viewMode, setViewMode] = useState<ViewMode>('home');
+  const [viewMode, setViewModeInternal] = useState<ViewMode>('home');
+  const [lastAutoSwitchView, setLastAutoSwitchView] = useState<ViewMode | null>(null);
+  
+  // Wrapper for setViewMode to make it simple
+  const setViewMode = useCallback((mode: ViewMode) => {
+      setViewModeInternal(mode);
+  }, []);
+
   const [newNickname, setNewNickname] = useState('');
   const [activeStage, setActiveStage] = useState<StageKey>('stage1');
   
@@ -66,7 +73,7 @@ export default function App() {
   const [showImageExportModal, setShowImageExportModal] = useState(false);
   const [showTextExportModal, setShowTextExportModal] = useState(false);
   const [imageExportIds, setImageExportIds] = useState<string[]>([]);
-  const [imageExportIncludeResults, setImageExportIncludeResults] = useState(true);
+  const [imageExportShowPrevStage, setImageExportShowPrevStage] = useState(true);
   const [imageExportShowProbabilities, setImageExportShowProbabilities] = useState(false);
   const [imageExportShowTeamNames, setImageExportShowTeamNames] = useState(false);
   const [imageExportStyle, setImageExportStyle] = useState<'standard' | 'compact'>('standard');
@@ -89,6 +96,25 @@ export default function App() {
       getSetStatus,
   } = useMatchLogic(activeStage, dataLoaded);
 
+  const getRecommendedStage = useCallback(() => {
+    for (const stage of ['stage1', 'stage2', 'stage3']) {
+      const actuals = getComputedActuals(stage) || [];
+      if (actuals.length < 16) {
+        return stage as StageKey;
+      }
+    }
+    return 'playoffs' as StageKey;
+  }, [getComputedActuals]);
+
+  useEffect(() => {
+     if (dataLoaded && (viewMode === 'edit' || viewMode === 'summary') && lastAutoSwitchView !== viewMode) {
+         setActiveStage(getRecommendedStage());
+         setLastAutoSwitchView(viewMode);
+     } else if (viewMode === 'home') {
+         setLastAutoSwitchView(null);
+     }
+  }, [dataLoaded, viewMode, lastAutoSwitchView, getRecommendedStage]);
+
   const [detailedFutures, setDetailedFutures] = useState<any>(null);
   const [isSimulatingProbability, setIsSimulatingProbability] = useState(false);
   const [simulationProgress, setSimulationProgress] = useState(0);
@@ -110,13 +136,14 @@ export default function App() {
         setSimulationProgress(0);
         // We defer it slightly to let react render the loading state
         await new Promise(r => setTimeout(r, 50));
-        const futures = await runSimulationAsync(100000, (p) => setSimulationProgress(p));
+        const futures = await runSimulationAsync(20000, (p) => setSimulationProgress(p));
         setDetailedFutures(futures);
         setIsSimulatingProbability(false);
-        // Wait for React to finish re-rendering the probabilities before dom capture
-        await new Promise(r => setTimeout(r, 100));
+        // Wait for React to finish re-rendering and mounting the hidden container before dom capture
+        await new Promise(r => setTimeout(r, 300));
     }
     
+    // We also give html-to-image a little time
     setTimeout(() => {
         import('html-to-image').then(htmlToImage => {
             if (!exportContainerRef.current) return;
@@ -518,8 +545,8 @@ export default function App() {
         setShowImageExportModal={setShowImageExportModal}
         exportPreviewUrl={exportPreviewUrl}
         setExportPreviewUrl={setExportPreviewUrl}
-        imageExportIncludeResults={imageExportIncludeResults}
-        setImageExportIncludeResults={setImageExportIncludeResults}
+        imageExportShowPrevStage={imageExportShowPrevStage}
+        setImageExportShowPrevStage={setImageExportShowPrevStage}
         imageExportShowProbabilities={imageExportShowProbabilities}
         setImageExportShowProbabilities={setImageExportShowProbabilities}
         imageExportShowTeamNames={imageExportShowTeamNames}
@@ -535,7 +562,7 @@ export default function App() {
         handleDownloadImage={handleDownloadImage}
         activeStage={activeStage}
         PLAYOFFS_SLOTS={PLAYOFFS_SLOTS}
-        ACTUAL_RESULTS={{ [activeStage]: activeStageActuals }}
+        ACTUAL_RESULTS={ACTUAL_RESULTS}
         getSetStatus={getSetStatus}
         itemFreq={itemFreq}
         checkPrediction={checkPrediction}

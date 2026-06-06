@@ -350,7 +350,7 @@ export function useMatchLogic(activeStage: string, dataLoaded?: boolean) {
         let possible = 10 - guaranteed - mathematicallyIncorrect;
         if (possible < 0) possible = 0;
         
-        let passingProbability = 0;
+        let passingProbability: number | undefined = undefined;
         
         const checkValidFutures = (f: any) => f && (f.isPacked ? f.data.length > 0 : f.length > 0);
         const futuresToUse = checkValidFutures(customFutures) ? customFutures : simulatedFutures;
@@ -428,14 +428,14 @@ export function useMatchLogic(activeStage: string, dataLoaded?: boolean) {
         if (guaranteed >= 5) statusId = 'passed';
         else if (guaranteed + possible < 5) statusId = 'failed';
         else {
-            if (checkValidFutures(futuresToUse)) {
+            if (passingProbability !== undefined) {
                 if (passingProbability >= 0.9 || (passingProbability >= 0.7 && completedMatchesCount >= 8)) statusId = 'great_chance';
                 else if ((passingProbability <= 0.01 && completedMatchesCount >= 4) || (passingProbability <= 0.1 && completedMatchesCount >= 10)) statusId = 'slim_chance';
                 else statusId = 'uncertain';
             } else {
                 const needed = 5 - Math.max(guaranteed, 0);
                 const margin = possible - needed;
-                if (margin >= 3) statusId = 'great_chance';
+                if (margin >= 3 && completedMatchesCount >= 8) statusId = 'great_chance';
                 else if (margin === 0 && completedMatchesCount >= 4) statusId = 'slim_chance';
                 else statusId = 'uncertain';
             }

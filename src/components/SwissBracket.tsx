@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { TEAMS } from "../data/teams";
 import { MATCHES } from "../data/matches";
 import { BracketMatch } from "../types";
@@ -6,6 +6,7 @@ import { cn } from "../lib/utils";
 import { useFitScale } from "../utils/hooks";
 import { TeamLogo } from "./TeamLogo";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import { MatchDialog } from "./MatchDialog";
 
 const MatchParticipant = ({ teamId }: { teamId?: string }) => {
   const team = TEAMS.find((t) => t.id === teamId);
@@ -23,9 +24,9 @@ const MatchParticipant = ({ teamId }: { teamId?: string }) => {
   );
 };
 
-const MatchLine: React.FC<{ match?: BracketMatch }> = ({ match }) => {
-  const [showMaps, setShowMaps] = React.useState(false);
+const MatchLine: React.FC<{ match?: BracketMatch; onClick?: (m: BracketMatch) => void }> = ({ match, onClick }) => {
   const hasResult = match?.score1 !== undefined && match?.score2 !== undefined;
+  const isLive = match?.status === "live";
 
   let displayLeft = match?.score1;
   let displayRight = match?.score2;
@@ -43,20 +44,23 @@ const MatchLine: React.FC<{ match?: BracketMatch }> = ({ match }) => {
     <div
       className="flex flex-col items-center relative z-20 w-full px-1 justify-center py-[7px] border-b border-white/5 last:border-0 group cursor-pointer"
       title={titleStr}
-      onClick={() => setShowMaps(!showMaps)}
-      onMouseLeave={() => setShowMaps(false)}
+      onClick={(e) => {
+          if (onClick && match) onClick(match);
+      }}
     >
       <div className="flex items-center gap-2 justify-center w-full">
         <MatchParticipant teamId={match?.team1Id} />
         {hasResult ? (
-          <div className="flex flex-col items-center justify-center min-w-[28px] shrink-0 relative">
+          <div className="flex items-center justify-center min-w-[28px] h-[32px] shrink-0 relative">
             <div className="flex items-center justify-center gap-1">
               <span
                 className={cn(
                   "text-[11px] font-bold",
-                  (displayLeft ?? 0) > (displayRight ?? 0)
-                    ? "text-emerald-400 drop-shadow-sm"
-                    : "text-zinc-500",
+                  isLive
+                    ? "text-white"
+                    : (displayLeft ?? 0) > (displayRight ?? 0)
+                      ? "text-emerald-400 drop-shadow-sm"
+                      : "text-zinc-500",
                 )}
               >
                 {displayLeft}
@@ -65,27 +69,33 @@ const MatchLine: React.FC<{ match?: BracketMatch }> = ({ match }) => {
               <span
                 className={cn(
                   "text-[11px] font-bold",
-                  (displayRight ?? 0) > (displayLeft ?? 0)
-                    ? "text-emerald-400 drop-shadow-sm"
-                    : "text-zinc-500",
+                  isLive
+                    ? "text-white"
+                    : (displayRight ?? 0) > (displayLeft ?? 0)
+                      ? "text-emerald-400 drop-shadow-sm"
+                      : "text-zinc-500",
                 )}
               >
                 {displayRight}
               </span>
             </div>
-            {(match.format === "bo3" || match.format === "bo5") && (
-              <span className="text-[8px] text-zinc-500 uppercase font-mono tracking-tighter scale-75 mt-[-2px]">
+            {isLive ? (
+              <span className="absolute -bottom-[4px] text-[8px] text-zinc-100 font-bold bg-rose-600/90 px-1 rounded-[2px] tracking-tighter scale-[0.8]">
+                LIVE
+              </span>
+            ) : (match.format === "bo3" || match.format === "bo5") ? (
+              <span className="absolute -bottom-[4px] text-[8px] text-zinc-500 uppercase font-mono tracking-tighter scale-75">
                 {match.format.toUpperCase()}
               </span>
-            )}
+            ) : null}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center min-w-[28px] shrink-0 relative">
+          <div className="flex items-center justify-center min-w-[28px] h-[32px] shrink-0 relative">
             <span className="text-[10px] text-zinc-600/80 font-medium w-[28px] text-center uppercase tracking-widest shrink-0">
               vs
             </span>
             {(match?.format === "bo3" || match?.format === "bo5") && (
-              <span className="text-[8px] text-zinc-500 uppercase font-mono tracking-tighter scale-75 mt-[-2px]">
+              <span className="absolute -bottom-[4px] text-[8px] text-zinc-500 uppercase font-mono tracking-tighter scale-75">
                 {match.format.toUpperCase()}
               </span>
             )}
@@ -93,30 +103,6 @@ const MatchLine: React.FC<{ match?: BracketMatch }> = ({ match }) => {
         )}
         <MatchParticipant teamId={match?.team2Id} />
       </div>
-      {(match?.format === "bo3" || match?.format === "bo5") &&
-        match.maps &&
-        match.maps.length > 0 && (
-          <div
-            className={cn(
-              "absolute top-[80%] left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-200",
-              "bg-zinc-950/95 backdrop-blur-md border border-white/10 shadow-xl rounded px-2 py-1.5 flex items-center gap-[3px]",
-              showMaps
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-1 md:group-hover:opacity-100 md:group-hover:translate-y-0",
-            )}
-          >
-            {match.maps.map((m, i) => (
-              <span
-                key={i}
-                className="text-[10px] leading-none px-1.5 py-[3px] bg-black/60 rounded-[3px] font-mono text-zinc-300 border border-white/5"
-              >
-                {m.score1}
-                <span className="opacity-50 mx-[2px]">:</span>
-                {m.score2}
-              </span>
-            ))}
-          </div>
-        )}
     </div>
   );
 };
@@ -125,10 +111,12 @@ const GroupBox = ({
   score,
   count,
   matches = [],
+  onMatchClick,
 }: {
   score: string;
   count: number;
   matches?: BracketMatch[];
+  onMatchClick?: (m: BracketMatch) => void;
 }) => {
   return (
     <div className="bg-zinc-900/60 border border-white/5 rounded-[8px] px-3 pt-6 pb-2 flex flex-col items-center relative shadow-lg w-[136px] shrink-0 z-10 backdrop-blur-sm pointer-events-auto">
@@ -137,7 +125,7 @@ const GroupBox = ({
       </div>
       <div className="flex flex-col w-full items-center justify-center relative">
         {Array.from({ length: count }).map((_, i) => (
-          <MatchLine key={i} match={matches[i]} />
+          <MatchLine key={i} match={matches[i]} onClick={onMatchClick} />
         ))}
       </div>
     </div>
@@ -224,6 +212,8 @@ const AbsoluteBox = ({
 );
 
 export const SwissBracket = ({ activeStage }: { activeStage: string }) => {
+  const [selectedMatch, setSelectedMatch] = useState<BracketMatch | null>(null);
+
   const pos = {
     g00: { id: "g00", x: 90, y: 360, o1: 65, o2: 65 },
 
@@ -362,31 +352,31 @@ export const SwissBracket = ({ activeStage }: { activeStage: string }) => {
 
             {/* Swiss Bracket Boxes */}
             <AbsoluteBox p={pos.g00}>
-              <GroupBox score="0:0" count={8} matches={getMatches("0:0")} />
+              <GroupBox score="0:0" count={8} matches={getMatches("0:0")} onMatchClick={setSelectedMatch} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g10}>
-              <GroupBox score="1:0" count={4} matches={getMatches("1:0")} />
+              <GroupBox score="1:0" count={4} matches={getMatches("1:0")} onMatchClick={setSelectedMatch} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g01}>
-              <GroupBox score="0:1" count={4} matches={getMatches("0:1")} />
+              <GroupBox score="0:1" count={4} matches={getMatches("0:1")} onMatchClick={setSelectedMatch} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g20}>
-              <GroupBox score="2:0" count={2} matches={getMatches("2:0")} />
+              <GroupBox score="2:0" count={2} matches={getMatches("2:0")} onMatchClick={setSelectedMatch} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g11}>
-              <GroupBox score="1:1" count={4} matches={getMatches("1:1")} />
+              <GroupBox score="1:1" count={4} matches={getMatches("1:1")} onMatchClick={setSelectedMatch} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g02}>
-              <GroupBox score="0:2" count={2} matches={getMatches("0:2")} />
+              <GroupBox score="0:2" count={2} matches={getMatches("0:2")} onMatchClick={setSelectedMatch} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g21}>
-              <GroupBox score="2:1" count={3} matches={getMatches("2:1")} />
+              <GroupBox score="2:1" count={3} matches={getMatches("2:1")} onMatchClick={setSelectedMatch} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g12}>
-              <GroupBox score="1:2" count={3} matches={getMatches("1:2")} />
+              <GroupBox score="1:2" count={3} matches={getMatches("1:2")} onMatchClick={setSelectedMatch} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g22}>
-              <GroupBox score="2:2" count={3} matches={getMatches("2:2")} />
+              <GroupBox score="2:2" count={3} matches={getMatches("2:2")} onMatchClick={setSelectedMatch} />
             </AbsoluteBox>
 
             {/* Advance / Eliminate Result Groups */}
@@ -442,6 +432,7 @@ export const SwissBracket = ({ activeStage }: { activeStage: string }) => {
           </div>
         </TransformComponent>
       </TransformWrapper>
+      <MatchDialog match={selectedMatch} onClose={() => setSelectedMatch(null)} />
     </div>
   );
 };

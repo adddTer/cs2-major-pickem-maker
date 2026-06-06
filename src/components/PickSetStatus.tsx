@@ -21,11 +21,11 @@ export const PickSetStatusText = ({ statusData, showProbability = false }: { sta
     else if (statusId === 'failed') finalProb = 0;
     
     const countsNode = showProbability ? (
-      <span className="flex items-center gap-1.5 ml-2 font-mono bg-black/20 px-1.5 py-0.5 rounded text-[10px]">
-          <span className="text-blue-400">{(finalProb * 100).toFixed(1)}% 通关</span>
+      <span className="flex items-center gap-1.5 ml-2 font-sans bg-black/20 px-1.5 py-0.5 rounded text-[10px]">
+          <span className="text-blue-400">{finalProb !== undefined ? `${(finalProb * 100).toFixed(1)}%` : '-'} 通关</span>
       </span>
     ) : (
-      <span className="flex items-center gap-1.5 ml-2 font-mono bg-black/20 px-1.5 py-0.5 rounded text-[10px]">
+      <span className="flex items-center gap-1.5 ml-2 font-sans bg-black/20 px-1.5 py-0.5 rounded text-[10px]">
           <span className="text-emerald-400">✓ {guaranteed}</span>
           <span className="text-zinc-600/80">|</span>
           <span className="text-rose-400 text-[11px]">✗</span><span className="text-rose-400 -ml-0.5">{mathematicallyIncorrect}</span>

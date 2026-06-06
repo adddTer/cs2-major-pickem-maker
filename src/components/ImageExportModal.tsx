@@ -13,8 +13,8 @@ interface ImageExportModalProps {
   setShowImageExportModal: (val: boolean) => void;
   exportPreviewUrl: string | null;
   setExportPreviewUrl: (val: string | null) => void;
-  imageExportIncludeResults: boolean;
-  setImageExportIncludeResults: (val: boolean) => void;
+  imageExportShowPrevStage: boolean;
+  setImageExportShowPrevStage: (val: boolean) => void;
   imageExportShowProbabilities: boolean;
   setImageExportShowProbabilities: (val: boolean) => void;
   imageExportShowTeamNames: boolean;
@@ -43,7 +43,7 @@ interface ImageExportModalProps {
 export const ImageExportModal: React.FC<ImageExportModalProps> = ({
   showImageExportModal, setShowImageExportModal,
   exportPreviewUrl, setExportPreviewUrl,
-  imageExportIncludeResults, setImageExportIncludeResults,
+  imageExportShowPrevStage, setImageExportShowPrevStage,
   imageExportShowProbabilities, setImageExportShowProbabilities,
   imageExportShowTeamNames, setImageExportShowTeamNames,
   imageExportStyle, setImageExportStyle,
@@ -63,6 +63,11 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
   simulationProgress = 0,
   exportContainerRef
 }) => {
+  const [exportSession, setExportSession] = React.useState<number>(1);
+  React.useEffect(() => {
+     if (isExportingImage) setExportSession(Date.now());
+  }, [isExportingImage]);
+
   return (
     <>
       <Modal isOpen={showImageExportModal} onClose={() => { setShowImageExportModal(false); setExportPreviewUrl(null); }} title={exportPreviewUrl ? "预览" : "导出为图片"}>
@@ -108,7 +113,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
               <div className="flex flex-col items-center justify-center py-12 gap-5">
                   <RefreshCw className="w-10 h-10 text-blue-500 animate-spin opacity-80" />
                   <div className="text-zinc-200 font-bold text-lg text-center whitespace-pre-line leading-relaxed">
-                       {isSimulatingProbability ? `正在运行 100,000 次蒙特卡洛模拟... (${simulationProgress}%)\n计算精确概率，请稍候` : '渲染高清长图中...'}
+                       {isSimulatingProbability ? `正在运行 20,000 次蒙特卡洛模拟... (${simulationProgress}%)\n计算精确概率，请稍候` : '渲染高清长图中...'}
                   </div>
                   {isSimulatingProbability && (
                        <div className="w-full max-w-xs bg-zinc-800/80 rounded-full h-1.5 mt-2 overflow-hidden shadow-inner border border-white/5 relative">
@@ -118,13 +123,15 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
               </div>
           ) : (
           <div className="flex flex-col gap-4">
-              <div 
-                  className="flex items-center justify-between p-3 bg-zinc-800/50 rounded cursor-pointer border border-white/5"
-                  onClick={() => setImageExportIncludeResults(!imageExportIncludeResults)}
-              >
-                  <span className="text-sm font-bold text-zinc-200">包含实际比赛结果</span>
-                  {imageExportIncludeResults ? <CheckSquare className="w-5 h-5 text-blue-400" /> : <Square className="w-5 h-5 text-zinc-500" />}
-              </div>
+              {activeStage !== 'stage1' && (
+                  <div 
+                      className="flex items-center justify-between p-3 bg-zinc-800/50 rounded cursor-pointer border border-white/5"
+                      onClick={() => setImageExportShowPrevStage(!imageExportShowPrevStage)}
+                  >
+                      <span className="text-sm font-bold text-zinc-200">显示上阶段成绩</span>
+                      {imageExportShowPrevStage ? <CheckSquare className="w-5 h-5 text-blue-400" /> : <Square className="w-5 h-5 text-zinc-500" />}
+                  </div>
+              )}
               <div 
                   className="flex items-center justify-between p-3 bg-zinc-800/50 rounded cursor-pointer border border-white/5"
                   onClick={() => setImageExportShowProbabilities(!imageExportShowProbabilities)}
@@ -156,10 +163,36 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
               <div className="flex flex-col gap-2">
                   <div 
                       className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded cursor-pointer hover:bg-zinc-800 transition-colors border border-white/5"
-                      onClick={() => setImageExportIds(imageExportIds.length === communityPicks.length ? [] : communityPicks.map(p => p.id))}
+                      onClick={() => {
+                          const validIds = communityPicks.filter(p => {
+                              const stagePicks = p.picks[activeStage] || [];
+                              if (activeStage === 'playoffs') {
+                                  const userPicks = stagePicks.filter(s => !s.id.startsWith('qf-'));
+                                  return userPicks.length === 7 && userPicks.every(s => !!s.teamId);
+                              } else {
+                                  return stagePicks.length === 10 && stagePicks.every(s => !!s.teamId);
+                              }
+                          }).map(p => p.id);
+                          setImageExportIds(imageExportIds.length === validIds.length ? [] : validIds);
+                      }}
                   >
-                      {imageExportIds.length === communityPicks.length && communityPicks.length > 0 ? <CheckSquare className="w-5 h-5 text-blue-400" /> : <Square className="w-5 h-5 text-zinc-500" />}
-                      <span className="font-bold text-sm text-zinc-200">全选 ({imageExportIds.length}/{communityPicks.length})</span>
+                      {(() => {
+                          const validIdsCount = communityPicks.filter(p => {
+                              const stagePicks = p.picks[activeStage] || [];
+                              if (activeStage === 'playoffs') {
+                                  const userPicks = stagePicks.filter(s => !s.id.startsWith('qf-'));
+                                  return userPicks.length === 7 && userPicks.every(s => !!s.teamId);
+                              } else {
+                                  return stagePicks.length === 10 && stagePicks.every(s => !!s.teamId);
+                              }
+                          }).length;
+                          return (
+                              <>
+                                  {imageExportIds.length === validIdsCount && validIdsCount > 0 ? <CheckSquare className="w-5 h-5 text-blue-400" /> : <Square className="w-5 h-5 text-zinc-500" />}
+                                  <span className="font-bold text-sm text-zinc-200">全选完整预测 ({imageExportIds.length}/{validIdsCount})</span>
+                              </>
+                          );
+                      })()}
                   </div>
                   <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[160px] custom-scrollbar">
                       {sortedCommunityPicks.map(item => {
@@ -192,8 +225,8 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
       </Modal>
 
       {/* Hidden container for image export */}
-      {(showImageExportModal || isExportingImage) && (
-          <ExportContext.Provider value={true}>
+      {(!isSimulatingProbability && (showImageExportModal || isExportingImage)) && (
+          <ExportContext.Provider value={isExportingImage ? exportSession : false}>
               <div className="absolute left-[-9999px] top-[-9999px]">
                   <div 
                       ref={exportContainerRef} 
@@ -203,66 +236,13 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                   <div className="flex flex-col items-center justify-center border-b border-white/10 pb-6 mb-2">
                        <h1 className="text-2xl font-black text-white tracking-widest flex items-center gap-2">IEM Cologne 2026 - {activeStage === 'stage1' ? '第一阶段' : activeStage === 'stage2' ? '第二阶段' : activeStage === 'stage3' ? '第三阶段' : '决胜阶段'}</h1>
                   </div>
-                  {imageExportIncludeResults && imageExportStyle !== 'compact' && (
-                      <div className="bg-zinc-900/80 border border-emerald-500/20 p-5 rounded-lg flex flex-col gap-4">
-                          <div className="flex items-center gap-2 border-b border-emerald-500/20 pb-3">
-                              <h3 className="text-base font-bold text-emerald-400 tracking-wider">实际比赛结果</h3>
-                          </div>
-                    {activeStage === 'playoffs' ? (
-                        <MiniPlayoffsBracket 
-                            slots={PLAYOFFS_SLOTS.map((s, i) => ({ ...s, teamId: ACTUAL_RESULTS[activeStage]?.filter((x: any) => x.type === s.type)[i]?.teamId || undefined, resultStatus: 'unknown' }))}
-                            showTeamNames={imageExportShowTeamNames}
-                            isExport={true}
-                        />
-                    ) : (
-                        <MiniPicksDisplay 
-                            title30="3:0 晋级"
-                            slots30={Array(2).fill(null).map((_, i) => ({ id: `r30-${i}`, type: '3-0' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter((s: any) => s.type === '3-0')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
-                            titleAdvance="3:1 3:2 晋级"
-                            slotsAdvance={Array(6).fill(null).map((_, i) => ({ id: `ra-${i}`, type: 'advance' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter((s: any) => s.type === 'advance')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
-                            title03="0:3 淘汰"
-                            slots03={Array(2).fill(null).map((_, i) => ({ id: `r03-${i}`, type: '0-3' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter((s: any) => s.type === '0-3')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
-                            compact={false}
-                            showTeamNames={imageExportShowTeamNames}
-                            isExport={true}
-                        />
-                    )}
-                      </div>
-                  )}
                   <div className={`grid ${imageExportStyle === 'compact' ? 'grid-cols-1 gap-0 bg-zinc-900/80 border border-white/5 rounded-lg shadow-sm overflow-hidden' : 'grid-cols-1 gap-6'}`}>
-                      {imageExportIncludeResults && imageExportStyle === 'compact' && (
-                           <div className={`flex items-center gap-4 py-3 px-5 bg-emerald-900/20`}>
-                               <div className="font-bold text-sm text-emerald-400 w-32 shrink-0 break-words line-clamp-2 leading-snug">实际比赛结果</div>
-                               <div className="flex-1">
-                                   {activeStage === 'playoffs' ? (
-                                       <MiniPlayoffsBracket 
-                                           slots={PLAYOFFS_SLOTS.map((s, i) => ({ ...s, teamId: ACTUAL_RESULTS[activeStage]?.filter((x: any) => x.type === s.type)[i]?.teamId || undefined, resultStatus: 'unknown' }))}
-                                           compact={true}
-                                           showTeamNames={imageExportShowTeamNames}
-                                           isExport={true}
-                                       />
-                                   ) : (
-                                       <MiniPicksDisplay 
-                                           title30="3:0 晋级"
-                                           slots30={Array(2).fill(null).map((_, i) => ({ id: `r30-${i}`, type: '3-0' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter((s: any) => s.type === '3-0')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
-                                           titleAdvance="3:1 3:2 晋级"
-                                           slotsAdvance={Array(6).fill(null).map((_, i) => ({ id: `ra-${i}`, type: 'advance' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter((s: any) => s.type === 'advance')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
-                                           title03="0:3 淘汰"
-                                           slots03={Array(2).fill(null).map((_, i) => ({ id: `r03-${i}`, type: '0-3' as SlotType, teamId: ACTUAL_RESULTS[activeStage]?.filter((s: any) => s.type === '0-3')[i]?.teamId || undefined, resultStatus: 'unknown' }))}
-                                           compact={true}
-                                           showTeamNames={imageExportShowTeamNames}
-                                           isExport={true}
-                                       />
-                                   )}
-                               </div>
-                           </div>
-                      )}
                       {sortedCommunityPicks.filter(p => imageExportIds.includes(p.id)).map((participant, index) => {
                           const theirPicks = participant.picks[activeStage] || [];
                           
                           if (activeStage === 'playoffs') {
                               return (
-                                   <div key={participant.id} className={imageExportStyle === 'compact' ? `flex items-center gap-4 py-3 px-5 ${(index !== 0 || imageExportIncludeResults) ? 'border-t border-white/5' : ''}` : "bg-zinc-900/80 border border-white/5 p-5 rounded-lg shadow-sm flex flex-col gap-4"}>
+                                   <div key={participant.id} className={imageExportStyle === 'compact' ? `flex items-center gap-4 py-3 px-5 ${index !== 0 ? 'border-t border-white/5' : ''}` : "bg-zinc-900/80 border border-white/5 p-5 rounded-lg shadow-sm flex flex-col gap-4"}>
                                        {imageExportStyle === 'compact' ? (
                                            <div className="font-bold text-sm text-zinc-200 w-32 shrink-0 break-words line-clamp-2 leading-snug">{participant.name}</div>
                                        ) : (
@@ -274,7 +254,13 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                                            <MiniPlayoffsBracket 
                                                slots={PLAYOFFS_SLOTS.map((s) => {
                                                    const pick = theirPicks.find(p => p.id === s.id || p.id === `playoffs-${s.id}`);
-                                                   return { ...s, teamId: pick?.teamId || null, resultStatus: 'unknown' };
+                                                   let teamId = pick?.teamId || null;
+                                                   if (s.type === 'qf' && !teamId) {
+                                                       const qfActuals = ACTUAL_RESULTS[activeStage]?.filter((x: any) => x.type === 'qf') || [];
+                                                       const sTypeIdx = PLAYOFFS_SLOTS.filter(x => x.type === 'qf').findIndex(x => x.id === s.id);
+                                                       teamId = qfActuals[sTypeIdx]?.teamId || null;
+                                                   }
+                                                   return { ...s, teamId, resultStatus: checkPrediction(teamId, s.type as SlotType, activeStage) };
                                                })}
                                                compact={imageExportStyle === 'compact'}
                                                showTeamNames={imageExportShowTeamNames}
@@ -287,11 +273,19 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
 
                           const statusData = getSetStatus(theirPicks, activeStage, simulatedFutures);
                           const statusStyles = getStatusStyles(statusData);
+                          
+                          let prevStageStatusData = null;
+                          if (imageExportShowPrevStage && activeStage !== 'stage1') {
+                              const prevStage = activeStage === 'stage2' ? 'stage1' : activeStage === 'stage3' ? 'stage2' : activeStage === 'playoffs' ? 'stage3' : null;
+                              if (prevStage) {
+                                  const theirPrevPicks = participant.picks[prevStage] || [];
+                                  prevStageStatusData = getSetStatus(theirPrevPicks, prevStage);
+                              }
+                          }
 
                           const decorateSlot = (s: any, type: SlotType) => {
                               const clash = statusData?.clashes?.find((c: any) => c.slotId === s.id);
-                              let resultStatus = imageExportIncludeResults ? checkPrediction(s.teamId, type, activeStage) : undefined;
-                              return { ...s, resultStatus, clashType: clash?.type };
+                              return { ...s, resultStatus: checkPrediction(s.teamId, type, activeStage), clashType: clash?.type };
                           };
 
                           const picks30 = theirPicks.filter(s => s.type === '3-0');
@@ -326,10 +320,17 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                           
                           if (imageExportStyle === 'compact') {
                               return (
-                                  <div key={participant.id} className={`flex items-center gap-4 py-3 px-5 ${(index !== 0 || imageExportIncludeResults) ? 'border-t' : ''} ${statusStyles.border} ${statusStyles.bg}`}>
+                                  <div key={participant.id} className={`flex items-center gap-4 py-3 px-5 ${index !== 0 ? 'border-t' : ''} ${statusStyles.border} ${statusStyles.bg}`}>
                                       <div className="font-bold text-sm text-zinc-200 w-32 shrink-0 break-words line-clamp-2 leading-snug flex flex-col gap-1.5">
                                           {participant.name}
-                                          <PickSetStatusText statusData={statusData} showProbability={imageExportShowProbabilities} />
+                                          {imageExportShowPrevStage && activeStage !== 'stage1' ? (
+                                              <div className="flex items-center w-[120px] overflow-hidden whitespace-nowrap">
+                                                  <span className="text-[10px] text-zinc-400 font-bold bg-zinc-800/80 px-1 py-0.5 rounded leading-none shrink-0 border border-zinc-700 mr-1 shadow-sm">上阶段</span>
+                                                  <PickSetStatusText statusData={prevStageStatusData} showProbability={false} />
+                                              </div>
+                                          ) : (
+                                              <PickSetStatusText statusData={statusData} showProbability={imageExportShowProbabilities} />
+                                          )}
                                       </div>
                                       <div className="flex-1">
                                           <MiniPicksDisplay 
@@ -352,7 +353,14 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                               <div key={participant.id} className={`border p-5 rounded-lg flex flex-col gap-4 ${statusStyles.bg} ${statusStyles.border}`}>
                                 <div className={`flex items-center justify-between border-b pb-3 ${statusStyles.border}`}>
                                     <div className="font-bold text-base text-zinc-200">{participant.name}</div>
-                                    <PickSetStatusText statusData={statusData} showProbability={imageExportShowProbabilities} />
+                                    {imageExportShowPrevStage && activeStage !== 'stage1' ? (
+                                        <div className="flex items-center max-w-[200px] overflow-hidden whitespace-nowrap">
+                                            <span className="text-[10px] text-zinc-400 font-bold bg-zinc-800/80 px-1 py-0.5 rounded leading-none shrink-0 border border-zinc-700 mr-1 shadow-sm opacity-90">上阶段</span>
+                                            <PickSetStatusText statusData={prevStageStatusData} showProbability={false} />
+                                        </div>
+                                    ) : (
+                                        <PickSetStatusText statusData={statusData} showProbability={imageExportShowProbabilities} />
+                                    )}
                                 </div>
                                 <MiniPicksDisplay 
                                     title30="3:0 晋级"

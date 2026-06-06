@@ -3,6 +3,8 @@ import { PickSlot } from "../types";
 import { cn } from "../lib/utils";
 import { TEAMS } from "../data/teams";
 import { ACTUAL_RESULTS, MATCHES } from "../data/matches";
+import { BracketMatch } from "../types";
+import { MatchDialog } from "./MatchDialog";
 import { TeamLogo } from "./TeamLogo";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
@@ -86,6 +88,7 @@ const BracketSlot: React.FC<{
     | (PickSlot & {
         resultStatus?: "correct" | "incorrect" | "unknown";
         score?: number | null;
+        isLive?: boolean;
       })
     | undefined;
   readOnly: boolean;
@@ -154,8 +157,15 @@ const BracketSlot: React.FC<{
             {team.name}
           </span>
           {slot?.score !== undefined && slot?.score !== null && (
-            <div className="flex items-center justify-center min-w-[20px] h-[24px] px-1.5 rounded bg-black/40 text-xs font-black text-white/90 shadow-inner">
-              {slot.score}
+            <div className="flex flex-col items-center justify-center min-w-[24px] shrink-0 relative">
+              <div className="flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded bg-black/40 text-xs font-black text-white shadow-inner">
+                {slot.score}
+              </div>
+              {slot.isLive && (
+                <span className="text-[8px] font-black text-rose-500 scale-[0.7] absolute -bottom-[7px] tracking-widest uppercase">
+                  LIVE
+                </span>
+              )}
             </div>
           )}
         </>
@@ -178,6 +188,8 @@ export const PlayoffsBracket: React.FC<{
   onDrop?: (e: React.DragEvent, slotId: string) => void;
   onClick?: (slotId: string, teamId: string | null) => void;
 }> = ({ slots, readOnly = false, showResults = false, onDrop, onClick }) => {
+  const [selectedMatch, setSelectedMatch] = React.useState<BracketMatch | null>(null);
+
   const getSlot = (id: string) => {
     let baseSlot = slots.find((s) => s.id === id || s.id === `playoffs-${id}`);
     if (!baseSlot) {
@@ -202,21 +214,24 @@ export const PlayoffsBracket: React.FC<{
     }
 
     let score: number | null | undefined = null;
+    let isLive = false;
     if (baseSlot.teamId && baseSlot.type !== "champion") {
       const roundMatches = MATCHES["playoffs"]?.[baseSlot.type] || [];
       for (const m of roundMatches) {
         if (m.team1Id === baseSlot.teamId && m.score1 !== undefined) {
           score = m.score1;
+          isLive = m.status === "live";
           break;
         }
         if (m.team2Id === baseSlot.teamId && m.score2 !== undefined) {
           score = m.score2;
+          isLive = m.status === "live";
           break;
         }
       }
     }
 
-    if (!showResults) return { ...baseSlot, score };
+    if (!showResults) return { ...baseSlot, score, isLive };
 
     // When showing results, evaluate correct/incorrect
     const actuals = ACTUAL_RESULTS["playoffs"] || [];
@@ -238,7 +253,7 @@ export const PlayoffsBracket: React.FC<{
         if (typeCount >= maxForType) resultStatus = "incorrect";
       }
     }
-    return { ...baseSlot, resultStatus, score };
+    return { ...baseSlot, resultStatus, score, isLive };
   };
 
   return (
@@ -276,11 +291,15 @@ export const PlayoffsBracket: React.FC<{
               const pos = nodes[header.nodeTop];
               if (!pos) return null;
 
+              const match: BracketMatch | undefined = MATCHES["playoffs"]?.[header.type]?.[header.matchIndex];
+
               return (
                 <div
                   key={`header-${i}`}
-                  className="absolute text-[12px] text-zinc-200 bg-black/60 rounded-sm px-1 py-0.5 font-bold tracking-wider flex items-center justify-center pointer-events-none w-[180px] z-50 shadow-md"
+                  className="absolute text-[12px] text-zinc-200 bg-black/60 rounded-sm px-1 py-0.5 font-bold tracking-wider flex items-center justify-center pointer-events-auto cursor-pointer hover:bg-black/80 w-[180px] z-50 shadow-md transition-colors hover:text-white"
                   style={{ left: pos.x, top: pos.y - 24 }}
+                  onClick={() => { if (match) setSelectedMatch(match) }}
+                  title="点击查看赛况"
                 >
                   {header.title}
                 </div>
@@ -317,6 +336,8 @@ export const PlayoffsBracket: React.FC<{
           </div>
         </TransformComponent>
       </TransformWrapper>
+
+      <MatchDialog match={selectedMatch} onClose={() => setSelectedMatch(null)} />
     </div>
   );
 };

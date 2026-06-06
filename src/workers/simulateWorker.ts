@@ -2,7 +2,7 @@ import { simulateSwiss } from '../utils/simulateSwiss';
 
 self.onmessage = async (e: MessageEvent) => {
     const { allTeams, pastMatches, scheduledMatches, numSimulations } = e.data;
-    const chunkSize = 5000;
+    const chunkSize = 2000;
     
     const data = new Uint16Array(numSimulations * 3);
     
@@ -28,7 +28,7 @@ self.onmessage = async (e: MessageEvent) => {
         self.postMessage({ type: 'progress', progress: Math.min(100, Math.round(((simCount + toSimulate) / numSimulations) * 100)) });
         
         // Let event loop breathe
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => setTimeout(resolve, 10));
     }
     
     self.postMessage({ type: 'done', data, allTeams });

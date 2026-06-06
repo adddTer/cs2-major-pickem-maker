@@ -22,7 +22,7 @@ interface SummaryViewProps {
   checkPrediction: (teamId: string | null, type: SlotType, stage: string) => 'correct' | 'incorrect' | 'unknown';
 }
 
-export const SummaryView: React.FC<SummaryViewProps> = ({
+export const SummaryView: React.FC<SummaryViewProps> = React.memo(({
   communityPicks,
   showProbabilityInSummary,
   setShowProbabilityInSummary,
@@ -53,7 +53,16 @@ export const SummaryView: React.FC<SummaryViewProps> = ({
                   <div className="flex gap-2">
                       <button 
                           onClick={() => {
-                              setImageExportIds(communityPicks.map(p => p.id));
+                              const validIds = communityPicks.filter(p => {
+                                  const stagePicks = p.picks[activeStage] || [];
+                                  if (activeStage === 'playoffs') {
+                                      const userPicks = stagePicks.filter(s => !s.id.startsWith('qf-'));
+                                      return userPicks.length === 7 && userPicks.every(s => !!s.teamId);
+                                  } else {
+                                      return stagePicks.length === 10 && stagePicks.every(s => !!s.teamId);
+                                  }
+                              }).map(p => p.id);
+                              setImageExportIds(validIds);
                               setShowImageExportModal(true);
                           }}
                           className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 text-xs font-bold rounded flex items-center gap-1.5 transition-colors"
@@ -220,4 +229,4 @@ export const SummaryView: React.FC<SummaryViewProps> = ({
         </div>
     </div>
   );
-}
+});

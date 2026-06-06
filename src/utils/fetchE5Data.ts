@@ -133,7 +133,13 @@ function parseSwissGraph(stageData: any) {
 
         const format =
           m.format === "3" ? "bo3" : m.format === "5" ? "bo5" : "bo1";
-        const matchObj: any = { team1Id: t1Id, team2Id: t2Id, format };
+        const matchObj: any = { 
+          externalId: m.absId || m.id || m.matchId || m.match_id, 
+          team1Id: t1Id, 
+          team2Id: t2Id, 
+          format, 
+          status: m.status 
+        };
 
         if (m.status === "past" || m.status === "live") {
           if (format === "bo1") {
@@ -255,9 +261,11 @@ export async function fetchAndPatchCSGOData() {
                 const t2Id = getTeamId(m.t2);
 
                 const matchObj: any = {
+                  externalId: m.absId || m.id || m.matchId,
                   team1Id: t1Id,
                   team2Id: t2Id,
                   format: "bo3",
+                  status: m.status,
                 };
                 matchObj.time = undefined;
                 if (m.status === "past") {
@@ -267,6 +275,35 @@ export async function fetchAndPatchCSGOData() {
                   matchObj.score1 = 0;
                   matchObj.score2 = 0;
                 }
+                
+                const maps = [];
+                if (m.t1?.bo1Score || m.t2?.bo1Score)
+                  maps.push({
+                    score1: parseInt(m.t1?.bo1Score, 10) || 0,
+                    score2: parseInt(m.t2?.bo1Score, 10) || 0,
+                  });
+                if (m.t1?.bo2Score || m.t2?.bo2Score)
+                  maps.push({
+                    score1: parseInt(m.t1?.bo2Score, 10) || 0,
+                    score2: parseInt(m.t2?.bo2Score, 10) || 0,
+                  });
+                if (m.t1?.bo3Score || m.t2?.bo3Score)
+                  maps.push({
+                    score1: parseInt(m.t1?.bo3Score, 10) || 0,
+                    score2: parseInt(m.t2?.bo3Score, 10) || 0,
+                  });
+                if (m.t1?.bo4Score || m.t2?.bo4Score)
+                  maps.push({
+                    score1: parseInt(m.t1?.bo4Score, 10) || 0,
+                    score2: parseInt(m.t2?.bo4Score, 10) || 0,
+                  });
+                if (m.t1?.bo5Score || m.t2?.bo5Score)
+                  maps.push({
+                    score1: parseInt(m.t1?.bo5Score, 10) || 0,
+                    score2: parseInt(m.t2?.bo5Score, 10) || 0,
+                  });
+                if (maps.length > 0) matchObj.maps = maps;
+                
                 playoffs[roundDesc[idx]].push(matchObj);
               });
             });

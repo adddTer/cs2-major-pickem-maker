@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export const Modal: React.FC<{
@@ -8,8 +9,8 @@ export const Modal: React.FC<{
     children: React.ReactNode;
 }> = ({ isOpen, onClose, title, children }) => {
     if (!isOpen) return null;
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    return createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="bg-zinc-900 border border-white/10 rounded-xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex items-center justify-between p-4 border-b border-white/5 bg-black/20 shrink-0">
                     <h3 className="font-bold text-zinc-100">{title}</h3>
@@ -21,6 +22,7 @@ export const Modal: React.FC<{
                     {children}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

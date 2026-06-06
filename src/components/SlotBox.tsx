@@ -46,17 +46,17 @@ export const SlotBox: React.FC<{
            slot.clashType === 'x-pass' && slot.resultStatus === 'unknown' && "border-emerald-500/30 bg-emerald-500/5"
         )}
       >
-        {slot.resultStatus === 'correct' && <CheckCircle2 className="absolute -top-1.5 -right-1.5 text-emerald-400 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20" />}
-        {slot.resultStatus === 'incorrect' && <XCircle className="absolute -top-1.5 -right-1.5 text-rose-500 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20" />}
+        {slot.resultStatus === 'correct' && <CheckCircle2 color="#34d399" className="absolute -top-1.5 -right-1.5 text-emerald-400 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20" />}
+        {slot.resultStatus === 'incorrect' && <XCircle color="#f43f5e" className="absolute -top-1.5 -right-1.5 text-rose-500 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20" />}
         
         {slot.resultStatus === 'unknown' && slot.clashType === 'x-one' && (
-            <Swords className="absolute -top-1.5 -right-1.5 text-amber-500 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20 p-[1px] sm:p-[2px]" title="内战：这两支选择队伍中必定有一支正确，一支错误" />
+            <Swords color="#f59e0b" className="absolute -top-1.5 -right-1.5 text-amber-500 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20 p-[1px] sm:p-[2px]" title="内战：这两支选择队伍中必定有一支正确，一支错误" />
         )}
         {slot.resultStatus === 'unknown' && slot.clashType === 'x-fail' && (
-            <AlertCircle className="absolute -top-1.5 -right-1.5 text-rose-500 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20" title="内战：这两支选择队伍中必定有一支会错误，仅可能存活一支" />
+            <AlertCircle color="#f43f5e" className="absolute -top-1.5 -right-1.5 text-rose-500 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20" title="内战：这两支选择队伍中必定有一支会错误，仅可能存活一支" />
         )}
         {slot.resultStatus === 'unknown' && slot.clashType === 'x-pass' && (
-            <CheckCircle2 className="absolute -top-1.5 -right-1.5 text-emerald-500 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20 opacity-80" title="内战：这两支选择队伍中必定有一支会正确晋级" />
+            <CheckCircle2 color="#10b981" className="absolute -top-1.5 -right-1.5 text-emerald-500 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20 opacity-80" title="内战：这两支选择队伍中必定有一支会正确晋级" />
         )}
 
         {team ? (
