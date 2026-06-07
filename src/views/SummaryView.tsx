@@ -4,6 +4,7 @@ import { cn } from '../lib/utils';
 import { MiniPlayoffsBracket } from '../components/MiniPlayoffsBracket';
 import { MiniPicksDisplay } from '../components/MiniPicksDisplay';
 import { PickSetStatusText, getStatusStyles } from '../components/PickSetStatus';
+import { MatchScheduleBanner } from '../components/MatchScheduleBanner';
 
 interface SummaryViewProps {
   communityPicks: PickSet[];
@@ -20,8 +21,12 @@ interface SummaryViewProps {
   getSetStatus: (picks: PickSlot[], stage: string) => any;
   itemFreq: Record<string, number>;
   checkPrediction: (teamId: string | null, type: SlotType, stage: string) => 'correct' | 'incorrect' | 'unknown';
+  handleRefresh?: () => void;
+  isRefreshing?: boolean;
+  setViewMode?: (mode: 'home' | 'edit' | 'summary') => void;
 }
 
+import { RefreshCw, ArrowLeft } from 'lucide-react';
 export const SummaryView: React.FC<SummaryViewProps> = React.memo(({
   communityPicks,
   showProbabilityInSummary,
@@ -36,13 +41,26 @@ export const SummaryView: React.FC<SummaryViewProps> = React.memo(({
   sortedCommunityPicks,
   getSetStatus,
   itemFreq,
-  checkPrediction
+  checkPrediction,
+  handleRefresh,
+  isRefreshing,
+  setViewMode
 }) => {
   return (
     <div className="flex-1 flex flex-col bg-zinc-900/60 border border-white/5 rounded-lg shadow-xl relative backdrop-blur-md overflow-hidden">
         <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6 shrink-0">
-              <h2 className="text-sm font-bold text-zinc-100">社区竞猜详情汇总 ({communityPicks.length})</h2>
+              <div className="flex items-center gap-3">
+                {setViewMode && (
+                  <button 
+                    onClick={() => setViewMode('home')}
+                    className="sm:hidden p-1.5 -ml-1.5 text-zinc-400 hover:text-white"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                )}
+                <h2 className="text-sm font-bold text-zinc-100">社区竞猜详情汇总 ({communityPicks.length})</h2>
+              </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                   <button 
                       onClick={() => setShowProbabilityInSummary(!showProbabilityInSummary)}
@@ -98,9 +116,12 @@ export const SummaryView: React.FC<SummaryViewProps> = React.memo(({
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-1 xl:grid-cols-2 gap-4 content-start">
-              <div className="bg-zinc-900/80 border border-emerald-500/20 p-4 rounded-lg shadow-sm flex flex-col gap-4 xl:col-span-2">
-                  <div className="flex items-center gap-2 border-b border-emerald-500/20 pb-3">
+            <div className="flex-1 overflow-y-auto pr-2 flex flex-col gap-4 content-start">
+              <MatchScheduleBanner activeStage={activeStage} />
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 content-start">
+                  <div className="bg-zinc-900/80 border border-emerald-500/20 p-4 rounded-lg shadow-sm flex flex-col gap-4 xl:col-span-2">
+                      <div className="flex items-center gap-2 border-b border-emerald-500/20 pb-3">
                       <h3 className="text-sm font-bold text-emerald-400 tracking-wider">实际比赛结果</h3>
                   </div>
                   {activeStage === 'playoffs' ? (
@@ -225,6 +246,7 @@ export const SummaryView: React.FC<SummaryViewProps> = React.memo(({
                       </div>
                   )
               })}
+            </div>
             </div>
         </div>
     </div>

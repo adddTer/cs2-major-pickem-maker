@@ -82,7 +82,7 @@ function getTeamId(t1: any): string | undefined {
   return undefined;
 }
 
-function parseSwissGraph(stageData: any) {
+function parseSwissGraph(stageData: any, matchesMap: Record<string, { plan_ts?: string, star?: number }> = {}) {
   let graphData: any = {};
   try {
     graphData = JSON.parse(stageData.groups[0].graph);
@@ -133,12 +133,26 @@ function parseSwissGraph(stageData: any) {
 
         const format =
           m.format === "3" ? "bo3" : m.format === "5" ? "bo5" : "bo1";
+        const externalId = m.absId || m.id || m.matchId || m.match_id;
+        
+        let matchTime = m.time || m.start_time || m.startTime || m.scheduledTime;
+        let star = 0;
+        
+        if (externalId && matchesMap[externalId]) {
+           if (matchesMap[externalId].plan_ts) {
+               matchTime = matchesMap[externalId].plan_ts;
+           }
+           star = matchesMap[externalId].star || 0;
+        }
+
         const matchObj: any = { 
-          externalId: m.absId || m.id || m.matchId || m.match_id, 
+          externalId, 
           team1Id: t1Id, 
           team2Id: t2Id, 
           format, 
-          status: m.status 
+          status: m.status,
+          time: matchTime,
+          star: star
         };
 
         if (m.status === "past" || m.status === "live") {
@@ -214,26 +228,55 @@ export async function fetchAndPatchCSGOData() {
       return await res.json();
     };
 
-    const [r9028, r9029, r8301] = await Promise.all([
+    const fetchEventMatches = async (id: string) => {
+      try {
+        const res = await fetch(`https://esports-data.5eplaycdn.com/v1/api/csgo/tournaments/${id}/matches`);
+        const json = await res.json();
+        const map: Record<string, { plan_ts?: string, star?: number }> = {};
+        if (json?.data?.matches) {
+            json.data.matches.forEach((m: any) => {
+                const matchId = m.mc_info ? m.mc_info.id : m.id;
+                const matchPlanTs = m.mc_info ? m.mc_info.plan_ts : m.plan_ts;
+                const matchStar = m.mc_info ? m.mc_info.star : m.star;
+                
+                if (matchId) {
+                    const val = {
+                        plan_ts: matchPlanTs,
+                        star: parseInt(matchStar || '0', 10)
+                    };
+                    map[matchId] = val;
+                    map[matchId.replace('csgo_mc_', '')] = val;
+                }
+            });
+        }
+        return map;
+      } catch (e) {
+        return {};
+      }
+    };
+
+    const [r9028, r9029, r8301, m9028, m9029, m8301] = await Promise.all([
       fetchStage("csgo_tt_9028"),
       fetchStage("csgo_tt_9029"),
       fetchStage("csgo_tt_8301"),
+      fetchEventMatches("csgo_tt_9028"),
+      fetchEventMatches("csgo_tt_9029"),
+      fetchEventMatches("csgo_tt_8301"),
     ]);
 
     if (r9028?.success && r9028.data?.[0]) {
-      const s1 = parseSwissGraph(r9028.data[0]);
+      const s1 = parseSwissGraph(r9028.data[0], m9028);
       if (s1) MATCHES.stage1 = s1;
     }
 
     if (r9029?.success && r9029.data?.[0]) {
-      const s2 = parseSwissGraph(r9029.data[0]);
+      const s2 = parseSwissGraph(r9029.data[0], m9029);
       if (s2) MATCHES.stage2 = s2;
     }
 
     if (r8301?.success) {
-      // Stage 3 (Elimination stage which is actually the first swiss in 8301)
       if (r8301.data?.[0]) {
-        const s3 = parseSwissGraph(r8301.data[0]);
+        const s3 = parseSwissGraph(r8301.data[0], m8301);
         if (s3) MATCHES.stage3 = s3;
       }
 
@@ -260,14 +303,24 @@ export async function fetchAndPatchCSGOData() {
                 const t1Id = getTeamId(m.t1);
                 const t2Id = getTeamId(m.t2);
 
+                const externalId = m.absId || m.id || m.matchId;
+                let matchTime = m.time || m.start_time || m.startTime || m.scheduledTime;
+                let star = 0;
+                
+                if (externalId && m8301[externalId]) {
+                   if (m8301[externalId].plan_ts) matchTime = m8301[externalId].plan_ts;
+                   star = m8301[externalId].star || 0;
+                }
+
                 const matchObj: any = {
-                  externalId: m.absId || m.id || m.matchId,
+                  externalId,
                   team1Id: t1Id,
                   team2Id: t2Id,
                   format: "bo3",
                   status: m.status,
+                  time: matchTime,
+                  star: star
                 };
-                matchObj.time = undefined;
                 if (m.status === "past") {
                   matchObj.score1 = parseInt(m.t1Score, 10) || 0;
                   matchObj.score2 = parseInt(m.t2Score, 10) || 0;

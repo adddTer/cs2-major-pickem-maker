@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { TEAMS, INITIAL_SLOTS, PLAYOFFS_SLOTS } from './data/teams';
-import { ACTUAL_RESULTS } from './data/matches';
+import { MATCHES, ACTUAL_RESULTS } from './data/matches';
 import { PickSlot, PickSet, StageKey, SlotType } from './types';
+import { cn } from './lib/utils';
 import { TopNav } from './components/TopNav';
 import { HomeView } from './views/HomeView';
 import { EditView } from './views/EditView';
@@ -43,6 +44,12 @@ export default function App() {
             setDataLoaded(true);
         });
   }, []);
+
+  useEffect(() => {
+    const handler = () => { handleRefreshMatchData(); };
+    window.addEventListener('force-refresh-matches', handler);
+    return () => window.removeEventListener('force-refresh-matches', handler);
+  }, [handleRefreshMatchData]);
 
   type ViewMode = 'home' | 'edit' | 'summary';
   
@@ -94,7 +101,67 @@ export default function App() {
       activeStageActuals,
       checkPrediction,
       getSetStatus,
-  } = useMatchLogic(activeStage, dataLoaded);
+  } = useMatchLogic(activeStage, dataLoaded, viewMode);
+
+  useEffect(() => {
+    let shouldCheckPrev = false;
+    const now = new Date();
+    const dates: Record<string, { start: Date, end: Date }> = {
+      stage1: { start: new Date('2026-06-02T10:30:00Z'), end: new Date('2026-06-05T23:59:59Z') },
+      stage2: { start: new Date('2026-06-06T10:30:00Z'), end: new Date('2026-06-09T23:59:59Z') },
+      stage3: { start: new Date('2026-06-11T09:00:00Z'), end: new Date('2026-06-15T23:59:59Z') },
+      playoffs: { start: new Date('2026-06-18T13:45:00Z'), end: new Date('2026-06-21T15:00:00Z') },
+    };
+    if (activeStage === 'stage2' && now < dates.stage2.start && (getComputedActuals('stage1') || []).length >= 16) shouldCheckPrev = true;
+    if (activeStage === 'stage3' && now < dates.stage3.start && (getComputedActuals('stage2') || []).length >= 16) shouldCheckPrev = true;
+    if (activeStage === 'playoffs' && now < dates.playoffs.start && (getComputedActuals('stage3') || []).length >= 16) shouldCheckPrev = true;
+    
+    setImageExportShowPrevStage(shouldCheckPrev);
+  }, [activeStage, getComputedActuals, dataLoaded]);
+
+  useEffect(() => {
+    if (!dataLoaded) return;
+
+    let hasLiveMatch = false;
+    const stages = ['stage1', 'stage2', 'stage3', 'playoffs'];
+    for (const stage of stages) {
+       const stageGroup = MATCHES[stage] as any;
+       if (stageGroup) {
+         if (stage === 'playoffs') {
+             for (const round of ['qf', 'sf', 'final']) {
+                 const roundMatches = stageGroup[round] || [];
+                 if (roundMatches.some((m: any) => m.status === 'live')) {
+                     hasLiveMatch = true;
+                     break;
+                 }
+             }
+         } else {
+             for (const bracket of Object.values(stageGroup)) {
+                 const bMatches = bracket as any[];
+                 if (bMatches.some((m) => m.status === 'live')) {
+                     hasLiveMatch = true;
+                     break;
+                 }
+             }
+         }
+       }
+       if (hasLiveMatch) break;
+    }
+
+    let intervalDelay = 60000;
+    if (viewMode === 'summary') {
+        intervalDelay = 10000;
+    } else if (hasLiveMatch) {
+        intervalDelay = 20000;
+    }
+
+    const timerId = setInterval(() => {
+        handleRefreshMatchData();
+    }, intervalDelay);
+
+    return () => clearInterval(timerId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataLoaded, viewMode, activeStage]);
 
   const getRecommendedStage = useCallback(() => {
     for (const stage of ['stage1', 'stage2', 'stage3']) {
@@ -136,7 +203,7 @@ export default function App() {
         setSimulationProgress(0);
         // We defer it slightly to let react render the loading state
         await new Promise(r => setTimeout(r, 50));
-        const futures = await runSimulationAsync(20000, (p) => setSimulationProgress(p));
+        const futures = await runSimulationAsync(1000000, (p) => setSimulationProgress(p));
         setDetailedFutures(futures);
         setIsSimulatingProbability(false);
         // Wait for React to finish re-rendering and mounting the hidden container before dom capture
@@ -147,7 +214,7 @@ export default function App() {
     setTimeout(() => {
         import('html-to-image').then(htmlToImage => {
             if (!exportContainerRef.current) return;
-            htmlToImage.toPng(exportContainerRef.current.querySelector('#export-content') || exportContainerRef.current, { backgroundColor: '#070b09', pixelRatio: 3 })
+            htmlToImage.toPng(exportContainerRef.current.querySelector('#export-content') || exportContainerRef.current, { backgroundColor: '#070b09', pixelRatio: 3, includeQueryParams: true, cacheBust: true })
                 .then(function (dataUrl) {
                     setExportPreviewUrl(dataUrl);
                     setIsExportingImage(false);
@@ -535,6 +602,9 @@ export default function App() {
               getSetStatus={getSetStatus}
               itemFreq={itemFreq}
               checkPrediction={checkPrediction}
+              handleRefresh={handleRefreshMatchData}
+              isRefreshing={isRefreshingData}
+              setViewMode={setViewMode}
             />
           )}
         </div>

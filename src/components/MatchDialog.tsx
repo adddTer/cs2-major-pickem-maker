@@ -4,6 +4,7 @@ import { Modal } from "./Modal";
 import { cn } from "../lib/utils";
 import { TEAMS } from "../data/teams";
 import { TeamLogo } from "./TeamLogo";
+import { RefreshCw } from "lucide-react";
 
 interface MapVetoDisplayProps {
   externalId?: string;
@@ -21,7 +22,7 @@ const mapTranslations: Record<string, string> = {
     "Anubis": "阿努比斯",
     "Overpass": "死亡游乐园",
     "Nuke": "核子危机",
-    "Vertigo": "眩晕大厦"
+    "Vertigo": "殒命大厦"
 };
 
 const MapVetoDisplay: React.FC<MapVetoDisplayProps> = ({ externalId, isLive, t1, t2, maps }) => {
@@ -65,7 +66,7 @@ const MapVetoDisplay: React.FC<MapVetoDisplayProps> = ({ externalId, isLive, t1,
   }, [externalId]);
 
   if (!externalId) {
-    return <div className="text-zinc-500 text-[11px] p-4 text-center">暂不支持该比赛的高阶分析</div>;
+    return <div className="text-zinc-500 text-[11px] p-4 text-center">暂无数据</div>;
   }
 
   if (loading) {
@@ -73,14 +74,14 @@ const MapVetoDisplay: React.FC<MapVetoDisplayProps> = ({ externalId, isLive, t1,
       <div className="flex justify-center items-center p-8">
         <div className="text-zinc-500 text-[11px] tracking-widest animate-pulse flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500/50 block"></span>
-            正在加载地图 BP 数据...
+            加载中...
         </div>
       </div>
     );
   }
 
   if (vetoData.length === 0) {
-    return <div className="text-zinc-500 text-[11px] p-4 text-center">空 BP 数据 (此比赛可能无禁用/选用分析)</div>;
+    return <div className="text-zinc-500 text-[11px] p-4 text-center">暂无 BP 数据</div>;
   }
 
   const getVetoLabel = (type: string) => {
@@ -96,7 +97,7 @@ const MapVetoDisplay: React.FC<MapVetoDisplayProps> = ({ externalId, isLive, t1,
 
   return (
     <div className="flex flex-col gap-3 mt-4 w-full px-1">
-        <h4 className="text-[11px] font-medium text-white/50 tracking-widest px-1">地图 BP 序列</h4>
+        <h4 className="text-[11px] font-medium text-white/50 tracking-widest px-1">地图 BP</h4>
         <div className="flex flex-col gap-2 relative">
             {vetoData.map((mapInfo, i) => {
                 // handle both old format (bp_type: t1_ban) and new format (bp_type: ban, team_side: t1)
@@ -193,21 +194,64 @@ export const MatchDialog: React.FC<{
 }> = ({ match, onClose }) => {
   const [liveStreams, setLiveStreams] = useState<any[]>([]);
   const [activeStreamIndex, setActiveStreamIndex] = useState<number>(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [vetoKey, setVetoKey] = useState(0);
 
-  useEffect(() => {
+  const fetchLiveStreams = async () => {
     if (!match?.externalId) return;
     const formattedId = match.externalId.startsWith('csgo_mc_') ? match.externalId : `csgo_mc_${match.externalId}`;
-    fetch(`https://esports-data.5eplaycdn.com/v1/api/csgo/matches/${formattedId}/data`)
-      .then(res => res.json())
-      .then(res => {
-          if (res?.data?.match?.mc_info?.live_cfg_list) {
-              setLiveStreams(res.data.match.mc_info.live_cfg_list);
-          } else {
-              setLiveStreams([]);
-          }
-      })
-      .catch((err) => console.warn("Failed to fetch live streams:", err));
+    try {
+      const res = await fetch(`https://esports-data.5eplaycdn.com/v1/api/csgo/matches/${formattedId}/data`);
+      const data = await res.json();
+      if (data?.data?.match?.mc_info?.live_cfg_list) {
+          setLiveStreams(data.data.match.mc_info.live_cfg_list);
+      } else {
+          setLiveStreams([]);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch live streams:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveStreams();
   }, [match?.externalId]);
+
+  const handleRefresh = async () => {
+      setIsRefreshing(true);
+      await fetchLiveStreams();
+      setVetoKey(k => k + 1); // trigger re-fetch of veto data
+      // Also the global refresh runs every 10s when here, so match data itself updates via App.tsx logic.
+      setTimeout(() => setIsRefreshing(false), 500); // UI feedback
+  };
+
+  const [currentTime, setCurrentTime] = useState(Date.now());
+  useEffect(() => {
+      const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+      return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+      if (match) {
+          const t = setInterval(() => {
+              window.dispatchEvent(new CustomEvent('force-refresh-matches'));
+          }, 10000);
+          return () => clearInterval(t);
+      }
+  }, [match]);
+
+  const formatCountdown = (targetTime: number) => {
+    const diff = targetTime - currentTime;
+    if (diff <= 0) return '即将开始';
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((diff % (1000 * 60)) / 1000);
+    if (hours > 24) {
+        const days = Math.floor(hours / 24);
+        return `${days}天后`;
+    }
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   if (!match) return null;
 
@@ -225,8 +269,37 @@ export const MatchDialog: React.FC<{
   const hasLiveStream = liveStreams.length > 0 && match.status === 'live';
   const modalWidth = hasLiveStream ? "max-w-md md:max-w-3xl lg:max-w-[1000px] xl:max-w-[1200px]" : "max-w-md md:max-w-2xl lg:max-w-[700px]";
 
+  const parseTime = (val: any) => {
+      if (!val) return 0;
+      if (typeof val === 'number') return val > 9999999999 ? val : val * 1000;
+      if (typeof val === 'string') {
+          if (/^\d+$/.test(val)) return parseInt(val, 10) * 1000;
+          const tString = val.replace(' ', 'T');
+          return new Date(tString).getTime() || 0;
+      }
+      return 0;
+  };
+  
+  const targetTime = parseTime(match.time);
+  const tLabel = targetTime > 0 ? new Date(targetTime).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+
   return (
-    <Modal isOpen={!!match} onClose={onClose} title="赛况概览" maxWidthClass={modalWidth}>
+    <Modal 
+      isOpen={!!match} 
+      onClose={onClose} 
+      title="赛况概览" 
+      maxWidthClass={modalWidth} 
+      fullScreenOnMobile
+      headerExtras={
+        <button
+            onClick={handleRefresh}
+            className="p-1 text-zinc-400 hover:text-white transition-colors"
+            title="刷新数据"
+        >
+            <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+        </button>
+      }
+    >
       <div className={cn("flex flex-col gap-6", hasLiveStream ? "lg:flex-row" : "")}>
         
         {hasLiveStream && (
@@ -239,7 +312,7 @@ export const MatchDialog: React.FC<{
                         scrolling="no"
                     />
                 </div>
-                <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+                <div className="flex flex-wrap gap-2 pb-1 hide-scrollbar">
                     {liveStreams.map((stream, i) => (
                         <button
                             key={i}
@@ -260,12 +333,24 @@ export const MatchDialog: React.FC<{
 
         <div className={cn("flex flex-col gap-4", hasLiveStream ? "flex-1 lg:w-[40%] xl:w-[35%] shrink-0 lg:overflow-y-auto lg:pr-2 hide-scrollbar lg:max-h-[75vh]" : "w-full")}>
             {match.format && (
-                <div className="flex justify-center text-[10px] font-mono text-zinc-500 uppercase pb-2 border-b border-white/5 shrink-0">
-                    赛制: {match.format.toUpperCase()} • 状态: <span className={cn("ml-1 font-bold", match.status === 'live' ? "text-emerald-400" : "text-zinc-300")}>{getStatusText(match.status)}</span>
+                <div className="flex flex-col items-center justify-center text-[11px] font-sans text-zinc-500 uppercase pb-3 border-b border-white/5 shrink-0 gap-1.5">
+                    <div>
+                        赛制: {match.format.toUpperCase()} • 状态: <span className={cn("ml-1 font-bold", match.status === 'live' ? "text-emerald-400" : "text-zinc-300")}>{getStatusText(match.status)}</span>
+                    </div>
+                    {tLabel && (
+                        <div className="flex items-center gap-2">
+                           <span className="text-zinc-400">{tLabel}</span>
+                           {targetTime > 0 && match.status !== 'past' && match.status !== 'live' && (
+                                <span className="bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded font-mono font-bold tracking-tight text-[10px]">
+                                    {formatCountdown(targetTime)}
+                                </span>
+                           )}
+                        </div>
+                    )}
                 </div>
             )}
             
-            <div className="flex items-stretch justify-between px-4 py-5 bg-zinc-900/50 rounded-xl border border-white/5 shadow-inner shrink-0">
+            <div className="flex items-stretch justify-between px-4 py-5 bg-zinc-900/50 rounded-xl border border-white/5 shadow-inner shrink-0 mt-2">
                <div className="flex flex-col justify-between items-center gap-2 w-[35%] shrink-0">
                  {t1 ? (
                     <div className="w-14 h-14 relative flex items-center justify-center bg-black/30 rounded-full shadow-lg border border-white/5 p-1.5">
@@ -309,6 +394,7 @@ export const MatchDialog: React.FC<{
             <div className="flex-1 pb-4">
                 {(match.status === 'live' || match.status === 'past') ? (
                     <MapVetoDisplay 
+                        key={vetoKey}
                         externalId={match.externalId} 
                         isLive={match.status === 'live'} 
                         t1={t1 || { name: t1NameStr }}

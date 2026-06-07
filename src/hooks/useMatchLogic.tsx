@@ -2,7 +2,7 @@ import { useMemo, useCallback, useState, useEffect } from 'react';
 import { MATCHES, ACTUAL_RESULTS } from '../data/matches';
 import { PickSlot, SlotType } from '../types';
 
-export function useMatchLogic(activeStage: string, dataLoaded?: boolean) {
+export function useMatchLogic(activeStage: string, dataLoaded?: boolean, viewMode?: string) {
     const [simulatedFutures, setSimulatedFutures] = useState<any>([]);
 
     const getScheduledMatches = (stage: string) => {
@@ -20,7 +20,7 @@ export function useMatchLogic(activeStage: string, dataLoaded?: boolean) {
         return scheduledMatches;
     };
 
-    const runSimulationAsync = useCallback((numSimulations: number, onProgress?: (progress: number) => void): Promise<any> => {
+    const runSimulationAsync = useCallback((numSimulations: number, onProgress?: (progress: number, partialResult?: any) => void): Promise<any> => {
         return new Promise((resolve) => {
             if (activeStage === 'playoffs') {
                 resolve([]);
@@ -33,16 +33,23 @@ export function useMatchLogic(activeStage: string, dataLoaded?: boolean) {
                 return;
             }
             
-            const allTeamsSet = new Set<string>();
             const pastMatches: { t1: string, t2: string, winner: string }[] = [];
             const scheduledMatches: { t1: string, t2: string }[] = [];
             
+            const r0 = stageMatchesMap['0:0'] || [];
+            const orderedTeams = new Array(16).fill('');
+            r0.forEach((m, idx) => {
+                if (m.team1Id && m.team1Id !== 'tbd') orderedTeams[idx] = m.team1Id;
+                if (m.team2Id && m.team2Id !== 'tbd') orderedTeams[15 - idx] = m.team2Id;
+            });
+            let allTeams = orderedTeams.filter(t => t !== '');
+            
             Object.values(stageMatchesMap).forEach(batch => {
                 batch.forEach(m => {
-                    if (m.team1Id) allTeamsSet.add(m.team1Id);
-                    if (m.team2Id) allTeamsSet.add(m.team2Id);
+                    if (m.team1Id && m.team1Id !== 'tbd' && !allTeams.includes(m.team1Id)) allTeams.push(m.team1Id);
+                    if (m.team2Id && m.team2Id !== 'tbd' && !allTeams.includes(m.team2Id)) allTeams.push(m.team2Id);
                     
-                    if (m.team1Id && m.team2Id) {
+                    if (m.team1Id && m.team2Id && m.team1Id !== 'tbd' && m.team2Id !== 'tbd') {
                         if (m.score1 !== undefined && m.score2 !== undefined) {
                             let isComplete = false;
                             if (m.format === 'bo1') isComplete = m.score1 === 1 || m.score2 === 1;
@@ -63,8 +70,7 @@ export function useMatchLogic(activeStage: string, dataLoaded?: boolean) {
                     }
                 });
             });
-            
-            const allTeams = Array.from(allTeamsSet);
+
             if (allTeams.length !== 16) {
                 resolve([]);
                 return;
@@ -73,7 +79,11 @@ export function useMatchLogic(activeStage: string, dataLoaded?: boolean) {
             const worker = new Worker(new URL('../workers/simulateWorker.ts', import.meta.url), { type: 'module' });
             worker.onmessage = (e) => {
                 if (e.data.type === 'progress') {
-                    if (onProgress) onProgress(e.data.progress);
+                    if (onProgress) onProgress(e.data.progress, {
+                        isPacked: true,
+                        allTeams: e.data.allTeams,
+                        data: e.data.data
+                    });
                 } else if (e.data.type === 'done') {
                     resolve({
                         isPacked: true,
@@ -91,14 +101,19 @@ export function useMatchLogic(activeStage: string, dataLoaded?: boolean) {
         let isMounted = true;
         setSimulatedFutures([]);
         
-        runSimulationAsync(300).then(results => {
+        const targetCount = viewMode === 'summary' ? 5000 : 300;
+        runSimulationAsync(targetCount, (p, partial) => {
+            if (isMounted && partial) {
+                setSimulatedFutures(partial);
+            }
+        }).then(results => {
             if (isMounted) {
                 setSimulatedFutures(results);
             }
         });
         
         return () => { isMounted = false; };
-    }, [runSimulationAsync]);
+    }, [runSimulationAsync, viewMode]);
 
     const getTeamRecords = useCallback((stage: string) => {
         const records: Record<string, { w: number; l: number }> = {};
@@ -446,6 +461,7 @@ export function useMatchLogic(activeStage: string, dataLoaded?: boolean) {
     return {
         getScheduledMatches,
         simulatedFutures,
+        setSimulatedFutures,
         runSimulationAsync,
         getTeamRecords,
         getComputedActuals,

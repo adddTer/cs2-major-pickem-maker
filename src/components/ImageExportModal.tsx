@@ -113,7 +113,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
               <div className="flex flex-col items-center justify-center py-12 gap-5">
                   <RefreshCw className="w-10 h-10 text-blue-500 animate-spin opacity-80" />
                   <div className="text-zinc-200 font-bold text-lg text-center whitespace-pre-line leading-relaxed">
-                       {isSimulatingProbability ? `正在运行 20,000 次蒙特卡洛模拟... (${simulationProgress}%)\n计算精确概率，请稍候` : '渲染高清长图中...'}
+                       {isSimulatingProbability ? '模拟中……' : '渲染高清长图中...'}
                   </div>
                   {isSimulatingProbability && (
                        <div className="w-full max-w-xs bg-zinc-800/80 rounded-full h-1.5 mt-2 overflow-hidden shadow-inner border border-white/5 relative">

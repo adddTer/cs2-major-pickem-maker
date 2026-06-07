@@ -24,8 +24,16 @@ self.onmessage = async (e: MessageEvent) => {
             data[offset + 2] = maskAdv;
         }
         
+        const currentTotal = simCount + toSimulate;
+        const currentData = data.slice(0, currentTotal * 3);
+        
         // Report progress
-        self.postMessage({ type: 'progress', progress: Math.min(100, Math.round(((simCount + toSimulate) / numSimulations) * 100)) });
+        self.postMessage({ 
+            type: 'progress', 
+            progress: Math.min(100, Math.round((currentTotal / numSimulations) * 100)),
+            data: currentData,
+            allTeams 
+        });
         
         // Let event loop breathe
         await new Promise(resolve => setTimeout(resolve, 10));

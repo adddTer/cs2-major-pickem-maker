@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { TEAMS } from "../data/teams";
+import { GLOBAL_SEEDING } from "../data/seedings";
 import { MATCHES } from "../data/matches";
 import { BracketMatch } from "../types";
 import { cn } from "../lib/utils";
@@ -8,7 +9,7 @@ import { TeamLogo } from "./TeamLogo";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { MatchDialog } from "./MatchDialog";
 
-const MatchParticipant = ({ teamId }: { teamId?: string }) => {
+export const MatchParticipant = ({ teamId }: { teamId?: string }) => {
   const team = TEAMS.find((t) => t.id === teamId);
   if (team) {
     return (
@@ -24,7 +25,7 @@ const MatchParticipant = ({ teamId }: { teamId?: string }) => {
   );
 };
 
-const MatchLine: React.FC<{ match?: BracketMatch; onClick?: (m: BracketMatch) => void }> = ({ match, onClick }) => {
+const MatchLine: React.FC<{ match?: BracketMatch; onClick?: (m: BracketMatch) => void; simulateWinner?: (m: BracketMatch, winner: 1|2|0) => void; isSimulated?: boolean }> = ({ match, onClick, simulateWinner, isSimulated }) => {
   const hasResult = match?.score1 !== undefined && match?.score2 !== undefined;
   const isLive = match?.status === "live";
 
@@ -40,23 +41,52 @@ const MatchLine: React.FC<{ match?: BracketMatch; onClick?: (m: BracketMatch) =>
     ?.map((m) => `${m.score1}:${m.score2}`)
     .join(" | ");
 
+  const isInteractive = simulateWinner || hasResult;
+  
+  const handleTeamClick = (e: React.MouseEvent, side: 1 | 2) => {
+      if (simulateWinner && match) {
+          e.stopPropagation();
+          let nextWinner: 1|2|0 = 0;
+          const t1Wins = (match.format === 'bo3' && match.score1 === 2) || (match.format === 'bo1' && match.score1 === 1);
+          const t2Wins = (match.format === 'bo3' && match.score2 === 2) || (match.format === 'bo1' && match.score2 === 1);
+          
+          if (side === 1) {
+              nextWinner = t1Wins ? 0 : 1;
+          } else {
+              nextWinner = t2Wins ? 0 : 2;
+          }
+          simulateWinner(match, nextWinner);
+      }
+  };
+
   return (
     <div
-      className="flex flex-col items-center relative z-20 w-full px-1 justify-center py-[7px] border-b border-white/5 last:border-0 group cursor-pointer"
+      className={cn("flex flex-col items-center relative z-20 w-full px-1 justify-center py-[7px] border-b border-white/5 last:border-0 transition-colors group", !simulateWinner && hasResult ? "cursor-pointer hover:bg-white/5" : "")}
       title={titleStr}
-      onClick={(e) => {
-          if (onClick && match) onClick(match);
+      onClick={() => {
+          if (!simulateWinner && onClick && match && hasResult) {
+              onClick(match);
+          }
       }}
     >
       <div className="flex items-center gap-2 justify-center w-full">
-        <MatchParticipant teamId={match?.team1Id} />
+        <div 
+            onClick={(e) => simulateWinner ? handleTeamClick(e, 1) : undefined}
+            className={cn("p-1 rounded transition-all", 
+                simulateWinner ? "cursor-pointer hover:bg-white/10" : "",
+                hasResult && (match?.score2 ?? 0) > (match?.score1 ?? 0) ? "opacity-30 grayscale" : "opacity-100",
+                simulateWinner && (match?.score1 ?? 0) > (match?.score2 ?? 0) ? "ring-1 ring-emerald-500 bg-emerald-500/10" : ""
+            )}
+        >
+           <MatchParticipant teamId={match?.team1Id} />
+        </div>
         {hasResult ? (
-          <div className="flex items-center justify-center min-w-[28px] h-[32px] shrink-0 relative">
-            <div className="flex items-center justify-center gap-1">
+          <div className="flex items-center justify-center w-[36px] h-[32px] shrink-0 relative">
+            <div className="flex items-center justify-center w-full gap-0">
               <span
                 className={cn(
-                  "text-[11px] font-bold",
-                  isLive
+                  "flex-1 text-right text-[11px] font-bold",
+                  isLive && !isSimulated
                     ? "text-white"
                     : (displayLeft ?? 0) > (displayRight ?? 0)
                       ? "text-emerald-400 drop-shadow-sm"
@@ -65,11 +95,11 @@ const MatchLine: React.FC<{ match?: BracketMatch; onClick?: (m: BracketMatch) =>
               >
                 {displayLeft}
               </span>
-              <span className="text-[9px] text-zinc-700">-</span>
+              <span className="w-[8px] text-center shrink-0 text-[10px] text-zinc-700">-</span>
               <span
                 className={cn(
-                  "text-[11px] font-bold",
-                  isLive
+                  "flex-1 text-left text-[11px] font-bold",
+                  isLive && !isSimulated
                     ? "text-white"
                     : (displayRight ?? 0) > (displayLeft ?? 0)
                       ? "text-emerald-400 drop-shadow-sm"
@@ -79,7 +109,11 @@ const MatchLine: React.FC<{ match?: BracketMatch; onClick?: (m: BracketMatch) =>
                 {displayRight}
               </span>
             </div>
-            {isLive ? (
+            {isSimulated ? (
+              <span className="absolute -bottom-[4px] text-[8px] text-zinc-100 font-bold bg-blue-600/90 px-1 rounded-[2px] tracking-tighter scale-[0.8]">
+                SIM
+              </span>
+            ) : isLive ? (
               <span className="absolute -bottom-[4px] text-[8px] text-zinc-100 font-bold bg-rose-600/90 px-1 rounded-[2px] tracking-tighter scale-[0.8]">
                 LIVE
               </span>
@@ -90,8 +124,8 @@ const MatchLine: React.FC<{ match?: BracketMatch; onClick?: (m: BracketMatch) =>
             ) : null}
           </div>
         ) : (
-          <div className="flex items-center justify-center min-w-[28px] h-[32px] shrink-0 relative">
-            <span className="text-[10px] text-zinc-600/80 font-medium w-[28px] text-center uppercase tracking-widest shrink-0">
+          <div className="flex items-center justify-center w-[36px] h-[32px] shrink-0 relative">
+            <span className="text-[10px] text-zinc-600/80 font-medium w-full text-center uppercase tracking-widest shrink-0 transition-colors">
               vs
             </span>
             {(match?.format === "bo3" || match?.format === "bo5") && (
@@ -101,7 +135,16 @@ const MatchLine: React.FC<{ match?: BracketMatch; onClick?: (m: BracketMatch) =>
             )}
           </div>
         )}
-        <MatchParticipant teamId={match?.team2Id} />
+        <div 
+            onClick={(e) => simulateWinner ? handleTeamClick(e, 2) : undefined}
+            className={cn("p-1 rounded transition-all", 
+                simulateWinner ? "cursor-pointer hover:bg-white/10" : "",
+                hasResult && (match?.score1 ?? 0) > (match?.score2 ?? 0) ? "opacity-30 grayscale" : "opacity-100",
+                simulateWinner && (match?.score2 ?? 0) > (match?.score1 ?? 0) ? "ring-1 ring-emerald-500 bg-emerald-500/10" : ""
+            )}
+        >
+            <MatchParticipant teamId={match?.team2Id} />
+        </div>
       </div>
     </div>
   );
@@ -112,11 +155,13 @@ const GroupBox = ({
   count,
   matches = [],
   onMatchClick,
+  simulateWinner,
 }: {
   score: string;
   count: number;
   matches?: BracketMatch[];
   onMatchClick?: (m: BracketMatch) => void;
+  simulateWinner?: (m: BracketMatch, winner: 1|2|0) => void;
 }) => {
   return (
     <div className="bg-zinc-900/60 border border-white/5 rounded-[8px] px-3 pt-6 pb-2 flex flex-col items-center relative shadow-lg w-[136px] shrink-0 z-10 backdrop-blur-sm pointer-events-auto">
@@ -125,7 +170,7 @@ const GroupBox = ({
       </div>
       <div className="flex flex-col w-full items-center justify-center relative">
         {Array.from({ length: count }).map((_, i) => (
-          <MatchLine key={i} match={matches[i]} onClick={onMatchClick} />
+          <MatchLine key={i} match={matches[i]} onClick={onMatchClick} simulateWinner={simulateWinner} isSimulated={(matches[i] as any)?.isSimulated} />
         ))}
       </div>
     </div>
@@ -213,28 +258,191 @@ const AbsoluteBox = ({
 
 export const SwissBracket = ({ activeStage }: { activeStage: string }) => {
   const [selectedMatch, setSelectedMatch] = useState<BracketMatch | null>(null);
+  const [simulationMode, setSimulationMode] = useState(false);
+  const [predictions, setPredictions] = useState<Record<string, 1|2|0>>({});
+
+  React.useEffect(() => {
+    if (!simulationMode) setPredictions({});
+  }, [simulationMode]);
+
+  const matchesMap = React.useMemo(() => {
+    const origMap = MATCHES[activeStage] || {};
+    if (!simulationMode) return origMap;
+
+    const map: Record<string, BracketMatch[]> = {};
+    const teamsRecord: Record<string, { wins: number; losses: number; opponents: string[]; initialSeed: number }> = {};
+    const r0 = origMap['0:0'] || [];
+    
+    // Attempt to figure out initial seed based on 0:0
+    // In Swiss 0:0, it's typically Seed 1 vs 16, 2 vs 15... 8 vs 9.
+    r0.forEach((m, idx) => {
+        if (m.team1Id && m.team1Id !== 'tbd') teamsRecord[m.team1Id] = { wins: 0, losses: 0, opponents: [], initialSeed: idx + 1 };
+        if (m.team2Id && m.team2Id !== 'tbd') teamsRecord[m.team2Id] = { wins: 0, losses: 0, opponents: [], initialSeed: 16 - idx };
+    });
+
+    const rounds = [
+        ['0:0'],
+        ['1:0', '0:1'],
+        ['2:0', '1:1', '0:2'],
+        ['2:1', '1:2'],
+        ['2:2']
+    ];
+
+    rounds.forEach((groups, roundIndex) => {
+        groups.forEach(group => {
+            map[group] = [];
+            const [w, l] = group.split(':').map(Number);
+            
+            const eligibleTeams = Object.entries(teamsRecord)
+                .filter(([_, record]) => record.wins === w && record.losses === l)
+                .map(([tid]) => tid);
+
+            const realMatches = origMap[group] || [];
+            const matchedTeams = new Set<string>();
+
+            // Always add real matches first if available
+            realMatches.forEach(m => {
+                if (m.team1Id && m.team2Id && eligibleTeams.includes(m.team1Id) && eligibleTeams.includes(m.team2Id)) {
+                    matchedTeams.add(m.team1Id);
+                    matchedTeams.add(m.team2Id);
+                    map[group].push({ ...m });
+                }
+            });
+
+            const remainingTeams = eligibleTeams.filter(t => !matchedTeams.has(t));
+            
+            // Calculate Buchholz score
+            const getBuchholz = (tid: string) => {
+                return teamsRecord[tid].opponents.reduce((sum, oppId) => {
+                    const opp = teamsRecord[oppId];
+                    if (!opp) return sum;
+                    return sum + (opp.wins - opp.losses);
+                }, 0);
+            };
+
+            // Rank remaining teams
+            remainingTeams.sort((a, b) => {
+                // For Round 1 & 2 (roundIndex 0 and 1), use initial seed only
+                if (roundIndex >= 2) {
+                    const bhA = getBuchholz(a);
+                    const bhB = getBuchholz(b);
+                    if (bhA !== bhB) return bhB - bhA; // Descending Buchholz
+                }
+                const seedA = GLOBAL_SEEDING[a] || teamsRecord[a].initialSeed || 99;
+                const seedB = GLOBAL_SEEDING[b] || teamsRecord[b].initialSeed || 99;
+                return seedA - seedB; // Ascending initial seed
+            });
+
+            // Greedy pairing: Highest vs Lowest available unplayed
+            let pool = [...remainingTeams];
+            while (pool.length >= 2) {
+                const teamA = pool.shift()!;
+                let paired = false;
+                
+                // Search from bottom up for lowest ranked team that hasn't played teamA
+                for (let i = pool.length - 1; i >= 0; i--) {
+                    const teamB = pool[i];
+                    if (!teamsRecord[teamA].opponents.includes(teamB)) {
+                        pool.splice(i, 1);
+                        map[group].push({
+                            team1Id: teamA,
+                            team2Id: teamB,
+                            format: (w === 2 || l === 2) ? 'bo3' : 'bo1',
+                        } as BracketMatch);
+                        paired = true;
+                        break;
+                    }
+                }
+                
+                // Fallback if everyone was played (very rare, just pair with lowest)
+                if (!paired && pool.length > 0) {
+                    const teamB = pool.pop()!;
+                    map[group].push({
+                        team1Id: teamA,
+                        team2Id: teamB,
+                        format: (w === 2 || l === 2) ? 'bo3' : 'bo1',
+                    } as BracketMatch);
+                }
+            }
+
+            map[group].forEach(m => {
+                if (!m.team1Id || !m.team2Id) return;
+                
+                // Add to opponents here so subsequent rounds know
+                if (!teamsRecord[m.team1Id].opponents.includes(m.team2Id)) {
+                    teamsRecord[m.team1Id].opponents.push(m.team2Id);
+                }
+                if (!teamsRecord[m.team2Id].opponents.includes(m.team1Id)) {
+                    teamsRecord[m.team2Id].opponents.push(m.team1Id);
+                }
+
+                const pKey = `${m.team1Id}-${m.team2Id}`;
+                const pKeyRev = `${m.team2Id}-${m.team1Id}`;
+                const prediction = predictions[pKey] || (predictions[pKeyRev] === 1 ? 2 : predictions[pKeyRev] === 2 ? 1 : 0);
+
+                if (prediction === 1) {
+                    m.score1 = m.format === 'bo3' ? 2 : 1;
+                    m.score2 = 0;
+                    (m as any).isSimulated = true;
+                    teamsRecord[m.team1Id].wins++;
+                    teamsRecord[m.team2Id].losses++;
+                } else if (prediction === 2) {
+                    m.score1 = 0;
+                    m.score2 = m.format === 'bo3' ? 2 : 1;
+                    (m as any).isSimulated = true;
+                    teamsRecord[m.team1Id].losses++;
+                    teamsRecord[m.team2Id].wins++;
+                } else {
+                    const hasResult = m.score1 !== undefined && m.score2 !== undefined && m.status === 'past';
+                    if (hasResult) {
+                        const t1Wins = (m.format === 'bo3' && m.score1 === 2) || (m.format === 'bo1' && m.score1 === 1);
+                        if (t1Wins) {
+                            teamsRecord[m.team1Id].wins++;
+                            teamsRecord[m.team2Id].losses++;
+                        } else {
+                            teamsRecord[m.team1Id].losses++;
+                            teamsRecord[m.team2Id].wins++;
+                        }
+                    } else if (!simulationMode) {
+                        // If we are NOT simulating and no outcome yet, we still know they are opponents
+                        // But their wins/losses won't change
+                    }
+                }
+            });
+        });
+    });
+
+    return map;
+  }, [simulationMode, activeStage, predictions]);
+
+  const handleSimulateWinner = (match: BracketMatch, winner: 1|2|0) => {
+      setPredictions(prev => ({
+          ...prev,
+          [`${match.team1Id}-${match.team2Id}`]: winner
+      }));
+  };
 
   const pos = {
-    g00: { id: "g00", x: 90, y: 360, o1: 65, o2: 65 },
+    g00: { id: "g00", x: 90, y: 420, o1: 65, o2: 65 },
 
-    g10: { id: "g10", x: 280, y: 244, o1: 65, o2: 65 },
-    g01: { id: "g01", x: 280, y: 476, o1: 65, o2: 65 },
+    g10: { id: "g10", x: 280, y: 278, o1: 65, o2: 65 },
+    g01: { id: "g01", x: 280, y: 562, o1: 65, o2: 65 },
 
-    g20: { id: "g20", x: 470, y: 168, o1: 65, o2: 65 },
-    g11: { id: "g11", x: 470, y: 360, o1: 65, o2: 65 },
-    g02: { id: "g02", x: 470, y: 552, o1: 65, o2: 65 },
+    g20: { id: "g20", x: 470, y: 190, o1: 65, o2: 65 },
+    g11: { id: "g11", x: 470, y: 420, o1: 65, o2: 65 },
+    g02: { id: "g02", x: 470, y: 650, o1: 65, o2: 65 },
 
-    g30: { id: "g30", x: 660, y: 92, o1: 65, o2: 65 },
-    g21: { id: "g21", x: 660, y: 264, o1: 65, o2: 65 },
-    g12: { id: "g12", x: 660, y: 456, o1: 65, o2: 65 },
-    g03: { id: "g03", x: 660, y: 628, o1: 65, o2: 65 },
+    g30: { id: "g30", x: 660, y: 125, o1: 65, o2: 65 },
+    g21: { id: "g21", x: 660, y: 308, o1: 65, o2: 65 },
+    g12: { id: "g12", x: 660, y: 532, o1: 65, o2: 65 },
+    g03: { id: "g03", x: 660, y: 715, o1: 65, o2: 65 },
 
-    g31: { id: "g31", x: 850, y: 168, o1: 65, o2: 65 },
-    g22: { id: "g22", x: 850, y: 360, o1: 65, o2: 65 },
-    g13: { id: "g13", x: 850, y: 552, o1: 65, o2: 65 },
+    g31: { id: "g31", x: 850, y: 237, o1: 65, o2: 65 },
+    g22: { id: "g22", x: 850, y: 420, o1: 65, o2: 65 },
+    g13: { id: "g13", x: 850, y: 603, o1: 65, o2: 65 },
 
-    g32: { id: "g32", x: 1040, y: 264, o1: 65, o2: 65 },
-    g23: { id: "g23", x: 1040, y: 456, o1: 65, o2: 65 },
+    g32: { id: "g32", x: 1040, y: 349, o1: 65, o2: 65 },
+    g23: { id: "g23", x: 1040, y: 491, o1: 65, o2: 65 },
   };
 
   const pathLines = [
@@ -265,16 +473,16 @@ export const SwissBracket = ({ activeStage }: { activeStage: string }) => {
   ];
 
   const getMatches = (score: string) => {
-    return MATCHES[activeStage]?.[score] || [];
+    return matchesMap[score] || [];
   };
 
   const getFinalTeams = (wins: number, losses: number) => {
     const records: Record<string, { w: number; l: number }> = {};
-    const matchesMap = MATCHES[activeStage] || {};
 
     Object.values(matchesMap)
       .flat()
-      .forEach((match) => {
+      .forEach((m) => {
+        const match = m as BracketMatch;
         let hasResult =
           match.score1 !== undefined && match.score2 !== undefined;
         if (hasResult) {
@@ -316,8 +524,51 @@ export const SwissBracket = ({ activeStage }: { activeStage: string }) => {
       .map(([id]) => id);
   };
 
+  const isRoundIncomplete = (MATCHES[activeStage]?.['0:0'] || []).length < 8 || 
+    (MATCHES[activeStage]?.['0:0'] || []).some((m: BracketMatch) => !m.team1Id || !m.team2Id || m.team1Id === 'tbd' || m.team2Id === 'tbd');
+
   return (
-    <div className="w-full h-full flex items-center justify-center overflow-hidden z-10 relative">
+    <div className="w-full h-full flex flex-col overflow-hidden z-10 relative">
+      <div className="absolute top-4 left-4 z-50">
+          <button 
+              onClick={() => {
+                  if (isRoundIncomplete) return;
+                  setSimulationMode(!simulationMode);
+              }}
+              disabled={isRoundIncomplete}
+              className={cn(
+                  "px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2",
+                  isRoundIncomplete ? "opacity-50 cursor-not-allowed bg-black/50 text-zinc-600 border-white/5" :
+                  simulationMode 
+                    ? "bg-blue-600/20 text-blue-400 border-blue-500/50" 
+                    : "bg-black/50 text-zinc-400 border-white/10 hover:bg-white/5"
+              )}
+          >
+              {simulationMode ? (
+                  <>
+                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                      模拟模式已开启
+                  </>
+              ) : (
+                  <>
+                      <span className="w-2 h-2 rounded-full bg-zinc-600" />
+                      开启预测模拟
+                  </>
+              )}
+          </button>
+          
+          {isRoundIncomplete ? (
+              <div className="mt-2 text-[10px] text-rose-400/80 bg-rose-500/10 px-2 py-1 rounded w-max border border-rose-500/20">
+                  初始对决尚未完全确定，暂不支持模拟
+              </div>
+          ) : simulationMode && (
+              <div className="mt-2 text-[10px] text-zinc-400 bg-black/50 px-2 py-1 rounded w-max border border-white/5">
+                  点击队伍标识切换胜负关系
+              </div>
+          )}
+      </div>
+
+      <div className="w-full flex-1 flex items-center justify-center relative">
       <TransformWrapper
         initialScale={1}
         minScale={0.3}
@@ -329,7 +580,7 @@ export const SwissBracket = ({ activeStage }: { activeStage: string }) => {
         <TransformComponent
           wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}
         >
-          <div className="w-[1200px] h-[800px] relative pointer-events-none px-4 flex-shrink-0">
+          <div className="w-[1200px] h-[840px] relative pointer-events-none px-4 flex-shrink-0">
             {/* SVG Connections */}
             <svg
               className="absolute inset-0 w-full h-full z-0 opacity-45 pointer-events-none"
@@ -352,31 +603,31 @@ export const SwissBracket = ({ activeStage }: { activeStage: string }) => {
 
             {/* Swiss Bracket Boxes */}
             <AbsoluteBox p={pos.g00}>
-              <GroupBox score="0:0" count={8} matches={getMatches("0:0")} onMatchClick={setSelectedMatch} />
+              <GroupBox score="0:0" count={8} matches={getMatches("0:0")} onMatchClick={setSelectedMatch} simulateWinner={simulationMode ? handleSimulateWinner : undefined} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g10}>
-              <GroupBox score="1:0" count={4} matches={getMatches("1:0")} onMatchClick={setSelectedMatch} />
+              <GroupBox score="1:0" count={4} matches={getMatches("1:0")} onMatchClick={setSelectedMatch} simulateWinner={simulationMode ? handleSimulateWinner : undefined} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g01}>
-              <GroupBox score="0:1" count={4} matches={getMatches("0:1")} onMatchClick={setSelectedMatch} />
+              <GroupBox score="0:1" count={4} matches={getMatches("0:1")} onMatchClick={setSelectedMatch} simulateWinner={simulationMode ? handleSimulateWinner : undefined} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g20}>
-              <GroupBox score="2:0" count={2} matches={getMatches("2:0")} onMatchClick={setSelectedMatch} />
+              <GroupBox score="2:0" count={2} matches={getMatches("2:0")} onMatchClick={setSelectedMatch} simulateWinner={simulationMode ? handleSimulateWinner : undefined} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g11}>
-              <GroupBox score="1:1" count={4} matches={getMatches("1:1")} onMatchClick={setSelectedMatch} />
+              <GroupBox score="1:1" count={4} matches={getMatches("1:1")} onMatchClick={setSelectedMatch} simulateWinner={simulationMode ? handleSimulateWinner : undefined} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g02}>
-              <GroupBox score="0:2" count={2} matches={getMatches("0:2")} onMatchClick={setSelectedMatch} />
+              <GroupBox score="0:2" count={2} matches={getMatches("0:2")} onMatchClick={setSelectedMatch} simulateWinner={simulationMode ? handleSimulateWinner : undefined} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g21}>
-              <GroupBox score="2:1" count={3} matches={getMatches("2:1")} onMatchClick={setSelectedMatch} />
+              <GroupBox score="2:1" count={3} matches={getMatches("2:1")} onMatchClick={setSelectedMatch} simulateWinner={simulationMode ? handleSimulateWinner : undefined} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g12}>
-              <GroupBox score="1:2" count={3} matches={getMatches("1:2")} onMatchClick={setSelectedMatch} />
+              <GroupBox score="1:2" count={3} matches={getMatches("1:2")} onMatchClick={setSelectedMatch} simulateWinner={simulationMode ? handleSimulateWinner : undefined} />
             </AbsoluteBox>
             <AbsoluteBox p={pos.g22}>
-              <GroupBox score="2:2" count={3} matches={getMatches("2:2")} onMatchClick={setSelectedMatch} />
+              <GroupBox score="2:2" count={3} matches={getMatches("2:2")} onMatchClick={setSelectedMatch} simulateWinner={simulationMode ? handleSimulateWinner : undefined} />
             </AbsoluteBox>
 
             {/* Advance / Eliminate Result Groups */}
@@ -432,6 +683,7 @@ export const SwissBracket = ({ activeStage }: { activeStage: string }) => {
           </div>
         </TransformComponent>
       </TransformWrapper>
+      </div>
       <MatchDialog match={selectedMatch} onClose={() => setSelectedMatch(null)} />
     </div>
   );

@@ -1,3 +1,5 @@
+import { GLOBAL_SEEDING } from "../data/seedings";
+
 export interface SwissSimulationResult {
     teams30: Set<string>;
     teams03: Set<string>;
@@ -100,7 +102,7 @@ export function simulateSwiss(
                 };
 
                 const getInitialSeed = (t: string) => {
-                    return allTeams.indexOf(t);
+                    return GLOBAL_SEEDING[t] || allTeams.indexOf(t) || 99;
                 };
 
                 // Sort teams by Buchholz, then Initial Seed
