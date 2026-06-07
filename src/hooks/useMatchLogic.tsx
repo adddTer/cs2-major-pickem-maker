@@ -4,7 +4,7 @@ import { PickSlot, SlotType } from "../types";
 
 export function useMatchLogic(
   activeStage: string,
-  dataLoaded?: boolean,
+  refreshTrigger?: number,
   viewMode?: string,
 ) {
   const [simulatedFutures, setSimulatedFutures] = useState<any>([]);
@@ -142,7 +142,7 @@ export function useMatchLogic(
         });
       });
     },
-    [activeStage, dataLoaded],
+    [activeStage, refreshTrigger],
   );
 
   useEffect(() => {
@@ -227,7 +227,7 @@ export function useMatchLogic(
       });
       return records;
     },
-    [dataLoaded],
+    [refreshTrigger],
   );
 
   const getComputedActuals = useCallback(

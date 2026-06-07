@@ -26,6 +26,7 @@ import { useMatchLogic } from "./hooks/useMatchLogic";
 
 export default function App() {
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [dataLoadError, setDataLoadError] = useState(false);
   const [isRefreshingData, setIsRefreshingData] = useState(false);
 
@@ -40,7 +41,7 @@ export default function App() {
       setDataLoadError(true);
     }
     loadPicks();
-    setDataLoaded((prev) => !prev);
+    setRefreshTrigger((prev) => prev + 1);
     setTimeout(() => {
       setIsRefreshingData(false);
     }, 500);
@@ -137,7 +138,7 @@ export default function App() {
     activeStageActuals,
     checkPrediction,
     getSetStatus,
-  } = useMatchLogic(activeStage, dataLoaded, mainView);
+  } = useMatchLogic(activeStage, refreshTrigger, mainView);
 
   useEffect(() => {
     let shouldCheckPrev = false;
@@ -180,7 +181,7 @@ export default function App() {
       shouldCheckPrev = true;
 
     setImageExportShowPrevStage(shouldCheckPrev);
-  }, [activeStage, getComputedActuals, dataLoaded]);
+  }, [activeStage, getComputedActuals, refreshTrigger]);
 
   useEffect(() => {
     if (!dataLoaded) return;
@@ -224,7 +225,7 @@ export default function App() {
 
     return () => clearInterval(timerId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataLoaded, mainView, panelView, activeStage]);
+  }, [dataLoaded, refreshTrigger, mainView, panelView, activeStage]);
 
   const getRecommendedStage = useCallback(() => {
     for (const stage of ["stage1", "stage2", "stage3"]) {
