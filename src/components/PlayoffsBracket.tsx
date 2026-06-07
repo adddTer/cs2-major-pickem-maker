@@ -192,12 +192,33 @@ export const PlayoffsBracket: React.FC<{
   slots: PickSlot[];
   readOnly?: boolean;
   showResults?: boolean;
+  refreshTrigger?: number;
   onDrop?: (e: React.DragEvent, slotId: string) => void;
   onClick?: (slotId: string, teamId: string | null) => void;
-}> = ({ slots, readOnly = false, showResults = false, onDrop, onClick }) => {
+}> = ({ slots, readOnly = false, showResults = false, refreshTrigger, onDrop, onClick }) => {
   const [selectedMatch, setSelectedMatch] = React.useState<BracketMatch | null>(
     null,
   );
+
+  React.useEffect(() => {
+    if (selectedMatch) {
+      const playoffsMatches = MATCHES["playoffs"] || {};
+      let updatedMatch = null;
+      for (const group of Object.values(playoffsMatches)) {
+        const found = group.find((m: any) => 
+          (m.externalId && m.externalId === selectedMatch.externalId) || 
+          (m.team1Id === selectedMatch.team1Id && m.team2Id === selectedMatch.team2Id)
+        );
+        if (found) {
+          updatedMatch = found;
+          break;
+        }
+      }
+      if (updatedMatch) {
+        setSelectedMatch(updatedMatch);
+      }
+    }
+  }, [refreshTrigger]);
 
   const getSlot = (id: string) => {
     let baseSlot = slots.find((s) => s.id === id || s.id === `playoffs-${id}`);

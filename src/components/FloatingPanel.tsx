@@ -87,7 +87,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
           !isExpanded && "hidden",
         )}
       >
-        <div className="p-4 sm:p-5 flex flex-col min-h-full">{children}</div>
+        <div className="p-4 sm:p-5 flex flex-col min-h-full min-w-0">{children}</div>
       </div>
     </div>
   );

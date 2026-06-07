@@ -85,6 +85,7 @@ function getTeamId(t1: any): string | undefined {
 function parseSwissGraph(
   stageData: any,
   matchesMap: Record<string, { plan_ts?: string; star?: number }> = {},
+  oldMatchesMap: Record<string, any[]> = {}
 ) {
   let graphData: any = {};
   try {
@@ -153,7 +154,7 @@ function parseSwissGraph(
           }
         }
 
-        const matchObj: any = {
+        let matchObj: any = {
           externalId,
           team1Id: t1Id,
           team2Id: t2Id,
@@ -167,11 +168,27 @@ function parseSwissGraph(
           matchObj.tags = tags;
         }
 
-        if (m.status === "past" || m.status === "live") {
+        if (oldMatchesMap && oldMatchesMap[bracket]) {
+          const oldM = oldMatchesMap[bracket].find(
+            (om: any) => om.team1Id === t1Id && om.team2Id === t2Id
+          );
+          if (oldM) {
+            const os = oldM.status;
+            const ns = matchObj.status;
+            // Prevent reverting from live/past to upcoming(-1, 0, or undef)
+            if ((os === "live" || os === "past") && (ns === "-1" || ns === "0" || !ns)) {
+              matchObj = oldM; 
+            } else if (os === "past" && ns === "live") {
+              matchObj = oldM;
+            }
+          }
+        }
+
+        if (matchObj.status === "past" || matchObj.status === "live") {
           if (format === "bo1") {
             const map1 = parseInt(m.t1Score, 10) || 0;
             const map2 = parseInt(m.t2Score, 10) || 0;
-            if (m.status === "past") {
+            if (matchObj.status === "past") {
               matchObj.score1 = map1 > map2 ? 1 : 0;
               matchObj.score2 = map2 > map1 ? 1 : 0;
             } else {
@@ -180,13 +197,8 @@ function parseSwissGraph(
             }
             matchObj.maps = [{ score1: map1, score2: map2 }];
           } else {
-            if (m.status === "past") {
-              matchObj.score1 = parseInt(m.t1Score, 10) || 0;
-              matchObj.score2 = parseInt(m.t2Score, 10) || 0;
-            } else {
-              matchObj.score1 = 0;
-              matchObj.score2 = 0;
-            }
+            matchObj.score1 = parseInt(m.t1Score, 10) || 0;
+            matchObj.score2 = parseInt(m.t2Score, 10) || 0;
 
             const maps = [];
             if (m.t1?.bo1Score || m.t2?.bo1Score)
@@ -214,7 +226,7 @@ function parseSwissGraph(
                 score1: parseInt(m.t1?.bo5Score, 10) || 0,
                 score2: parseInt(m.t2?.bo5Score, 10) || 0,
               });
-            if (maps.length > 0) matchObj.maps = maps;
+            if (maps.length > 0 && !matchObj.maps) matchObj.maps = maps;
           }
         }
 
@@ -235,7 +247,7 @@ export async function fetchAndPatchCSGOData() {
   try {
     const fetchStage = async (id: string) => {
       const res = await fetch(
-        `https://esports-data.5eplaycdn.com/v1/api/csgo/tournaments/${id}/stages`,
+        `https://esports-data.5eplaycdn.com/v1/api/csgo/tournaments/${id}/stages?_t=${Date.now()}`,
       );
       return await res.json();
     };
@@ -243,7 +255,7 @@ export async function fetchAndPatchCSGOData() {
     const fetchEventMatches = async (id: string) => {
       try {
         const res = await fetch(
-          `https://esports-data.5eplaycdn.com/v1/api/csgo/tournaments/${id}/matches`,
+          `https://esports-data.5eplaycdn.com/v1/api/csgo/tournaments/${id}/matches?_t=${Date.now()}`,
         );
         const json = await res.json();
         const map: Record<
@@ -272,7 +284,7 @@ export async function fetchAndPatchCSGOData() {
 
         try {
           const resExtra = await fetch(
-            `https://esports-data.5eplaycdn.com/v1/api/csgo/matches?tt_ids=${id}&limit=100&page=1`,
+            `https://esports-data.5eplaycdn.com/v1/api/csgo/matches?tt_ids=${id}&limit=100&page=1&_t=${Date.now()}`,
           );
           const jsonExtra = await resExtra.json();
           if (jsonExtra?.data?.matches) {
@@ -306,18 +318,18 @@ export async function fetchAndPatchCSGOData() {
     ]);
 
     if (r9028?.success && r9028.data?.[0]) {
-      const s1 = parseSwissGraph(r9028.data[0], m9028);
+      const s1 = parseSwissGraph(r9028.data[0], m9028, MATCHES.stage1);
       if (s1) MATCHES.stage1 = s1;
     }
 
     if (r9029?.success && r9029.data?.[0]) {
-      const s2 = parseSwissGraph(r9029.data[0], m9029);
+      const s2 = parseSwissGraph(r9029.data[0], m9029, MATCHES.stage2);
       if (s2) MATCHES.stage2 = s2;
     }
 
     if (r8301?.success) {
       if (r8301.data?.[0]) {
-        const s3 = parseSwissGraph(r8301.data[0], m8301);
+        const s3 = parseSwissGraph(r8301.data[0], m8301, MATCHES.stage3);
         if (s3) MATCHES.stage3 = s3;
       }
 
@@ -355,7 +367,7 @@ export async function fetchAndPatchCSGOData() {
                   star = m8301[externalId].star || 0;
                 }
 
-                const matchObj: any = {
+                let matchObj: any = {
                   externalId,
                   team1Id: t1Id,
                   team2Id: t2Id,
@@ -364,6 +376,24 @@ export async function fetchAndPatchCSGOData() {
                   time: matchTime,
                   star: star,
                 };
+
+                const currentBracket = roundDesc[idx];
+                if (MATCHES.playoffs && MATCHES.playoffs[currentBracket]) {
+                  const oldM = MATCHES.playoffs[currentBracket].find(
+                    (om: any) => om.team1Id === t1Id && om.team2Id === t2Id
+                  );
+                  if (oldM) {
+                    const os = oldM.status;
+                    const ns = matchObj.status;
+                    // Prevent reverting from live/past to upcoming(-1, 0, or undef)
+                    if ((os === "live" || os === "past") && (ns === "-1" || ns === "0" || !ns)) {
+                      matchObj = oldM; 
+                    } else if (os === "past" && ns === "live") {
+                      matchObj = oldM;
+                    }
+                  }
+                }
+
                 if (
                   externalId &&
                   m8301[externalId] &&
@@ -371,12 +401,9 @@ export async function fetchAndPatchCSGOData() {
                 ) {
                   matchObj.tags = (m8301[externalId] as any).tags;
                 }
-                if (m.status === "past") {
+                if (matchObj.status === "past" || matchObj.status === "live") {
                   matchObj.score1 = parseInt(m.t1Score, 10) || 0;
                   matchObj.score2 = parseInt(m.t2Score, 10) || 0;
-                } else if (m.status === "live") {
-                  matchObj.score1 = 0;
-                  matchObj.score2 = 0;
                 }
 
                 const maps = [];

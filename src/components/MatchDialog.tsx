@@ -106,12 +106,24 @@ const MapVetoDisplay: React.FC<MapVetoDisplayProps & { matchData?: any }> = ({
 
           // Count played maps before this one to find score index
           let scoreItem = undefined;
-          if (isCurrentlyPlaying && maps) {
+          if (isCurrentlyPlaying) {
             const playedBefore = vetoData.slice(0, i).filter((m) => {
               const t = m.bp_type || "";
               return t.includes("pick") || t === "left";
             }).length;
-            scoreItem = maps[playedBefore];
+
+            if (matchData?.bouts_state) {
+              const bout = matchData?.bouts_state?.[playedBefore];
+              if (bout?.t1_stats?.all_score !== undefined && bout?.t2_stats?.all_score !== undefined && bout?.t1_stats?.all_score !== "") {
+                scoreItem = {
+                  score1: parseInt(bout.t1_stats.all_score, 10),
+                  score2: parseInt(bout.t2_stats.all_score, 10),
+                };
+              }
+            }
+            if (!scoreItem && maps) {
+              scoreItem = maps[playedBefore];
+            }
           }
 
           return (
@@ -249,10 +261,10 @@ export const MatchDialog: React.FC<{
     try {
       const [resData, resAnalysis] = await Promise.all([
         fetch(
-          `https://esports-data.5eplaycdn.com/v1/api/csgo/matches/${formattedId}/data`,
+          `https://esports-data.5eplaycdn.com/v1/api/csgo/matches/${formattedId}/data?_t=${Date.now()}`,
         ).then((r) => r.json()),
         fetch(
-          `https://esports-data.5eplaycdn.com/v1/api/csgo/matches/${formattedId}/analysis_v1`,
+          `https://esports-data.5eplaycdn.com/v1/api/csgo/matches/${formattedId}/analysis_v1?_t=${Date.now()}`,
         ).then((r) => r.json()),
       ]);
 
@@ -276,7 +288,7 @@ export const MatchDialog: React.FC<{
 
   useEffect(() => {
     fetchLiveStreams();
-  }, [match?.externalId]);
+  }, [match]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

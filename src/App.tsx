@@ -84,6 +84,7 @@ export default function App() {
       setMainView("bracket");
       setPanelView(mode);
       setIsFloatingPanelExpanded(true);
+      if (window.innerWidth < 1024) setIsSchedulePanelExpanded(false);
     }
   }, []);
 
@@ -126,6 +127,29 @@ export default function App() {
   const [isSchedulePanelExpanded, setIsSchedulePanelExpanded] = useState(false);
   const [globalSelectedMatch, setGlobalSelectedMatch] =
     useState<BracketMatch | null>(null);
+
+  useEffect(() => {
+    if (globalSelectedMatch) {
+      const allStageMaps = [MATCHES["stage1"], MATCHES["stage2"], MATCHES["stage3"], MATCHES["playoffs"]];
+      let updatedMatch = null;
+      out: for (const stageMap of allStageMaps) {
+        if (!stageMap) continue;
+        for (const group of Object.values(stageMap)) {
+          const found = group.find((m: any) => 
+            (m.externalId && m.externalId === globalSelectedMatch.externalId) || 
+            (m.team1Id === globalSelectedMatch.team1Id && m.team2Id === globalSelectedMatch.team2Id)
+          );
+          if (found) {
+            updatedMatch = found;
+            break out;
+          }
+        }
+      }
+      if (updatedMatch) {
+        setGlobalSelectedMatch({...updatedMatch}); // spread to ensure new reference for re-render
+      }
+    }
+  }, [refreshTrigger]);
 
   const exportContainerRef = useRef<HTMLDivElement>(null);
 
@@ -754,6 +778,7 @@ export default function App() {
             ) : activeStage === "playoffs" ? (
               <div className="w-full h-full relative p-4 lg:p-8">
                 <PlayoffsBracket
+                  refreshTrigger={refreshTrigger}
                   slots={PLAYOFFS_SLOTS.map((s) => {
                     const sTypeIdx = PLAYOFFS_SLOTS.filter(
                       (x) => x.type === s.type,
@@ -772,7 +797,7 @@ export default function App() {
                 />
               </div>
             ) : (
-              <SwissBracket activeStage={activeStage} />
+              <SwissBracket activeStage={activeStage} refreshTrigger={refreshTrigger} />
             )}
           </div>
         </div>
@@ -807,7 +832,7 @@ export default function App() {
               isExpanded={isFloatingPanelExpanded}
               setIsExpanded={(val) => {
                 setIsFloatingPanelExpanded(val);
-                if (val) setIsSchedulePanelExpanded(false);
+                if (val && window.innerWidth < 1024) setIsSchedulePanelExpanded(false);
               }}
               title="竞猜"
               position="right"
@@ -850,7 +875,7 @@ export default function App() {
               isExpanded={isSchedulePanelExpanded}
               setIsExpanded={(val) => {
                 setIsSchedulePanelExpanded(val);
-                if (val) setIsFloatingPanelExpanded(false);
+                if (val && window.innerWidth < 1024) setIsFloatingPanelExpanded(false);
               }}
               title="赛程"
               position="left"

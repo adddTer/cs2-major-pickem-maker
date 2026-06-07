@@ -294,7 +294,13 @@ const AbsoluteBox = ({
   </div>
 );
 
-export const SwissBracket = ({ activeStage }: { activeStage: string }) => {
+export const SwissBracket = ({
+  activeStage,
+  refreshTrigger,
+}: {
+  activeStage: string;
+  refreshTrigger: number;
+}) => {
   const [selectedMatch, setSelectedMatch] = useState<BracketMatch | null>(null);
   const [simulationMode, setSimulationMode] = useState(false);
   const [predictions, setPredictions] = useState<Record<string, 1 | 2 | 0>>({});
@@ -484,7 +490,27 @@ export const SwissBracket = ({ activeStage }: { activeStage: string }) => {
     });
 
     return map;
-  }, [simulationMode, activeStage, predictions]);
+  }, [simulationMode, activeStage, predictions, refreshTrigger]);
+
+  React.useEffect(() => {
+    if (selectedMatch) {
+      // Find the updated match object in matchesMap
+      let updatedMatch = null;
+      for (const group of Object.values(matchesMap)) {
+        const found = group.find((m) => 
+          (m.externalId && m.externalId === selectedMatch.externalId) || 
+          (m.team1Id === selectedMatch.team1Id && m.team2Id === selectedMatch.team2Id)
+        );
+        if (found) {
+          updatedMatch = found;
+          break;
+        }
+      }
+      if (updatedMatch) {
+        setSelectedMatch(updatedMatch);
+      }
+    }
+  }, [matchesMap]);
 
   const handleSimulateWinner = (match: BracketMatch, winner: 1 | 2 | 0) => {
     setPredictions((prev) => ({
@@ -604,7 +630,7 @@ export const SwissBracket = ({ activeStage }: { activeStage: string }) => {
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden z-10 relative">
-      <div className="absolute top-4 left-4 z-50">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
         <button
           onClick={() => {
             if (isRoundIncomplete) return;

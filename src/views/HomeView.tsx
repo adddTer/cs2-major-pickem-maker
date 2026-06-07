@@ -160,7 +160,7 @@ export const HomeView: React.FC<{
   };
 
   return (
-    <div className="flex-1 w-full flex flex-col bg-zinc-900/60 border border-white/5 rounded-lg shadow-xl relative backdrop-blur-md overflow-hidden max-w-2xl mx-auto p-4 sm:p-8">
+    <div className="flex-1 w-full flex flex-col bg-zinc-900/60 border border-white/5 rounded-lg shadow-xl relative backdrop-blur-md overflow-hidden max-w-2xl mx-auto p-4 sm:p-6 lg:p-4 lg:bg-transparent lg:shadow-none lg:border-none">
       <div className="text-center space-y-2 mb-6 sm:mb-8 mt-2 sm:mt-4">
         <h1 className="text-xl sm:text-2xl font-black tracking-wide text-zinc-100">
           选择或创建预测 ID
@@ -191,7 +191,7 @@ export const HomeView: React.FC<{
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto flex flex-col custom-scrollbar">
+      <div className="flex-1 overflow-y-auto flex flex-col custom-scrollbar min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shrink-0">
           <h3 className="text-[10px] sm:text-xs font-bold text-zinc-500 uppercase tracking-widest">
             已有竞猜
@@ -225,14 +225,14 @@ export const HomeView: React.FC<{
             还没有保存任何预测，请输入昵称创建，或者导入已有数据。
           </div>
         ) : (
-          <div className="grid gap-2 sm:gap-3 px-1">
+          <div className="flex flex-col gap-2 sm:gap-3 px-1 min-w-0">
             {communityPicks.map((p) => (
               <div
                 key={p.id}
-                className="flex sm:items-center justify-between p-3 sm:p-4 rounded-lg bg-zinc-900/80 border border-white/5 hover:border-white/20 transition-colors"
+                className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-zinc-900/80 border border-white/5 hover:border-white/20 transition-colors min-w-0 w-full"
               >
-                <div className="flex items-center gap-3 sm:gap-4 overflow-hidden pr-2">
-                  <div className="truncate">
+                <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 pr-2">
+                  <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-zinc-100 text-sm sm:text-base truncate">
                       {p.name}
                     </h4>
