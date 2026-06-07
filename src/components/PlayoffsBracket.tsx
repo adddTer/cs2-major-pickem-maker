@@ -12,21 +12,21 @@ const W = 180;
 const H = 40;
 
 const nodes: Record<string, { x: number; y: number }> = {
-  "qf-1": { x: 0, y: 20 },
-  "qf-2": { x: 0, y: 70 },
-  "qf-3": { x: 0, y: 170 },
-  "qf-4": { x: 0, y: 220 },
-  "qf-5": { x: 0, y: 370 },
-  "qf-6": { x: 0, y: 420 },
-  "qf-7": { x: 0, y: 520 },
-  "qf-8": { x: 0, y: 570 },
-  "sf-1": { x: 260, y: 45 },
-  "sf-2": { x: 260, y: 195 },
-  "sf-3": { x: 260, y: 395 },
-  "sf-4": { x: 260, y: 545 },
-  "final-1": { x: 520, y: 120 },
-  "final-2": { x: 520, y: 470 },
-  champion: { x: 780, y: 295 },
+  "qf-1": { x: 60, y: 120 },
+  "qf-2": { x: 60, y: 170 },
+  "qf-3": { x: 60, y: 270 },
+  "qf-4": { x: 60, y: 320 },
+  "qf-5": { x: 60, y: 470 },
+  "qf-6": { x: 60, y: 520 },
+  "qf-7": { x: 60, y: 620 },
+  "qf-8": { x: 60, y: 670 },
+  "sf-1": { x: 320, y: 145 },
+  "sf-2": { x: 320, y: 295 },
+  "sf-3": { x: 320, y: 495 },
+  "sf-4": { x: 320, y: 645 },
+  "final-1": { x: 580, y: 220 },
+  "final-2": { x: 580, y: 570 },
+  champion: { x: 840, y: 395 },
 };
 
 const edges = [
@@ -135,10 +135,17 @@ const BracketSlot: React.FC<{
           : () => slot && onClick && onClick(slot.id, slot.teamId)
       }
       className={cn(
-        "w-[180px] h-[40px] rounded-[6px] flex items-center px-3 gap-2 border transition-colors cursor-pointer relative overflow-hidden",
+        "w-[180px] h-[40px] rounded-[6px] flex items-center px-3 gap-2 border transition-colors relative overflow-hidden",
+        !readOnly ? "cursor-pointer" : "",
         team
-          ? "bg-zinc-800 border-white/20 hover:border-white/40 shadow-sm hover:bg-zinc-700/80"
-          : "bg-zinc-800/40 border-white/20 hover:border-white/40 border-dashed shadow-inner text-zinc-400",
+          ? cn(
+              "bg-zinc-800 border-white/20 shadow-sm",
+              !readOnly && "hover:border-white/40 hover:bg-zinc-700/80",
+            )
+          : cn(
+              "bg-zinc-800/40 border-white/20 border-dashed shadow-inner text-zinc-400",
+              !readOnly && "hover:border-white/40",
+            ),
         readOnly && !team && "opacity-60 cursor-default",
         slot?.resultStatus === "correct"
           ? "border-emerald-500/60 bg-emerald-500/15"
@@ -188,7 +195,9 @@ export const PlayoffsBracket: React.FC<{
   onDrop?: (e: React.DragEvent, slotId: string) => void;
   onClick?: (slotId: string, teamId: string | null) => void;
 }> = ({ slots, readOnly = false, showResults = false, onDrop, onClick }) => {
-  const [selectedMatch, setSelectedMatch] = React.useState<BracketMatch | null>(null);
+  const [selectedMatch, setSelectedMatch] = React.useState<BracketMatch | null>(
+    null,
+  );
 
   const getSlot = (id: string) => {
     let baseSlot = slots.find((s) => s.id === id || s.id === `playoffs-${id}`);
@@ -257,19 +266,20 @@ export const PlayoffsBracket: React.FC<{
   };
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center overflow-hidden z-10 relative">
+    <div className="w-full h-full overflow-hidden z-10 relative">
       <TransformWrapper
         initialScale={1}
-        minScale={0.4}
+        minScale={0.1}
         maxScale={2}
         centerOnInit={true}
-        wheel={{ step: 0.1 }}
+        limitToBounds={true}
+        wheel={{ step: 0.001 }}
         panning={{ velocityDisabled: false }}
       >
         <TransformComponent
           wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}
         >
-          <div className="w-[960px] h-[640px] relative pointer-events-none transition-transform flex-shrink-0">
+          <div className="w-[1100px] h-[800px] relative pointer-events-none flex-shrink-0">
             <svg
               className="absolute inset-0 w-full h-full z-0 pointer-events-none"
               style={{ left: 0, top: 0 }}
@@ -286,19 +296,27 @@ export const PlayoffsBracket: React.FC<{
               { type: "qf", matchIndex: 3, nodeTop: "qf-7", title: "1/4决赛" },
               { type: "sf", matchIndex: 0, nodeTop: "sf-1", title: "半决赛" },
               { type: "sf", matchIndex: 1, nodeTop: "sf-3", title: "半决赛" },
-              { type: "final", matchIndex: 0, nodeTop: "final-1", title: "决 赛" },
+              {
+                type: "final",
+                matchIndex: 0,
+                nodeTop: "final-1",
+                title: "决 赛",
+              },
             ].map((header, i) => {
               const pos = nodes[header.nodeTop];
               if (!pos) return null;
 
-              const match: BracketMatch | undefined = MATCHES["playoffs"]?.[header.type]?.[header.matchIndex];
+              const match: BracketMatch | undefined =
+                MATCHES["playoffs"]?.[header.type]?.[header.matchIndex];
 
               return (
                 <div
                   key={`header-${i}`}
                   className="absolute text-[12px] text-zinc-200 bg-black/60 rounded-sm px-1 py-0.5 font-bold tracking-wider flex items-center justify-center pointer-events-auto cursor-pointer hover:bg-black/80 w-[180px] z-50 shadow-md transition-colors hover:text-white"
                   style={{ left: pos.x, top: pos.y - 24 }}
-                  onClick={() => { if (match) setSelectedMatch(match) }}
+                  onClick={() => {
+                    if (match) setSelectedMatch(match);
+                  }}
                   title="点击查看赛况"
                 >
                   {header.title}
@@ -308,7 +326,11 @@ export const PlayoffsBracket: React.FC<{
 
             {Object.entries(nodes).map(([id, pos]) => {
               const isCol1 = id.startsWith("qf-");
-              const emptyTitle = isCol1 ? "待定" : "作出您的选择";
+              const emptyTitle = readOnly
+                ? "待定"
+                : isCol1
+                  ? "待定"
+                  : "作出您的选择";
 
               return (
                 <div
@@ -337,7 +359,10 @@ export const PlayoffsBracket: React.FC<{
         </TransformComponent>
       </TransformWrapper>
 
-      <MatchDialog match={selectedMatch} onClose={() => setSelectedMatch(null)} />
+      <MatchDialog
+        match={selectedMatch}
+        onClose={() => setSelectedMatch(null)}
+      />
     </div>
   );
 };

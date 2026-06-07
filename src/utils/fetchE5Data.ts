@@ -82,7 +82,10 @@ function getTeamId(t1: any): string | undefined {
   return undefined;
 }
 
-function parseSwissGraph(stageData: any, matchesMap: Record<string, { plan_ts?: string, star?: number }> = {}) {
+function parseSwissGraph(
+  stageData: any,
+  matchesMap: Record<string, { plan_ts?: string; star?: number }> = {},
+) {
   let graphData: any = {};
   try {
     graphData = JSON.parse(stageData.groups[0].graph);
@@ -134,26 +137,35 @@ function parseSwissGraph(stageData: any, matchesMap: Record<string, { plan_ts?: 
         const format =
           m.format === "3" ? "bo3" : m.format === "5" ? "bo5" : "bo1";
         const externalId = m.absId || m.id || m.matchId || m.match_id;
-        
-        let matchTime = m.time || m.start_time || m.startTime || m.scheduledTime;
+
+        let matchTime =
+          m.time || m.start_time || m.startTime || m.scheduledTime;
         let star = 0;
-        
+
+        let tags;
         if (externalId && matchesMap[externalId]) {
-           if (matchesMap[externalId].plan_ts) {
-               matchTime = matchesMap[externalId].plan_ts;
-           }
-           star = matchesMap[externalId].star || 0;
+          if (matchesMap[externalId].plan_ts) {
+            matchTime = matchesMap[externalId].plan_ts;
+          }
+          star = matchesMap[externalId].star || 0;
+          if ((matchesMap[externalId] as any).tags) {
+            tags = (matchesMap[externalId] as any).tags;
+          }
         }
 
-        const matchObj: any = { 
-          externalId, 
-          team1Id: t1Id, 
-          team2Id: t2Id, 
-          format, 
+        const matchObj: any = {
+          externalId,
+          team1Id: t1Id,
+          team2Id: t2Id,
+          format,
           status: m.status,
           time: matchTime,
-          star: star
+          star: star,
         };
+
+        if (tags) {
+          matchObj.tags = tags;
+        }
 
         if (m.status === "past" || m.status === "live") {
           if (format === "bo1") {
@@ -230,25 +242,54 @@ export async function fetchAndPatchCSGOData() {
 
     const fetchEventMatches = async (id: string) => {
       try {
-        const res = await fetch(`https://esports-data.5eplaycdn.com/v1/api/csgo/tournaments/${id}/matches`);
+        const res = await fetch(
+          `https://esports-data.5eplaycdn.com/v1/api/csgo/tournaments/${id}/matches`,
+        );
         const json = await res.json();
-        const map: Record<string, { plan_ts?: string, star?: number }> = {};
+        const map: Record<
+          string,
+          { plan_ts?: string; star?: number; tags?: string }
+        > = {};
         if (json?.data?.matches) {
-            json.data.matches.forEach((m: any) => {
-                const matchId = m.mc_info ? m.mc_info.id : m.id;
-                const matchPlanTs = m.mc_info ? m.mc_info.plan_ts : m.plan_ts;
-                const matchStar = m.mc_info ? m.mc_info.star : m.star;
-                
-                if (matchId) {
-                    const val = {
-                        plan_ts: matchPlanTs,
-                        star: parseInt(matchStar || '0', 10)
-                    };
-                    map[matchId] = val;
-                    map[matchId.replace('csgo_mc_', '')] = val;
-                }
-            });
+          json.data.matches.forEach((m: any) => {
+            const matchId = m.mc_info ? m.mc_info.id : m.id;
+            const matchPlanTs = m.mc_info ? m.mc_info.plan_ts : m.plan_ts;
+            const matchStar = m.mc_info ? m.mc_info.star : m.star;
+
+            if (matchId) {
+              const val: any = {
+                plan_ts: matchPlanTs,
+                star: parseInt(matchStar || "0", 10),
+              };
+              if (m.tags) val.tags = m.tags;
+              else if (m.mc_info && m.mc_info.tags) val.tags = m.mc_info.tags;
+
+              map[matchId] = val;
+              map[matchId.replace("csgo_mc_", "")] = val;
+            }
+          });
         }
+
+        try {
+          const resExtra = await fetch(
+            `https://esports-data.5eplaycdn.com/v1/api/csgo/matches?tt_ids=${id}&limit=100&page=1`,
+          );
+          const jsonExtra = await resExtra.json();
+          if (jsonExtra?.data?.matches) {
+            jsonExtra.data.matches.forEach((m: any) => {
+              const matchId = m.mc_info ? m.mc_info.id : m.id;
+              const tags = m.mc_info ? m.mc_info.tags : m.tags;
+              if (matchId && tags) {
+                if (map[matchId]) map[matchId].tags = tags;
+                if (map[matchId.replace("csgo_mc_", "")])
+                  map[matchId.replace("csgo_mc_", "")].tags = tags;
+              }
+            });
+          }
+        } catch (e) {
+          console.error("Failed fetching extra matches for tags", e);
+        }
+
         return map;
       } catch (e) {
         return {};
@@ -304,12 +345,14 @@ export async function fetchAndPatchCSGOData() {
                 const t2Id = getTeamId(m.t2);
 
                 const externalId = m.absId || m.id || m.matchId;
-                let matchTime = m.time || m.start_time || m.startTime || m.scheduledTime;
+                let matchTime =
+                  m.time || m.start_time || m.startTime || m.scheduledTime;
                 let star = 0;
-                
+
                 if (externalId && m8301[externalId]) {
-                   if (m8301[externalId].plan_ts) matchTime = m8301[externalId].plan_ts;
-                   star = m8301[externalId].star || 0;
+                  if (m8301[externalId].plan_ts)
+                    matchTime = m8301[externalId].plan_ts;
+                  star = m8301[externalId].star || 0;
                 }
 
                 const matchObj: any = {
@@ -319,8 +362,15 @@ export async function fetchAndPatchCSGOData() {
                   format: "bo3",
                   status: m.status,
                   time: matchTime,
-                  star: star
+                  star: star,
                 };
+                if (
+                  externalId &&
+                  m8301[externalId] &&
+                  (m8301[externalId] as any).tags
+                ) {
+                  matchObj.tags = (m8301[externalId] as any).tags;
+                }
                 if (m.status === "past") {
                   matchObj.score1 = parseInt(m.t1Score, 10) || 0;
                   matchObj.score2 = parseInt(m.t2Score, 10) || 0;
@@ -328,7 +378,7 @@ export async function fetchAndPatchCSGOData() {
                   matchObj.score1 = 0;
                   matchObj.score2 = 0;
                 }
-                
+
                 const maps = [];
                 if (m.t1?.bo1Score || m.t2?.bo1Score)
                   maps.push({
@@ -356,7 +406,7 @@ export async function fetchAndPatchCSGOData() {
                     score2: parseInt(m.t2?.bo5Score, 10) || 0,
                   });
                 if (maps.length > 0) matchObj.maps = maps;
-                
+
                 playoffs[roundDesc[idx]].push(matchObj);
               });
             });

@@ -264,7 +264,9 @@ export const EditView: React.FC<EditViewProps> = ({
               <div className="flex-1 w-full min-h-[60vh] h-full relative">
                 <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-black/40 backdrop-blur border border-white/5 px-3 py-1.5 rounded-[4px]">
                   <Clock className="w-4 h-4 opacity-70 text-zinc-300" />
-                  <span className="text-[12px] font-bold text-zinc-300">{getStageStatus(activeStage)}</span>
+                  <span className="text-[12px] font-bold text-zinc-300">
+                    {getStageStatus(activeStage)}
+                  </span>
                 </div>
                 <div className="absolute top-4 right-4 z-20">
                   <button
