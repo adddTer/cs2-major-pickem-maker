@@ -797,7 +797,7 @@ export default function App() {
                 />
               </div>
             ) : (
-              <SwissBracket activeStage={activeStage} refreshTrigger={refreshTrigger} />
+              <SwissBracket activeStage={activeStage} />
             )}
           </div>
         </div>

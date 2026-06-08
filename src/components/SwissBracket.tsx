@@ -296,10 +296,8 @@ const AbsoluteBox = ({
 
 export const SwissBracket = ({
   activeStage,
-  refreshTrigger,
 }: {
   activeStage: string;
-  refreshTrigger: number;
 }) => {
   const [selectedMatch, setSelectedMatch] = useState<BracketMatch | null>(null);
   const [simulationMode, setSimulationMode] = useState(false);
@@ -490,14 +488,14 @@ export const SwissBracket = ({
     });
 
     return map;
-  }, [simulationMode, activeStage, predictions, refreshTrigger]);
+  }, [simulationMode, activeStage, predictions]);
 
   React.useEffect(() => {
     if (selectedMatch) {
       // Find the updated match object in matchesMap
       let updatedMatch = null;
-      for (const group of Object.values(matchesMap)) {
-        const found = group.find((m) => 
+      for (const group of Object.values(matchesMap) as BracketMatch[][]) {
+        const found = group.find((m: BracketMatch) => 
           (m.externalId && m.externalId === selectedMatch.externalId) || 
           (m.team1Id === selectedMatch.team1Id && m.team2Id === selectedMatch.team2Id)
         );

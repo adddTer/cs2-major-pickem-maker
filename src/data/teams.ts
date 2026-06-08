@@ -35,7 +35,7 @@ export const TEAMS: Team[] = [
   { id: 'mibr', name: 'MIBR', shortName: 'MIBR', color: '#0000ff', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/m_JQ624LNFHWiUY-25uuaE.png?ixlib=java-2.1.0&w=50&s=80a1e479dd1b15b974d3e2d5588763af', startStage: 1 },
   { id: 'liquid', name: 'Team Liquid', shortName: 'TL', color: '#0f1d2c', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/JMeLLbWKCIEJrmfPaqOz4O.svg?ixlib=java-2.1.0&s=c02caf90234d3a3ebac074c84ba1ea62', startStage: 1 },
   { id: 'tyloo', name: 'TYLOO', shortName: 'TYL', color: '#ff0000', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/hMPKtNMDxp07n3lrBEHCuq.svg?ixlib=java-2.1.0&s=6d22fc4af07d0cd9d31fcd7f3023af9a', startStage: 1 },
-  { id: 'lynn', name: 'Lynn Vision Gaming (LVG)', shortName: 'LVG', color: '#aaaaaa', textColor: '#000000', logo: 'https://img-cdn.hltv.org/teamlogo/DPcHT21uWwK1hDD_3txlL9.png?ixlib=java-2.1.0&w=50&s=4b5d5a187f00caf9bbae2d0fcbca6ff6', startStage: 1 },
+  { id: 'lynn', name: 'Lynn Vision Gaming', shortName: 'LVG', color: '#aaaaaa', textColor: '#000000', logo: 'https://img-cdn.hltv.org/teamlogo/DPcHT21uWwK1hDD_3txlL9.png?ixlib=java-2.1.0&w=50&s=4b5d5a187f00caf9bbae2d0fcbca6ff6', startStage: 1 },
   { id: 'thunder', name: 'THUNDER dOWNUNDER', shortName: 'TDU', color: '#ff00ff', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/bSRhbVtvK3S64DVmh5XIgi.png?ixlib=java-2.1.0&w=50&s=83a402b5b6e8c40009d10e796645e479', startStage: 1 },
   { id: 'flyquest', name: 'FlyQuest', shortName: 'FLY', color: '#00cc00', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/fmqTgF6Ziw0uied7MO3_ri.png?ixlib=java-2.1.0&w=50&s=255b5a4c460ad03161509ff7eb77b2dc', startStage: 1 },
   

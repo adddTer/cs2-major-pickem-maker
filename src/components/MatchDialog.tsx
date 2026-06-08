@@ -6,6 +6,7 @@ import { TEAMS } from "../data/teams";
 import { TeamLogo } from "./TeamLogo";
 import { RefreshCw } from "lucide-react";
 import { MatchAnalytics } from "./MatchAnalytics";
+import { MatchStats } from "./MatchStats";
 
 interface MapVetoDisplayProps {
   externalId?: string;
@@ -287,7 +288,11 @@ export const MatchDialog: React.FC<{
   };
 
   useEffect(() => {
-    fetchLiveStreams();
+    if (match) {
+      setMatchData(null);
+      setAnalysisData(null);
+      fetchLiveStreams();
+    }
   }, [match]);
 
   const handleRefresh = async () => {
@@ -532,6 +537,7 @@ export const MatchDialog: React.FC<{
                   maps={match.maps}
                   matchData={matchData}
                 />
+                <MatchStats matchData={matchData} t1={t1 || { name: t1NameStr }} t2={t2 || { name: t2NameStr }} />
                 <MatchAnalytics
                   matchData={matchData}
                   analysisData={analysisData}
