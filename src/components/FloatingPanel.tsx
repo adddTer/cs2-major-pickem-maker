@@ -40,7 +40,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
         !isExpanded &&
           (!mobilePosition || mobilePosition === "bottom-full") &&
           "left-0 right-0 w-full rounded-t-2xl",
-        isExpanded && "left-0 right-0 w-full h-[100vh] z-[200] rounded-none",
+        isExpanded && "inset-0 w-full h-[100dvh] z-[200] rounded-none",
         !isExpanded && "h-[48px] z-[100] border-t top-auto",
 
         // Desktop positioning

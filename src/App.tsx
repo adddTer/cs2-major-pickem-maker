@@ -12,6 +12,7 @@ import { cn } from "./lib/utils";
 import { TopNav } from "./components/TopNav";
 import { HomeView } from "./views/HomeView";
 import { SummaryView } from "./views/SummaryView";
+import { MajorsHistoryView } from "./views/MajorsHistoryView";
 import { ImageExportModal } from "./components/ImageExportModal";
 import { TextExportModal } from "./components/TextExportModal";
 import { DialogManager, dialog } from "./components/DialogManager";
@@ -68,7 +69,7 @@ export default function App() {
     return () => window.removeEventListener("force-refresh-matches", handler);
   }, [handleRefreshMatchData]);
 
-  type MainViewMode = "bracket" | "summary";
+  type MainViewMode = "bracket" | "summary" | "history";
   type PanelViewMode = "home" | "edit";
 
   const [mainView, setMainView] = useState<MainViewMode>("bracket");
@@ -77,9 +78,9 @@ export default function App() {
   const [lastAutoSwitchView, setLastAutoSwitchView] =
     useState<PanelViewMode | null>(null);
 
-  const setViewMode = useCallback((mode: "home" | "edit" | "summary") => {
-    if (mode === "summary") {
-      setMainView("summary");
+  const setViewMode = useCallback((mode: "home" | "edit" | "summary" | "history") => {
+    if (mode === "summary" || mode === "history") {
+      setMainView(mode);
     } else {
       setMainView("bracket");
       setPanelView(mode);
@@ -741,7 +742,7 @@ export default function App() {
         <div
           className={cn(
             "w-full flex-1 max-w-full relative z-10 flex flex-col pt-0 overflow-hidden",
-            mainView === "summary" ? "hidden" : "",
+            (mainView === "summary" || mainView === "history") ? "hidden" : "",
           )}
         >
           <div className="flex border-b border-white/5 items-center justify-center gap-2 pb-2 shrink-0 z-10 w-full bg-[#070b09]/80 backdrop-blur sticky top-0 mt-0">
@@ -823,6 +824,12 @@ export default function App() {
               isRefreshing={isRefreshingData}
               setViewMode={setViewMode}
             />
+          </div>
+        )}
+
+        {mainView === "history" && (
+          <div className="w-full flex-1 relative z-10 flex flex-col p-4 overflow-hidden">
+            <MajorsHistoryView />
           </div>
         )}
 

@@ -1,10 +1,10 @@
 import React from "react";
-import { ListTree, Users, RefreshCw } from "lucide-react";
+import { ListTree, Users, RefreshCw, Trophy } from "lucide-react";
 import { cn } from "../lib/utils";
 
 interface TopNavProps {
-  mainView: "bracket" | "summary";
-  setMainView: (mode: "bracket" | "summary") => void;
+  mainView: "bracket" | "summary" | "history";
+  setMainView: (mode: "bracket" | "summary" | "history") => void;
   handleRefresh: () => void;
   isRefreshing: boolean;
 }
@@ -67,6 +67,18 @@ export const TopNav: React.FC<TopNavProps> = ({
         >
           <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
           <span>社区汇总</span>
+        </div>
+        <div
+          onClick={() => setMainView("history")}
+          className={cn(
+            "px-3 sm:px-5 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-sm cursor-pointer transition-colors flex items-center gap-1.5 sm:gap-2",
+            mainView === "history"
+              ? "bg-zinc-800 text-white shadow-sm"
+              : "text-zinc-500 hover:text-zinc-300",
+          )}
+        >
+          <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+          <span>Major</span>
         </div>
         <div
           onClick={handleRefresh}

@@ -39,8 +39,48 @@ export const TEAMS: Team[] = [
   { id: 'thunder', name: 'THUNDER dOWNUNDER', shortName: 'TDU', color: '#ff00ff', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/bSRhbVtvK3S64DVmh5XIgi.png?ixlib=java-2.1.0&w=50&s=83a402b5b6e8c40009d10e796645e479', startStage: 1 },
   { id: 'flyquest', name: 'FlyQuest', shortName: 'FLY', color: '#00cc00', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/fmqTgF6Ziw0uied7MO3_ri.png?ixlib=java-2.1.0&w=50&s=255b5a4c460ad03161509ff7eb77b2dc', startStage: 1 },
   
+  // Extra Historic Teams
+  { id: 'faze', name: 'FaZe', shortName: 'FaZe', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/Ci5ue0CdOwnUeY9RgMt7Km.png?ixlib=java-2.1.0&w=50&s=e38848db8d51b36086f19a3cbca6c308', startStage: 0 },
+  { id: 'virtuspro', name: 'Virtus.pro', shortName: 'VP', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/yZ6Bpuui1rW3jocXQ68XgZ.svg?ixlib=java-2.1.0&s=f39be1d3e7baf30a4e7f0b1216720875', startStage: 0 },
+  { id: 'fnatic', name: 'fnatic', shortName: 'FNC', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/dLtWEdSV58lIX1amAFggy0.svg?ixlib=java-2.1.0&s=f24d0a7b3ef24ed57184a51d35202b4e', startStage: 0 },
+  { id: 'nip', name: 'Ninjas in Pyjamas', shortName: 'NiP', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/BSmtTpoXWe5bkSQ1Xk9bBQ.svg?ixlib=java-2.1.0&s=a0edf9bc3edb8680461c858fa21fe7fe', startStage: 0 },
+  { id: 'ence', name: 'ENCE', shortName: 'ENCE', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/-X8NoyWC_1gYqUHvZqcpkc.svg?ixlib=java-2.1.0&s=85bb9daa6f846fa097c5942f2565fdb8', startStage: 0 },
+  { id: 'cloud9', name: 'Cloud9', shortName: 'C9', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/bEgST6XoNV4ZdenRKzCQyl.svg?ixlib=java-2.1.0&s=bd9b10a8dfe7b3640103745687389e3c', startStage: 0 },
+  { id: 'complexity', name: 'compLexity Gaming', shortName: 'coL', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/0-i_bEjrf3v4eYqaG0Bix7.svg?ixlib=java-2.1.0&s=4eecbec277f018772a9b92c22da1a459', startStage: 0 },
+  { id: 'outsiders', name: 'Outsiders', shortName: 'OUT', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/K15IzjKuVPxnoWr3J3-tJ7.png?ixlib=java-2.1.0&w=50&s=d87bd1cf1f3835f152b363eecd95e3fe', startStage: 0 },
+  { id: 'avangar', name: 'AVANGAR', shortName: 'AVANGAR', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/8e89ldxOWak25k-LB7oYH3.svg?ixlib=java-2.1.0&s=790dbc237699c461a1b6b3c837aa7e1d', startStage: 0 },
+  { id: 'immortals', name: 'Immortals', shortName: 'IMT', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/u-cFwmfjahGRj6GNcpPR5u.svg?ixlib=java-2.1.0&s=b4015788e62cb071f58e574e3d58ebe1', startStage: 0 },
+  { id: 'gambit', name: 'Gambit', shortName: 'GB', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/qMND-GUX-E-Xc-hBQs1AZZ.svg?ixlib=java-2.1.0&s=6787eb2e88b321814f7c2cbaff8a2138', startStage: 0 },
+  { id: 'envyus', name: 'EnVyUs', shortName: 'nV', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/QCiBDngzUGklkmTWjOLJc0.svg?ixlib=java-2.1.0&s=e2902a70f02f0eb0c8ec49d1f7514c19', startStage: 0 },
+  { id: 'ldlc', name: 'LDLC', shortName: 'LDLC', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/QCiBDngzUGklkmTWjOLJc0.svg?ixlib=java-2.1.0&s=e2902a70f02f0eb0c8ec49d1f7514c19', startStage: 0 },
+  { id: 'dignitas', name: 'Dignitas', shortName: 'DIG', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/MNnqkBZ0sI7QjUf2dXAtnN.svg?ixlib=java-2.1.0&s=2d927191151c15d9c174a536b471fdd6', startStage: 0 },
+  { id: 'hellraisers', name: 'HellRaisers', shortName: 'HR', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/KIzoa683-B4-yyfvpPYJKu.svg?ixlib=java-2.1.0&s=196d6e449406355a3665cdfdc6e15b41', startStage: 0 },
+  { id: 'skgaming', name: 'SK Gaming', shortName: 'SK', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/BwZh5NvZ8Do1lX6ejFB08_.svg?invert=true&ixlib=java-2.1.0&sat=-100&s=274e92f39370f439958cf2ceae267eca', startStage: 0 },
+  { id: 'luminosity', name: 'Luminosity', shortName: 'LG', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/KIzoa683-B4-yyfvpPYJKu.svg?ixlib=java-2.1.0&s=196d6e449406355a3665cdfdc6e15b41', startStage: 0 },
+  { id: 'north', name: 'North', shortName: 'North', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/YAkfXXu_VhFVsOoATpff0A.svg?ixlib=java-2.1.0&s=5803a5e72e30b6ab7a46588ea6d17778', startStage: 0 },
+  { id: 'verygames', name: 'VeryGames', shortName: 'VG', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/QCiBDngzUGklkmTWjOLJc0.svg?ixlib=java-2.1.0&s=e2902a70f02f0eb0c8ec49d1f7514c19', startStage: 0 },
+  { id: 'lgb', name: 'LGB', shortName: 'LGB', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/qMND-GUX-E-Xc-hBQs1AZZ.svg?ixlib=java-2.1.0&s=6787eb2e88b321814f7c2cbaff8a2138', startStage: 0 },
+  { id: 'cphwolves', name: 'CPH Wolves', shortName: 'CPH', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/YAkfXXu_VhFVsOoATpff0A.svg?ixlib=java-2.1.0&s=5803a5e72e30b6ab7a46588ea6d17778', startStage: 0 },
+  { id: 'astanadragons', name: 'Astana Dragons', shortName: 'AD', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/Wy3oFp867BXd_r4G-A81gB.png?ixlib=java-2.1.0&w=50&s=d5832b9dea274c32add50a3b8230187a', startStage: 0 },
+  { id: 'ibuypower', name: 'iBUYPOWER', shortName: 'iBP', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/KIzoa683-B4-yyfvpPYJKu.svg?ixlib=java-2.1.0&s=196d6e449406355a3665cdfdc6e15b41', startStage: 0 },
+  { id: 'reason', name: 'Reason Gaming', shortName: 'RSN', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/MNnqkBZ0sI7QjUf2dXAtnN.svg?ixlib=java-2.1.0&s=2d927191151c15d9c174a536b471fdd6', startStage: 0 },
+  { id: 'apeks', name: 'Apeks', shortName: 'Apeks', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/IBGw2qcLFA7xL1Ju9HwJpe.png?ixlib=java-2.1.0&w=100&s=3e236a12c7f5d2e843553c284b5f275d', startStage: 0 },
+  { id: 'eternalfire', name: 'Eternal Fire', shortName: 'EF', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/Tafdq71X3B_-73b73bAixr.png?ixlib=java-2.1.0&w=50&s=f1505e0f7e03bed0d0d2b4c809768198', startStage: 0 },
+  { id: 'penta', name: 'PENTA', shortName: 'PENTA', color: '#2a2a2a', textColor: '#ffffff', logo: 'https://www.hltv.org/dynamic-svg/teamplaceholder?letter=P', startStage: 0 },
+  { id: 'epsilon', name: 'Epsilon', shortName: 'EPS', color: '#5b8aab', textColor: '#ffffff', logo: 'https://www.hltv.org/dynamic-svg/teamplaceholder?letter=E', startStage: 0 },
+  { id: 'flipsid3', name: 'FlipSid3 Tactics', shortName: 'F3', color: '#00cc00', textColor: '#ffffff', logo: 'https://www.hltv.org/dynamic-svg/teamplaceholder?letter=F', startStage: 0 },
+  { id: 'tsm', name: 'TSM', shortName: 'TSM', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://www.hltv.org/dynamic-svg/teamplaceholder?letter=T', startStage: 0 },
+  { id: 'kinguin', name: 'Kinguin', shortName: 'Kinguin', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://www.hltv.org/dynamic-svg/teamplaceholder?letter=K', startStage: 0 },
+  { id: 'clg', name: 'Counter Logic Gaming', shortName: 'CLG', color: '#0055ff', textColor: '#ffffff', logo: 'https://www.hltv.org/dynamic-svg/teamplaceholder?letter=C', startStage: 0 },
+  { id: 'recursive', name: 'Recursive', shortName: 'REC', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://www.hltv.org/dynamic-svg/teamplaceholder?letter=R', startStage: 0 },
+  { id: 'intothebreach', name: 'Into The Breach', shortName: 'ITB', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://www.hltv.org/dynamic-svg/teamplaceholder?letter=I', startStage: 0 },
+  { id: 'cphflames', name: 'CPH Flames', shortName: 'CPHF', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/YAkfXXu_VhFVsOoATpff0A.svg?ixlib=java-2.1.0&s=5803a5e72e30b6ab7a46588ea6d17778', startStage: 0 },
+  { id: 'qbf', name: 'Quantum Bellator Fire', shortName: 'QBF', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/4Ug3V2qj6Nv_YXXPNGqLF3.svg?ixlib=java-2.1.0&s=681878e4a7f78c93233ed247202f9124', startStage: 0 },
+  { id: 'renegades', name: 'Renegades', shortName: 'RNG', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/KN-bogp5T6YcaAbR-8QuaG.svg?ixlib=java-2.1.0&s=30510c644332be4cf0b93e4df7e9afa5', startStage: 0 },
+  { id: 'keydstars', name: 'Keyd Stars', shortName: 'Keyd', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/m-SA9fWSyBqRgsrDCDXCId.png?ixlib=java-2.1.0&w=50&s=5e9b55327740978fb8f425c27d2ba70a', startStage: 0 },
+  
   // TBD Placeholder
-  { id: 'tbd', name: 'TBD', shortName: 'TBD', color: '#1e1e1e', textColor: '#888888', logo: '', startStage: 0 }
+  { id: 'tbd', name: '待定', shortName: 'TBD', color: '#1e1e1e', textColor: '#888888', logo: '', startStage: 0 }
 ];
 
 export const INITIAL_SLOTS: PickSlot[] = [
