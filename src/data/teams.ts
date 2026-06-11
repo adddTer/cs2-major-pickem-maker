@@ -1,6 +1,7 @@
 import { Team, PickSlot } from '../types';
+import { LOCAL_POINTS } from './localPoints';
 
-export const TEAMS: Team[] = [
+const INITIAL_TEAMS: Team[] = [
   // Stage 3 Teams
   { id: 'vitality', name: 'Team Vitality', shortName: 'VIT', color: '#f3e700', textColor: '#000000', logo: 'https://img-cdn.hltv.org/teamlogo/yeXBldn9w8LZCgdElAenPs.png?ixlib=java-2.1.0&w=50&s=15eaba0b75250065d20162d2cb05e3e6', startStage: 3 },
   { id: 'navi', name: 'Natus Vincere', shortName: 'NAVI', color: '#ffea00', textColor: '#000000', logo: 'https://img-cdn.hltv.org/teamlogo/9iMirAi7ArBLNU8p3kqUTZ.svg?ixlib=java-2.1.0&s=4dd8635be16122656093ae9884675d0c', startStage: 3 },
@@ -82,6 +83,21 @@ export const TEAMS: Team[] = [
   // TBD Placeholder
   { id: 'tbd', name: '待定', shortName: 'TBD', color: '#1e1e1e', textColor: '#888888', logo: '', startStage: 0 }
 ];
+
+export const TEAMS: Team[] = INITIAL_TEAMS.map(t => {
+  const local = LOCAL_POINTS[t.id];
+  if (local) {
+    return {
+      ...t,
+      valveRank: local.vRank,
+      valvePoints: local.vPoints,
+      hltvRank: local.hRank,
+      hltvPoints: local.hPoints,
+      strength: ((local.vPoints / 2) * 0.4) + (local.hPoints * 0.6)
+    };
+  }
+  return t;
+});
 
 export const INITIAL_SLOTS: PickSlot[] = [
   { id: '3-0-1', type: '3-0', teamId: null },

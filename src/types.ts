@@ -6,6 +6,12 @@ export interface Team {
   textColor: string;
   logo?: string;
   startStage?: number;
+  // Ranking fields
+  valveRank?: number;
+  valvePoints?: number;
+  hltvRank?: number;
+  hltvPoints?: number;
+  strength?: number;
   // Extended properties for Pre-match analysis
   worldRank?: number;
   recentForm?: ('W' | 'L' | 'D')[];

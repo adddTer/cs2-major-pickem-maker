@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { TEAMS } from "../data/teams";
 import { GLOBAL_SEEDING } from "../data/seedings";
+import { getLocalStrength, LOCAL_POINTS } from "../data/localPoints";
 import { MATCHES } from "../data/matches";
 import { BracketMatch } from "../types";
 import { cn } from "../lib/utils";
@@ -301,7 +302,7 @@ export const SwissBracket = ({
 }) => {
   const [selectedMatch, setSelectedMatch] = useState<BracketMatch | null>(null);
   const [simulationMode, setSimulationMode] = useState(false);
-  const [predictions, setPredictions] = useState<Record<string, 1 | 2 | 0>>({});
+  const [predictions, setPredictions] = useState<Record<string, any>>({});
 
   React.useEffect(() => {
     if (!simulationMode) setPredictions({});
@@ -318,23 +319,27 @@ export const SwissBracket = ({
     > = {};
     const r0 = origMap["0:0"] || [];
 
-    // Attempt to figure out initial seed based on 0:0
-    // In Swiss 0:0, it's typically Seed 1 vs 16, 2 vs 15... 8 vs 9.
-    r0.forEach((m, idx) => {
-      if (m.team1Id && m.team1Id !== "tbd")
-        teamsRecord[m.team1Id] = {
+    // Collect all unique teams from 0:0
+    const allTids = Array.from(new Set(
+      r0.flatMap((m: BracketMatch) => [m.team1Id, m.team2Id]).filter(Boolean)
+    )) as string[];
+
+    // Sort them by vRank / GLOBAL_SEEDING to determine initialSeed
+    allTids.sort((a, b) => {
+      const seedA = GLOBAL_SEEDING[a] || 99;
+      const seedB = GLOBAL_SEEDING[b] || 99;
+      return seedA - seedB;
+    });
+
+    allTids.forEach((tid, idx) => {
+      if (tid !== "tbd") {
+        teamsRecord[tid] = {
           wins: 0,
           losses: 0,
           opponents: [],
-          initialSeed: idx + 1,
+          initialSeed: GLOBAL_SEEDING[tid] || (idx + 1),
         };
-      if (m.team2Id && m.team2Id !== "tbd")
-        teamsRecord[m.team2Id] = {
-          wins: 0,
-          losses: 0,
-          opponents: [],
-          initialSeed: 16 - idx,
-        };
+      }
     });
 
     const rounds = [
@@ -346,6 +351,8 @@ export const SwissBracket = ({
     ];
 
     rounds.forEach((groups, roundIndex) => {
+      const roundRecordUpdates: (() => void)[] = [];
+
       groups.forEach((group) => {
         map[group] = [];
         const [w, l] = group.split(":").map(Number);
@@ -375,7 +382,7 @@ export const SwissBracket = ({
           (t) => !matchedTeams.has(t),
         );
 
-        // Calculate Buchholz score
+        // Calculate Buchholz score (Match Difference ONLY)
         const getBuchholz = (tid: string) => {
           return teamsRecord[tid].opponents.reduce((sum, oppId) => {
             const opp = teamsRecord[oppId];
@@ -386,82 +393,94 @@ export const SwissBracket = ({
 
         // Rank remaining teams
         remainingTeams.sort((a, b) => {
-          // For Round 1 & 2 (roundIndex 0 and 1), use initial seed only
-          if (roundIndex >= 2) {
-            const bhA = getBuchholz(a);
-            const bhB = getBuchholz(b);
-            if (bhA !== bhB) return bhB - bhA; // Descending Buchholz
-          }
-          const seedA = GLOBAL_SEEDING[a] || teamsRecord[a].initialSeed || 99;
-          const seedB = GLOBAL_SEEDING[b] || teamsRecord[b].initialSeed || 99;
+          const bhA = getBuchholz(a);
+          const bhB = getBuchholz(b);
+          if (bhA !== bhB) return bhB - bhA; // Descending Buchholz
+          
+          const seedA = teamsRecord[a].initialSeed || 99;
+          const seedB = teamsRecord[b].initialSeed || 99;
           return seedA - seedB; // Ascending initial seed
         });
 
-        // Greedy pairing: Highest vs Lowest available unplayed
-        let pool = [...remainingTeams];
-        while (pool.length >= 2) {
-          const teamA = pool.shift()!;
-          let paired = false;
+        const pool = [...remainingTeams];
+        let pairings: [string, string][] | null = null;
 
-          // Search from bottom up for lowest ranked team that hasn't played teamA
-          for (let i = pool.length - 1; i >= 0; i--) {
-            const teamB = pool[i];
-            if (!teamsRecord[teamA].opponents.includes(teamB)) {
-              pool.splice(i, 1);
-              map[group].push({
-                team1Id: teamA,
-                team2Id: teamB,
-                format: w === 2 || l === 2 ? "bo3" : "bo1",
-              } as BracketMatch);
-              paired = true;
-              break;
+        if (w === 0 && l === 0) {
+          pairings = [];
+          const half = Math.floor(pool.length / 2);
+          for (let i = 0; i < half; i++) {
+            pairings.push([pool[i], pool[i + half]]);
+          }
+        } else {
+          function findValidPairing(teams: string[]): [string, string][] | null {
+            if (teams.length === 0) return [];
+            const t1 = teams[0];
+            for (let i = teams.length - 1; i >= 1; i--) {
+              const t2 = teams[i];
+              if (!teamsRecord[t1].opponents.includes(t2)) {
+                const rest = [...teams];
+                rest.splice(i, 1);
+                rest.splice(0, 1);
+                const sub = findValidPairing(rest);
+                if (sub !== null) {
+                  return [[t1, t2], ...sub];
+                }
+              }
+            }
+            return null;
+          }
+
+          pairings = findValidPairing([...pool]);
+          if (!pairings) {
+            pairings = [];
+            const temp = [...pool];
+            while (temp.length >= 2) {
+              pairings.push([temp.shift()!, temp.pop()!]);
             }
           }
-
-          // Fallback if everyone was played (very rare, just pair with lowest)
-          if (!paired && pool.length > 0) {
-            const teamB = pool.pop()!;
-            map[group].push({
-              team1Id: teamA,
-              team2Id: teamB,
-              format: w === 2 || l === 2 ? "bo3" : "bo1",
-            } as BracketMatch);
-          }
         }
+
+        pairings.forEach(([teamA, teamB]) => {
+          map[group].push({
+            team1Id: teamA,
+            team2Id: teamB,
+            format: activeStage === "stage3" ? "bo3" : (w === 2 || l === 2 ? "bo3" : "bo1"),
+          } as BracketMatch);
+        });
 
         map[group].forEach((m) => {
           if (!m.team1Id || !m.team2Id) return;
 
-          // Add to opponents here so subsequent rounds know
-          if (!teamsRecord[m.team1Id].opponents.includes(m.team2Id)) {
-            teamsRecord[m.team1Id].opponents.push(m.team2Id);
-          }
-          if (!teamsRecord[m.team2Id].opponents.includes(m.team1Id)) {
-            teamsRecord[m.team2Id].opponents.push(m.team1Id);
-          }
-
           const pKey = `${m.team1Id}-${m.team2Id}`;
           const pKeyRev = `${m.team2Id}-${m.team1Id}`;
-          const prediction =
-            predictions[pKey] ||
-            (predictions[pKeyRev] === 1
-              ? 2
-              : predictions[pKeyRev] === 2
-                ? 1
-                : 0);
+          let pVal = predictions[pKey];
+          if (!pVal && predictions[pKeyRev]) {
+            const reverse = predictions[pKeyRev];
+            if (reverse.winner !== 0) {
+              pVal = {
+                winner: reverse.winner === 1 ? 2 : 1,
+                score1: reverse.score2,
+                score2: reverse.score1,
+              };
+            }
+          }
 
-          if (prediction === 1) {
-            m.score1 = m.format === "bo3" ? 2 : 1;
-            m.score2 = 0;
+          if (pVal && pVal.winner === 1) {
+            m.score1 = pVal.score1;
+            m.score2 = pVal.score2;
             (m as any).isSimulated = true;
-            teamsRecord[m.team1Id].wins++;
-            teamsRecord[m.team2Id].losses++;
-          } else if (prediction === 2) {
-            m.score1 = 0;
-            m.score2 = m.format === "bo3" ? 2 : 1;
+            roundRecordUpdates.push(() => {
+              teamsRecord[m.team1Id].wins++;
+              teamsRecord[m.team2Id].losses++;
+            });
+          } else if (pVal && pVal.winner === 2) {
+            m.score1 = pVal.score1;
+            m.score2 = pVal.score2;
             (m as any).isSimulated = true;
-            teamsRecord[m.team1Id].losses++;
-            teamsRecord[m.team2Id].wins++;
+            roundRecordUpdates.push(() => {
+              teamsRecord[m.team1Id].losses++;
+              teamsRecord[m.team2Id].wins++;
+            });
           } else {
             const hasResult =
               m.score1 !== undefined &&
@@ -472,19 +491,34 @@ export const SwissBracket = ({
                 (m.format === "bo3" && m.score1 === 2) ||
                 (m.format === "bo1" && m.score1 === 1);
               if (t1Wins) {
-                teamsRecord[m.team1Id].wins++;
-                teamsRecord[m.team2Id].losses++;
+                roundRecordUpdates.push(() => {
+                  teamsRecord[m.team1Id].wins++;
+                  teamsRecord[m.team2Id].losses++;
+                });
               } else {
-                teamsRecord[m.team1Id].losses++;
-                teamsRecord[m.team2Id].wins++;
+                roundRecordUpdates.push(() => {
+                  teamsRecord[m.team1Id].losses++;
+                  teamsRecord[m.team2Id].wins++;
+                });
               }
             } else if (!simulationMode) {
               // If we are NOT simulating and no outcome yet, we still know they are opponents
               // But their wins/losses won't change
             }
           }
+
+          roundRecordUpdates.push(() => {
+            if (!teamsRecord[m.team1Id].opponents.includes(m.team2Id)) {
+              teamsRecord[m.team1Id].opponents.push(m.team2Id);
+            }
+            if (!teamsRecord[m.team2Id].opponents.includes(m.team1Id)) {
+              teamsRecord[m.team2Id].opponents.push(m.team1Id);
+            }
+          });
         });
       });
+
+      roundRecordUpdates.forEach(fn => fn());
     });
 
     return map;
@@ -511,10 +545,89 @@ export const SwissBracket = ({
   }, [matchesMap]);
 
   const handleSimulateWinner = (match: BracketMatch, winner: 1 | 2 | 0) => {
+    let score1 = 0;
+    let score2 = 0;
+    if (winner === 1) {
+      score1 = match.format === "bo3" ? 2 : (match.format === "bo5" ? 3 : 1);
+      score2 = 0;
+    } else if (winner === 2) {
+      score1 = 0;
+      score2 = match.format === "bo3" ? 2 : (match.format === "bo5" ? 3 : 1);
+    }
+    
     setPredictions((prev) => ({
       ...prev,
-      [`${match.team1Id}-${match.team2Id}`]: winner,
+      [`${match.team1Id}-${match.team2Id}`]: { winner, score1, score2 },
     }));
+  };
+
+  const handleAutoSimulateNextRound = () => {
+    const newPredictions = { ...predictions };
+    let advanced = false;
+
+    // Traverse current matches in matchesMap and predict unplayed matches
+    Object.values(matchesMap).forEach((group: unknown) => {
+      (group as BracketMatch[]).forEach((m) => {
+        if (m.team1Id && m.team2Id && m.team1Id !== "tbd" && m.team2Id !== "tbd") {
+          const pKey = `${m.team1Id}-${m.team2Id}`;
+          const pKeyRev = `${m.team2Id}-${m.team1Id}`;
+          // Check if no existing prediction and no actual score
+          if (
+            newPredictions[pKey] === undefined &&
+            newPredictions[pKeyRev] === undefined &&
+            m.score1 === undefined &&
+            m.score2 === undefined
+          ) {
+            const t1 = TEAMS.find(t => t.id === m.team1Id);
+            const t2 = TEAMS.find(t => t.id === m.team2Id);
+            const fallbackS1 = getLocalStrength(m.team1Id) || (2000 - (GLOBAL_SEEDING[m.team1Id] || 32) * 30);
+            const fallbackS2 = getLocalStrength(m.team2Id) || (2000 - (GLOBAL_SEEDING[m.team2Id] || 32) * 30);
+            const s1 = t1?.strength || fallbackS1;
+            const s2 = t2?.strength || fallbackS2;
+            
+            let score1 = 0;
+            let score2 = 0;
+
+            if (m.format === "bo3") {
+              const M = 1300;
+              const mapAdv = 150; // Elo advantage for map pick
+              
+              const pMap1 = 1 / (1 + Math.pow(10, (s2 - (s1 + mapAdv)) / M)); // T1 map pick
+              const pMap2 = 1 / (1 + Math.pow(10, ((s2 + mapAdv) - s1) / M)); // T2 map pick
+              const pMap3 = 1 / (1 + Math.pow(10, (s2 - s1) / M)); // Decider
+
+              const p2_0 = pMap1 * pMap2;
+              const p2_1 = pMap1 * (1 - pMap2) * pMap3 + (1 - pMap1) * pMap2 * pMap3;
+              const p1_2 = pMap1 * (1 - pMap2) * (1 - pMap3) + (1 - pMap1) * pMap2 * (1 - pMap3);
+              const p0_2 = (1 - pMap1) * (1 - pMap2);
+
+              const bestProb = Math.max(p2_0, p2_1, p1_2, p0_2);
+              if (bestProb === p2_0) { score1 = 2; score2 = 0; }
+              else if (bestProb === p2_1) { score1 = 2; score2 = 1; }
+              else if (bestProb === p1_2) { score1 = 1; score2 = 2; }
+              else { score1 = 0; score2 = 2; }
+            } else if (m.format === "bo5") {
+              const isClose = Math.abs(s1 - s2) < 200;
+              const p1Wins = s1 >= s2;
+              score1 = p1Wins ? 3 : (isClose ? 2 : 0);
+              score2 = !p1Wins ? 3 : (isClose ? 2 : 0);
+            } else {
+              const p1Wins = s1 >= s2;
+              score1 = p1Wins ? 1 : 0;
+              score2 = !p1Wins ? 1 : 0;
+            }
+
+            const winner = score1 > score2 ? 1 : 2;
+            newPredictions[pKey] = { winner, score1, score2 };
+            advanced = true;
+          }
+        }
+      });
+    });
+
+    if (advanced) {
+      setPredictions(newPredictions);
+    }
   };
 
   const pos = {
@@ -629,33 +742,43 @@ export const SwissBracket = ({
   return (
     <div className="w-full h-full flex flex-col overflow-hidden z-10 relative">
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
-        <button
-          onClick={() => {
-            if (isRoundIncomplete) return;
-            setSimulationMode(!simulationMode);
-          }}
-          disabled={isRoundIncomplete}
-          className={cn(
-            "px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2",
-            isRoundIncomplete
-              ? "opacity-50 cursor-not-allowed bg-black/50 text-zinc-600 border-white/5"
-              : simulationMode
-                ? "bg-blue-600/20 text-blue-400 border-blue-500/50"
-                : "bg-black/50 text-zinc-400 border-white/10 hover:bg-white/5",
+        <div className="flex gap-2 isolate">
+          <button
+            onClick={() => {
+              if (isRoundIncomplete) return;
+              setSimulationMode(!simulationMode);
+            }}
+            disabled={isRoundIncomplete}
+            className={cn(
+              "px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2",
+              isRoundIncomplete
+                ? "opacity-50 cursor-not-allowed bg-black/50 text-zinc-600 border-white/5"
+                : simulationMode
+                  ? "bg-blue-600/20 text-blue-400 border-blue-500/50"
+                  : "bg-black/50 text-zinc-400 border-white/10 hover:bg-white/5",
+            )}
+          >
+            {simulationMode ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                模拟模式已开启
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 rounded-full bg-zinc-600" />
+                开启预测模拟
+              </>
+            )}
+          </button>
+          {simulationMode && (
+             <button 
+               onClick={handleAutoSimulateNextRound}
+               className="px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2 bg-zinc-700/50 text-zinc-300 border-zinc-600/50 hover:bg-zinc-700/80"
+             >
+               推演下一轮
+             </button>
           )}
-        >
-          {simulationMode ? (
-            <>
-              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-              模拟模式已开启
-            </>
-          ) : (
-            <>
-              <span className="w-2 h-2 rounded-full bg-zinc-600" />
-              开启预测模拟
-            </>
-          )}
-        </button>
+        </div>
 
         {isRoundIncomplete ? (
           <div className="mt-2 text-[10px] text-rose-400/80 bg-rose-500/10 px-2 py-1 rounded w-max border border-rose-500/20">

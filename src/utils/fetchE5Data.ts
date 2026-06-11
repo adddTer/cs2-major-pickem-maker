@@ -1,6 +1,8 @@
 import { MATCHES, ACTUAL_RESULTS } from "../data/matches";
 import { PickSlot, Team } from "../types";
 import { TEAMS } from "../data/teams";
+import { GLOBAL_SEEDING } from "../data/seedings";
+import { LOCAL_POINTS } from "../data/localPoints";
 
 export const E5_TEAM_MAP: Record<string, string> = {
   // Stage 3
@@ -85,7 +87,8 @@ function getTeamId(t1: any): string | undefined {
 function parseSwissGraph(
   stageData: any,
   matchesMap: Record<string, { plan_ts?: string; star?: number }> = {},
-  oldMatchesMap: Record<string, any[]> = {}
+  oldMatchesMap: Record<string, any[]> = {},
+  isStage3: boolean = false
 ) {
   let graphData: any = {};
   try {
@@ -136,7 +139,7 @@ function parseSwissGraph(
         if ((!t1Id && !t2Id) || (t1Id === "tbd" && t2Id === "tbd")) return;
 
         const format =
-          m.format === "3" ? "bo3" : m.format === "5" ? "bo5" : "bo1";
+          isStage3 ? "bo3" : (m.format === "3" ? "bo3" : m.format === "5" ? "bo5" : "bo1");
         const externalId = m.absId || m.id || m.matchId || m.match_id;
 
         let matchTime =
@@ -197,8 +200,19 @@ function parseSwissGraph(
             }
             matchObj.maps = [{ score1: map1, score2: map2 }];
           } else {
-            matchObj.score1 = parseInt(m.t1Score, 10) || 0;
-            matchObj.score2 = parseInt(m.t2Score, 10) || 0;
+            let s1 = parseInt(m.t1Score, 10) || 0;
+            let s2 = parseInt(m.t2Score, 10) || 0;
+            if (s1 > 3 || s2 > 3) {
+              if (matchObj.status === "past") {
+                s1 = s1 > s2 ? 2 : 0;
+                s2 = s2 > s1 ? 2 : 0;
+              } else {
+                s1 = 0;
+                s2 = 0;
+              }
+            }
+            matchObj.score1 = s1;
+            matchObj.score2 = s2;
 
             const maps = [];
             if (m.t1?.bo1Score || m.t2?.bo1Score)
@@ -308,14 +322,63 @@ export async function fetchAndPatchCSGOData() {
       }
     };
 
-    const [r9028, r9029, r8301, m9028, m9029, m8301] = await Promise.all([
+    const fetchTeamRankings = async () => {
+      // Initialize with local data to ensure we have fallback
+      TEAMS.forEach(t => {
+        const local = LOCAL_POINTS[t.id];
+        if (local) {
+          t.valveRank = local.vRank;
+          t.valvePoints = local.vPoints;
+          t.hltvRank = local.hRank;
+          t.hltvPoints = local.hPoints;
+          t.strength = ((local.vPoints / 2) * 0.4) + (local.hPoints * 0.6);
+        } else {
+          t.valveRank = undefined;
+          t.valvePoints = undefined;
+          t.hltvRank = undefined;
+          t.hltvPoints = undefined;
+          t.strength = undefined;
+        }
+      });
+      console.log("Using local rankings data exclusively, skipping 5E Play ranking fetch as requested.");
+    };
+
+    // Pre-populate matches natively using TEAMS data so the UI doesn't crash if 5E Play fails
+    const initLocalStage = (stageStr: string, stageNum: number) => {
+      const stageTeams = TEAMS.filter((t) => t.startStage === stageNum).sort((a,b) => {
+        const aRank = LOCAL_POINTS[a.id]?.vRank || GLOBAL_SEEDING[a.id] || 99;
+        const bRank = LOCAL_POINTS[b.id]?.vRank || GLOBAL_SEEDING[b.id] || 99;
+        return aRank - bRank;
+      });
+      const pool = [...stageTeams.map(t => t.id)];
+      // Pad to 16 if necessary
+      while (pool.length < 16) pool.push("tbd");
+      
+      const m00: any[] = [];
+      const half = 8;
+      for (let i = 0; i < half; i++) {
+        m00.push({
+          team1Id: pool[i],
+          team2Id: pool[i + half],
+          format: "bo1", // Will be overridden in rendering for stage3
+          status: "upcoming"
+        });
+      }
+      MATCHES[stageStr] = { "0:0": m00 };
+    };
+    initLocalStage("stage1", 1);
+    initLocalStage("stage2", 2);
+    initLocalStage("stage3", 3);
+
+    const [r9028, r9029, r8301, m9028, m9029, m8301, _rankData] = await Promise.allSettled([
       fetchStage("csgo_tt_9028"),
       fetchStage("csgo_tt_9029"),
       fetchStage("csgo_tt_8301"),
       fetchEventMatches("csgo_tt_9028"),
       fetchEventMatches("csgo_tt_9029"),
       fetchEventMatches("csgo_tt_8301"),
-    ]);
+      fetchTeamRankings(),
+    ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null));
 
     if (r9028?.success && r9028.data?.[0]) {
       const s1 = parseSwissGraph(r9028.data[0], m9028, MATCHES.stage1);
@@ -329,8 +392,10 @@ export async function fetchAndPatchCSGOData() {
 
     if (r8301?.success) {
       if (r8301.data?.[0]) {
-        const s3 = parseSwissGraph(r8301.data[0], m8301, MATCHES.stage3);
-        if (s3) MATCHES.stage3 = s3;
+        const s3 = parseSwissGraph(r8301.data[0], m8301, MATCHES.stage3, true);
+        if (s3) {
+           MATCHES.stage3 = s3;
+        }
       }
 
       // Playoffs (sEB bracket in 8301)

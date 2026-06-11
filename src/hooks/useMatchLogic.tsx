@@ -1,5 +1,6 @@
 import { useMemo, useCallback, useState, useEffect } from "react";
 import { MATCHES, ACTUAL_RESULTS } from "../data/matches";
+import { TEAMS } from "../data/teams";
 import { PickSlot, SlotType } from "../types";
 
 export function useMatchLogic(
@@ -134,11 +135,20 @@ export function useMatchLogic(
             worker.terminate();
           }
         };
+        const teamStrengths: Record<string, number> = {};
+        TEAMS.forEach((t) => {
+          if (t.strength) {
+            teamStrengths[t.id] = t.strength;
+          }
+        });
+
         worker.postMessage({
           allTeams,
           pastMatches,
           scheduledMatches,
           numSimulations,
+          teamStrengths,
+          activeStage,
         });
       });
     },
@@ -363,9 +373,6 @@ export function useMatchLogic(
       const teamsWithRecords = Object.values(records).filter(
         (r) => r.w + r.l > 0,
       );
-      if (teamsWithRecords.length === 0) {
-        return null;
-      }
 
       const completedMatchesCount =
         Object.values(records).reduce((sum, r) => sum + r.w + r.l, 0) / 2;
@@ -682,6 +689,7 @@ export function useMatchLogic(
         possible,
         passingProbability,
         clashes,
+        completedMatchesCount,
       };
     },
     [getTeamRecords, getScheduledMatches, checkPrediction, simulatedFutures],

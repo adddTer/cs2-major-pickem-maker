@@ -45,15 +45,16 @@ export const TeamLogo = ({
 
   // Force proxy for export to bypass CORS restrictions in html-to-image
   const proxyUrl = `https://wsrv.nl/?url=${encodeURIComponent(team.logo)}`;
-  const imgSrc = useProxy || !!isExport ? proxyUrl : team.logo;
+  const forceProxy = useProxy || !!isExport;
+  const imgSrc = forceProxy ? proxyUrl : team.logo;
 
   return (
     <img
       src={imgSrc}
       alt={team.name}
-      crossOrigin="anonymous"
+      {...(forceProxy ? { crossOrigin: "anonymous" } : {})}
       referrerPolicy="no-referrer"
-      className="max-w-full max-h-full object-contain filter p-[2px]"
+      className={cn("max-w-full max-h-full object-contain filter", !forceProxy && "p-[2px]")}
       onError={() => {
         if (!useProxy) {
           setUseProxy(true);

@@ -13,6 +13,7 @@ import { TopNav } from "./components/TopNav";
 import { HomeView } from "./views/HomeView";
 import { SummaryView } from "./views/SummaryView";
 import { MajorsHistoryView } from "./views/MajorsHistoryView";
+import { RankingsView } from "./views/RankingsView";
 import { ImageExportModal } from "./components/ImageExportModal";
 import { TextExportModal } from "./components/TextExportModal";
 import { DialogManager, dialog } from "./components/DialogManager";
@@ -75,12 +76,11 @@ export default function App() {
   const [mainView, setMainView] = useState<MainViewMode>("bracket");
   const [panelView, setPanelView] = useState<PanelViewMode>("home");
 
-  const [lastAutoSwitchView, setLastAutoSwitchView] =
-    useState<PanelViewMode | null>(null);
+  const lastAutoSwitchRef = useRef<string | null>(null);
 
-  const setViewMode = useCallback((mode: "home" | "edit" | "summary" | "history") => {
-    if (mode === "summary" || mode === "history") {
-      setMainView(mode);
+  const setViewMode = useCallback((mode: "home" | "edit" | "summary" | "history" | "ranking") => {
+    if (mode === "summary" || mode === "history" || mode === "ranking") {
+      setMainView(mode as any);
     } else {
       setMainView("bracket");
       setPanelView(mode);
@@ -147,10 +147,10 @@ export default function App() {
         }
       }
       if (updatedMatch) {
-        setGlobalSelectedMatch({...updatedMatch}); // spread to ensure new reference for re-render
+        setGlobalSelectedMatch({...updatedMatch});
       }
     }
-  }, [refreshTrigger]);
+  }, [refreshTrigger, globalSelectedMatch]);
 
   const exportContainerRef = useRef<HTMLDivElement>(null);
 
@@ -164,6 +164,16 @@ export default function App() {
     checkPrediction,
     getSetStatus,
   } = useMatchLogic(activeStage, refreshTrigger, mainView);
+
+  const getRecommendedStage = useCallback(() => {
+    for (const stage of ["stage1", "stage2", "stage3"]) {
+      const actuals = getComputedActuals(stage) || [];
+      if (actuals.length < 16) {
+        return stage as StageKey;
+      }
+    }
+    return "playoffs" as StageKey;
+  }, [getComputedActuals]);
 
   useEffect(() => {
     let shouldCheckPrev = false;
@@ -227,7 +237,7 @@ export default function App() {
         } else {
           for (const bracket of Object.values(stageGroup)) {
             const bMatches = bracket as any[];
-            if (bMatches.some((m) => m.status === "live")) {
+            if (bMatches.some((m: any) => m.status === "live")) {
               hasLiveMatch = true;
               break;
             }
@@ -249,35 +259,25 @@ export default function App() {
     }, intervalDelay);
 
     return () => clearInterval(timerId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataLoaded, refreshTrigger, mainView, panelView, activeStage]);
 
-  const getRecommendedStage = useCallback(() => {
-    for (const stage of ["stage1", "stage2", "stage3"]) {
-      const actuals = getComputedActuals(stage) || [];
-      if (actuals.length < 16) {
-        return stage as StageKey;
-      }
-    }
-    return "playoffs" as StageKey;
-  }, [getComputedActuals]);
-
   useEffect(() => {
+    const currentViewKey = mainView === "summary" ? "summary" : (mainView === "history" ? "history" : (mainView === "ranking" ? "ranking" : panelView));
     if (
       dataLoaded &&
-      (panelView === "edit" || mainView === "summary") &&
-      lastAutoSwitchView !== panelView
+      (currentViewKey === "edit" || currentViewKey === "summary")
     ) {
-      setActiveStage(getRecommendedStage());
-      setLastAutoSwitchView(panelView);
-    } else if (panelView === "home") {
-      setLastAutoSwitchView(null);
+      if (lastAutoSwitchRef.current !== currentViewKey) {
+        setActiveStage(getRecommendedStage());
+        lastAutoSwitchRef.current = currentViewKey;
+      }
+    } else if (currentViewKey === "home") {
+      lastAutoSwitchRef.current = null;
     }
   }, [
     dataLoaded,
     panelView,
     mainView,
-    lastAutoSwitchView,
     getRecommendedStage,
   ]);
 
@@ -742,7 +742,7 @@ export default function App() {
         <div
           className={cn(
             "w-full flex-1 max-w-full relative z-10 flex flex-col pt-0 overflow-hidden",
-            (mainView === "summary" || mainView === "history") ? "hidden" : "",
+            (mainView === "summary" || mainView === "history" || mainView === "ranking") ? "hidden" : "",
           )}
         >
           <div className="flex border-b border-white/5 items-center justify-center gap-2 pb-2 shrink-0 z-10 w-full bg-[#070b09]/80 backdrop-blur sticky top-0 mt-0">
@@ -823,6 +823,15 @@ export default function App() {
               handleRefresh={handleRefreshMatchData}
               isRefreshing={isRefreshingData}
               setViewMode={setViewMode}
+            />
+          </div>
+        )}
+
+        {mainView === "ranking" && (
+          <div className="w-full h-full relative z-10 flex flex-col p-4 lg:p-8 overflow-hidden max-w-7xl mx-auto">
+            <RankingsView
+              activeStage={activeStage}
+              setActiveStage={setActiveStage}
             />
           </div>
         )}

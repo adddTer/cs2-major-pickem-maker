@@ -15,7 +15,7 @@ const findTeamByName = (name: string) => {
   );
 };
 
-const TeamDisplay = ({ name, isLarge = false }: { name: string; isLarge?: boolean }) => {
+const TeamDisplay: React.FC<{ name: string; isLarge?: boolean }> = ({ name, isLarge = false }) => {
   const team = useMemo(() => findTeamByName(name), [name]);
   
   return (

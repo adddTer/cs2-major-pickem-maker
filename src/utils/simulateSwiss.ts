@@ -1,4 +1,5 @@
 import { GLOBAL_SEEDING } from "../data/seedings";
+import { LOCAL_POINTS, getLocalStrength } from "../data/localPoints";
 
 export interface SwissSimulationResult {
   teams30: Set<string>;
@@ -8,9 +9,11 @@ export interface SwissSimulationResult {
 
 export function simulateSwiss(
   allTeams: string[],
-  pastMatches: { t1: string; t2: string; winner: string }[],
+  pastMatches: { t1: string; t2: string; winner: string; w1?: number; w2?: number }[],
   scheduledMatches: { t1: string; t2: string }[],
   numSimulations: number = 200,
+  teamStrengths: Record<string, number> = {},
+  activeStage: string = "stage1"
 ): SwissSimulationResult[] {
   const initialRecords: Record<string, { w: number; l: number }> = {};
   const initialPlayed: Record<string, Set<string>> = {};
@@ -58,6 +61,55 @@ export function simulateSwiss(
       safetyCounter++;
       const active = getActiveTeams();
 
+      const roundWinnerUpdates: string[] = [];
+      const roundLoserUpdates: string[] = [];
+      const playedUpdates: [string, string][] = [];
+
+      const getFormat = (w: number, l: number) => {
+        if (activeStage === "stage3") return "bo3";
+        return w === 2 || l === 2 ? "bo3" : "bo1";
+      };
+
+      const getSingleMapProb = (s1: number, s2: number) => {
+        // Determine single map probability using an M value optimized for the given BCGame odds.
+        // M=1300 balances out the large strength difference bounds.
+        const M = 1300;
+        return 1 / (1 + Math.pow(10, (s2 - s1) / M));
+      };
+
+      const getWinner = (t1: string, t2: string, format: string) => {
+        const fallbackS1 = getLocalStrength(t1) || (2000 - (GLOBAL_SEEDING[t1] || 32) * 30);
+        const fallbackS2 = getLocalStrength(t2) || (2000 - (GLOBAL_SEEDING[t2] || 32) * 30);
+        const s1 = teamStrengths[t1] || fallbackS1;
+        const s2 = teamStrengths[t2] || fallbackS2;
+        
+        let w1 = 0;
+        let w2 = 0;
+
+        if (format === "bo3") {
+          const mapAdv = 150;
+          const pMap1 = getSingleMapProb(s1 + mapAdv, s2); // T1 pick
+          const pMap2 = getSingleMapProb(s1, s2 + mapAdv); // T2 pick
+          const pMap3 = getSingleMapProb(s1, s2);          // Decider
+
+          if (Math.random() < pMap1) w1++; else w2++;
+          if (Math.random() < pMap2) w1++; else w2++;
+          if (w1 === 1 && w2 === 1) {
+            if (Math.random() < pMap3) w1++; else w2++;
+          }
+        } else if (format === "bo5") {
+          const p1 = getSingleMapProb(s1, s2);
+          while (w1 < 3 && w2 < 3) {
+            if (Math.random() < p1) w1++; else w2++;
+          }
+        } else {
+          const p1 = getSingleMapProb(s1, s2);
+          if (Math.random() < p1) w1++; else w2++;
+        }
+        
+        return { winner: w1 > w2 ? t1 : t2, w1, w2 };
+      };
+
       // First resolve any scheduled matches that involve active teams in the same bracket tier
       const matched = new Set<string>();
 
@@ -74,12 +126,14 @@ export function simulateSwiss(
           if (r1.w === r2.w && r1.l === r2.l) {
             matched.add(m.t1);
             matched.add(m.t2);
-            const winner = Math.random() > 0.5 ? m.t1 : m.t2;
+            
+            const format = getFormat(r1.w, r1.l);
+            const { winner, w1, w2 } = getWinner(m.t1, m.t2, format);
             const loser = winner === m.t1 ? m.t2 : m.t1;
-            records[winner].w++;
-            records[loser].l++;
-            played[m.t1].add(m.t2);
-            played[m.t2].add(m.t1);
+            
+            roundWinnerUpdates.push(winner);
+            roundLoserUpdates.push(loser);
+            playedUpdates.push([m.t1, m.t2]);
           }
         }
       }
@@ -98,7 +152,7 @@ export function simulateSwiss(
       for (const key in groups) {
         const groupTeams = groups[key];
 
-        // Buchholz score calculation
+        // Buchholz score calculation (Match Difference ONLY)
         const getBuchholz = (t: string) => {
           let score = 0;
           for (const opp of played[t]) {
@@ -121,51 +175,68 @@ export function simulateSwiss(
           return getInitialSeed(a) - getInitialSeed(b); // Lower index is better seed
         });
 
-        while (groupTeams.length > 0) {
-          const t1 = groupTeams.shift()!;
-          if (matched.has(t1)) continue;
-
-          let matchIdx = -1;
-          // Match Highest vs Lowest: iterate from the end (lowest)
-          for (let j = groupTeams.length - 1; j >= 0; j--) {
-            const t2 = groupTeams[j];
-            if (!matched.has(t2) && !played[t1].has(t2)) {
-              matchIdx = j;
-              break;
+        // Filter out already matched
+        const pool = groupTeams.filter(t => !matched.has(t));
+        let pairings: [string, string][] | null = null;
+        
+        // Check if this is Round 1 (no matches played yet)
+        const sampleRecord = pool.length > 0 ? records[pool[0]] : { w: -1, l: -1 };
+        if (sampleRecord.w === 0 && sampleRecord.l === 0) {
+            pairings = [];
+            const half = Math.floor(pool.length / 2);
+            for (let i = 0; i < half; i++) {
+                pairings.push([pool[i], pool[i + half]]);
             }
-          }
-
-          // If couldn't find unplayed, pick the lowest unmatched
-          if (matchIdx === -1) {
-            for (let j = groupTeams.length - 1; j >= 0; j--) {
-              const t2 = groupTeams[j];
-              if (!matched.has(t2)) {
-                matchIdx = j;
-                break;
+        } else {
+            function findValidPairing(teams: string[]): [string, string][] | null {
+              if (teams.length === 0) return [];
+              const t1 = teams[0];
+              for (let i = teams.length - 1; i >= 1; i--) {
+                const t2 = teams[i];
+                if (!played[t1].has(t2)) {
+                  const rest = [...teams];
+                  rest.splice(i, 1);
+                  rest.splice(0, 1);
+                  const sub = findValidPairing(rest);
+                  if (sub !== null) {
+                    return [[t1, t2], ...sub];
+                  }
+                }
               }
+              return null;
             }
-          }
 
-          if (matchIdx !== -1) {
-            const bestMatch = groupTeams[matchIdx];
-            groupTeams.splice(matchIdx, 1); // remove from array
+            pairings = findValidPairing([...pool]);
+            if (!pairings) {
+              // Fallback greedy
+              pairings = [];
+              const temp = [...pool];
+              while (temp.length >= 2) {
+                pairings.push([temp.shift()!, temp.pop()!]);
+              }
+              if (temp.length > 0) matched.add(temp[0]); // Odd logic
+            }
+        }
 
+        for (const [t1, bestMatch] of pairings) {
             matched.add(t1);
             matched.add(bestMatch);
 
-            // Simulate match (50/50 probability)
-            const winner = Math.random() > 0.5 ? t1 : bestMatch;
+            const format = getFormat(records[t1].w, records[t1].l);
+            const { winner, w1, w2 } = getWinner(t1, bestMatch, format);
             const loser = winner === t1 ? bestMatch : t1;
 
-            records[winner].w++;
-            records[loser].l++;
-            played[t1].add(bestMatch);
-            played[bestMatch].add(t1);
-          } else {
-            matched.add(t1);
-            records[t1].w++; // pseudo win for the odd one
-          }
+            roundWinnerUpdates.push(winner);
+            roundLoserUpdates.push(loser);
+            playedUpdates.push([t1, bestMatch]);
         }
+      }
+
+      for (const w of roundWinnerUpdates) records[w].w++;
+      for (const l of roundLoserUpdates) records[l].l++;
+      for (const [t1, t2] of playedUpdates) {
+        played[t1].add(t2);
+        played[t2].add(t1);
       }
     }
 
