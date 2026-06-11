@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "../lib/utils";
+import { TeamLogo } from "./TeamLogo";
 
 interface MatchAnalyticsProps {
   matchData: any;
@@ -76,10 +77,12 @@ export const MatchAnalytics: React.FC<MatchAnalyticsProps> = ({
           </h4>
           <div className="bg-zinc-900/80 border border-white/5 rounded-xl p-4">
             <div className="flex items-center justify-center gap-3 mb-4 bg-zinc-950/40 py-2 rounded-lg border-t-2 border-emerald-500/50">
-              {t1?.logo ? (
-                <img src={t1.logo} className="w-6 h-6 object-contain" />
+              {t1 ? (
+                <div className="w-6 h-6 shrink-0 flex items-center justify-center">
+                  <TeamLogo team={t1 as any} fallbackClasses="text-[10px]" />
+                </div>
               ) : (
-                <span className="text-zinc-300 text-[11px] font-bold">{t1.name}</span>
+                <span className="text-zinc-300 text-[11px] font-bold">{t1?.name}</span>
               )}
               {analysisData?.comparison?.t1_stats && (
                 <div className="flex gap-3 text-[10px] font-mono tracking-tighter">
@@ -147,10 +150,12 @@ export const MatchAnalytics: React.FC<MatchAnalyticsProps> = ({
             </div>
 
             <div className="flex items-center justify-center gap-3 mt-4 bg-zinc-950/40 py-2 rounded-lg border-b-2 border-amber-500/50">
-              {t2?.logo ? (
-                <img src={t2.logo} className="w-6 h-6 object-contain" />
+              {t2 ? (
+                <div className="w-6 h-6 shrink-0 flex items-center justify-center">
+                  <TeamLogo team={t2 as any} fallbackClasses="text-[10px]" />
+                </div>
               ) : (
-                <span className="text-zinc-300 text-[11px] font-bold">{t2.name}</span>
+                <span className="text-zinc-300 text-[11px] font-bold">{t2?.name}</span>
               )}
               {analysisData?.comparison?.t2_stats && (
                 <div className="flex gap-3 text-[10px] font-mono tracking-tighter">
@@ -201,11 +206,10 @@ export const MatchAnalytics: React.FC<MatchAnalyticsProps> = ({
                               src={t1Player.half_portrait || t1Player.portrait}
                               className="w-full h-full object-cover mt-1"
                             />
-                          ) : t1?.logo ? (
-                            <img
-                              src={t1.logo}
-                              className="w-6 h-6 object-contain"
-                            />
+                          ) : t1 ? (
+                            <div className="w-6 h-6 shrink-0 flex items-center justify-center">
+                              <TeamLogo team={t1 as any} fallbackClasses="text-[10px]" />
+                            </div>
                           ) : null}
                         </div>
                       </div>
@@ -248,11 +252,10 @@ export const MatchAnalytics: React.FC<MatchAnalyticsProps> = ({
                               src={t2Player.half_portrait || t2Player.portrait}
                               className="w-full h-full object-cover mt-1"
                             />
-                          ) : t2?.logo ? (
-                            <img
-                              src={t2.logo}
-                              className="w-6 h-6 object-contain"
-                            />
+                          ) : t2 ? (
+                            <div className="w-6 h-6 shrink-0 flex items-center justify-center">
+                              <TeamLogo team={t2 as any} fallbackClasses="text-[10px]" />
+                            </div>
                           ) : null}
                         </div>
                       </div>

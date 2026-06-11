@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { cn } from "../lib/utils";
+import { TeamLogo } from "./TeamLogo";
 
 interface MatchStatsProps {
   matchData: any;
@@ -144,7 +145,11 @@ export const MatchStats: React.FC<MatchStatsProps> = ({ matchData, t1, t2 }) => 
         <div className="w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           <div className="w-full min-w-max">
             <div className={`flex items-center gap-3 mb-2 px-2 py-1.5 rounded-lg border-l-2 ${isT1 ? 'border-emerald-500 bg-emerald-500/5' : 'border-amber-500 bg-amber-500/5'}`}>
-              {team?.logo && <img src={team.logo} alt={team.name} className="w-5 h-5 object-contain" />}
+              {team && (
+                <div className="w-5 h-5 shrink-0 flex items-center justify-center">
+                  <TeamLogo team={team} fallbackClasses="text-[9px]" />
+                </div>
+              )}
               <span className="text-[13px] font-bold text-zinc-200">{team?.name || (isT1 ? "Team 1" : "Team 2")}</span>
             </div>
             <table className="w-full text-left text-[11px] whitespace-nowrap">

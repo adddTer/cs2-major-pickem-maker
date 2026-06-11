@@ -224,12 +224,10 @@ const MapVetoDisplay: React.FC<MapVetoDisplayProps & { matchData?: any }> = ({
                         : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
                   )}
                 >
-                  {activeTeam && activeTeam.logo && (
-                    <img
-                      src={activeTeam.logo}
-                      className="w-4 h-4 object-contain"
-                      alt={activeTeam.shortName || activeTeam.name}
-                    />
+                  {activeTeam && (
+                    <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                      <TeamLogo team={activeTeam as any} fallbackClasses="text-[8px]" />
+                    </div>
                   )}
                   <span className="text-[10px] font-bold tracking-widest leading-none pt-[1px]">
                     {getVetoLabel(type)}
