@@ -14,7 +14,7 @@ export interface Team {
   strength?: number;
   // Extended properties for Pre-match analysis
   worldRank?: number;
-  recentForm?: ('W' | 'L' | 'D')[];
+  recentForm?: ("W" | "L" | "D")[];
   mapWinrates?: Array<{
     mapName: string;
     winRate: number;
@@ -22,10 +22,17 @@ export interface Team {
   }>;
 }
 
-export type SlotType = '3-0' | 'advance' | '0-3' | 'qf' | 'sf' | 'final' | 'champion';
-export type StageKey = 'stage1' | 'stage2' | 'stage3' | 'playoffs';
+export type SlotType =
+  | "3-0"
+  | "advance"
+  | "0-3"
+  | "qf"
+  | "sf"
+  | "final"
+  | "champion";
+export type StageKey = "stage1" | "stage2" | "stage3" | "playoffs";
 
-export type MatchFormat = 'bo1' | 'bo3' | 'bo5';
+export type MatchFormat = "bo1" | "bo3" | "bo5";
 
 export interface MapScore {
   score1: number;
@@ -34,7 +41,7 @@ export interface MapScore {
 
 export interface VetoAction {
   teamId: string;
-  action: 'BAN' | 'PICK' | 'LEFT';
+  action: "BAN" | "PICK" | "LEFT";
   mapName: string;
   order: number;
 }
@@ -72,6 +79,16 @@ export interface PickSlot {
   id: string;
   type: SlotType;
   teamId: string | null;
+  bottomText?: string;
+}
+
+export interface MatrixSet {
+  id: string;
+  name: string;
+  stage: StageKey;
+  isDefault: boolean;
+  matrix: Record<string, Record<string, number>>;
+  createdAt: number;
 }
 
 export interface PickSet {

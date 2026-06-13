@@ -7,6 +7,10 @@ import { dialog } from "./DialogManager";
 import { MiniPlayoffsBracket } from "./MiniPlayoffsBracket";
 import { MiniPicksDisplay } from "./MiniPicksDisplay";
 import { PickSetStatusText, getStatusStyles } from "./PickSetStatus";
+import { SwissBracket } from "./SwissBracket";
+import { simulateSwiss } from "../utils/simulateSwiss";
+import { MATCHES } from "../data/matches";
+import { TEAMS } from "../data/teams";
 
 interface ImageExportModalProps {
   showImageExportModal: boolean;
@@ -21,6 +25,8 @@ interface ImageExportModalProps {
   setImageExportShowTeamNames: (val: boolean) => void;
   imageExportStyle: "standard" | "compact";
   setImageExportStyle: (val: "standard" | "compact") => void;
+  imageExportSimCount: number;
+  setImageExportSimCount: (val: number) => void;
   imageExportIds: string[];
   setImageExportIds: React.Dispatch<React.SetStateAction<string[]>>;
   communityPicks: PickSet[];
@@ -57,6 +63,8 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
   setImageExportShowTeamNames,
   imageExportStyle,
   setImageExportStyle,
+  imageExportSimCount,
+  setImageExportSimCount,
   imageExportIds,
   setImageExportIds,
   communityPicks,
@@ -76,9 +84,119 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
   exportContainerRef,
 }) => {
   const [exportSession, setExportSession] = React.useState<number>(1);
+  const [animFrame, setAnimFrame] = React.useState<Record<string, any> | null>(null);
+  const [localSimulating, setLocalSimulating] = React.useState(false);
+  const isSimRef = React.useRef(isSimulatingProbability);
+
+  React.useEffect(() => {
+    isSimRef.current = isSimulatingProbability;
+    if (isSimulatingProbability) {
+      setLocalSimulating(true);
+    }
+  }, [isSimulatingProbability]);
+
   React.useEffect(() => {
     if (isExportingImage) setExportSession(Date.now());
   }, [isExportingImage]);
+
+  React.useEffect(() => {
+    if (localSimulating && activeStage !== "playoffs") {
+      const stageMatchesMap = MATCHES[activeStage];
+      if (!stageMatchesMap) return;
+
+      const pastMatches: { t1: string; t2: string; winner: string }[] = [];
+      const scheduledMatches: { t1: string; t2: string }[] = [];
+
+      const r0 = stageMatchesMap["0:0"] || [];
+      const orderedTeams = new Array(16).fill("");
+      r0.forEach((m, idx) => {
+        if (m.team1Id && m.team1Id !== "tbd") orderedTeams[idx] = m.team1Id;
+        if (m.team2Id && m.team2Id !== "tbd")
+          orderedTeams[15 - idx] = m.team2Id;
+      });
+      const allTeams = orderedTeams.filter((t) => t !== "");
+
+      Object.values(stageMatchesMap).forEach((batch) => {
+        batch.forEach((m) => {
+          if (m.team1Id && m.team2Id && m.team1Id !== "tbd" && m.team2Id !== "tbd") {
+            if (m.score1 !== undefined && m.score2 !== undefined && m.status === "past") {
+              const t1Wins = m.score1! > m.score2!;
+              pastMatches.push({ t1: m.team1Id, t2: m.team2Id, winner: t1Wins ? m.team1Id : m.team2Id });
+            } else {
+              scheduledMatches.push({ t1: m.team1Id, t2: m.team2Id });
+            }
+          }
+        });
+      });
+
+      const teamStrengths: Record<string, number> = {};
+      TEAMS.forEach((t) => { if (t.strength) teamStrengths[t.id] = t.strength; });
+
+      let cancel = false;
+
+      const runAnimationLoop = async () => {
+        while (!cancel) {
+          const results = simulateSwiss(allTeams, pastMatches, scheduledMatches, 1, teamStrengths, activeStage);
+          if (results && results.length > 0 && results[0].simPredictionsByRound) {
+            const rounds = results[0].simPredictionsByRound;
+            for (let i = 0; i < rounds.length; i++) {
+              if (cancel) break;
+              setAnimFrame(rounds[i]);
+              await new Promise((r) => setTimeout(r, 600));
+            }
+            if (!cancel) {
+              await new Promise((r) => setTimeout(r, 1500));
+            }
+          } else {
+            await new Promise((r) => setTimeout(r, 1000));
+          }
+
+          if (!cancel && !isSimRef.current) {
+             setLocalSimulating(false);
+             break;
+          }
+        }
+      };
+
+      runAnimationLoop();
+
+      return () => {
+        cancel = true;
+      };
+    } else {
+      setAnimFrame(null);
+    }
+  }, [localSimulating, activeStage]);
+
+  if (localSimulating && activeStage !== "playoffs") {
+    return (
+      <div className="fixed inset-0 z-[100000] bg-[#0A0A0A]/95 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-300">
+        <div className="absolute top-12 flex flex-col items-center z-50 pointer-events-none w-full px-8">
+          <h2 className="text-[15px] font-medium text-zinc-100 mb-2 tracking-wide flex items-center gap-2">
+            <RefreshCw className="w-3.5 h-3.5 text-zinc-400 animate-spin" />
+            正在生成概率分布...
+          </h2>
+          <div className="flex items-center gap-3 w-[320px] max-w-[80vw] mt-1">
+             <span className="text-[10px] font-mono text-zinc-500 w-10 text-right">
+               {Math.floor((simulationProgress / 100) * imageExportSimCount).toLocaleString()}
+             </span>
+             <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden relative">
+               <div
+                  className="absolute left-0 top-0 h-full bg-zinc-300 transition-all duration-300 ease-out"
+                  style={{ width: `${Math.max(1, simulationProgress)}%` }}
+               />
+             </div>
+             <span className="text-[10px] font-mono text-zinc-500 w-10 text-left">
+               {imageExportSimCount.toLocaleString()}
+             </span>
+          </div>
+        </div>
+        <div className="w-full h-full opacity-75 pointer-events-none mt-4 flex-1 mix-blend-screen">
+          <SwissBracket activeStage={activeStage} externalPredictions={animFrame || undefined} isAnimating={true} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -166,21 +284,60 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                 )}
               </div>
             )}
-            <div
-              className="flex items-center justify-between p-3 bg-zinc-800/50 rounded cursor-pointer border border-white/5"
-              onClick={() =>
-                setImageExportShowProbabilities(!imageExportShowProbabilities)
-              }
-            >
-              <span className="text-sm font-bold text-zinc-200">
-                显示概率而非对错
-              </span>
-              {imageExportShowProbabilities ? (
-                <CheckSquare className="w-5 h-5 text-blue-400" />
-              ) : (
-                <Square className="w-5 h-5 text-zinc-500" />
-              )}
+            <div className="flex flex-col bg-zinc-800/50 rounded border border-white/5 overflow-hidden">
+              <div
+                className="flex items-center justify-between p-3 cursor-pointer"
+                onClick={() =>
+                  setImageExportShowProbabilities(!imageExportShowProbabilities)
+                }
+              >
+                <span className="text-sm font-bold text-zinc-200">
+                  显示概率而非对错
+                </span>
+                {imageExportShowProbabilities ? (
+                  <CheckSquare className="w-5 h-5 text-blue-400" />
+                ) : (
+                  <Square className="w-5 h-5 text-zinc-500" />
+                )}
+              </div>
+              
+              <div
+                className={`transition-all duration-300 ease-in-out grid ${
+                  imageExportShowProbabilities
+                    ? "grid-rows-[1fr] opacity-100"
+                    : "grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <div className="overflow-hidden bg-black/20">
+                  <div className="flex flex-col gap-3 p-4 border-t border-white/5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-zinc-400">模拟次数精度</span>
+                      <span className="text-xs font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded shadow-sm border border-blue-500/20">
+                        {imageExportSimCount >= 1000000 
+                          ? `${(imageExportSimCount / 1000000).toFixed(1)}M` 
+                          : `${imageExportSimCount / 1000}K`}
+                      </span>
+                    </div>
+                    <div className="relative flex flex-col gap-2">
+                       <input
+                         type="range"
+                         min="10000"
+                         max="5000000"
+                         step="10000"
+                         value={imageExportSimCount}
+                         onChange={(e) => setImageExportSimCount(Number(e.target.value))}
+                         className="w-full h-1.5 bg-zinc-700/80 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                       />
+                       <div className="flex justify-between text-[10px] text-zinc-500 px-1 font-mono font-bold">
+                         <span>10K (极速)</span>
+                         <span>5M (精确)</span>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
+
             <div
               className="flex items-center justify-between p-3 bg-zinc-800/50 rounded cursor-pointer border border-white/5"
               onClick={() =>
@@ -471,8 +628,8 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                       );
                       const sorted30Picks = [...picks30]
                         .sort((a, b) => {
-                          const aKey = a.teamId ? `adv-${a.teamId}` : null;
-                          const bKey = b.teamId ? `adv-${b.teamId}` : null;
+                          const aKey = a.teamId ? `3-0-${a.teamId}` : null;
+                          const bKey = b.teamId ? `3-0-${b.teamId}` : null;
                           if (!aKey && !bKey) return 0;
                           if (!aKey) return 1;
                           if (!bKey) return -1;
@@ -488,8 +645,8 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                       );
                       const sortedAdvancePicks = [...picksAdvance]
                         .sort((a, b) => {
-                          const aKey = a.teamId ? `adv-${a.teamId}` : null;
-                          const bKey = b.teamId ? `adv-${b.teamId}` : null;
+                          const aKey = a.teamId ? `advance-${a.teamId}` : null;
+                          const bKey = b.teamId ? `advance-${b.teamId}` : null;
                           if (!aKey && !bKey) return 0;
                           if (!aKey) return 1;
                           if (!bKey) return -1;
@@ -505,8 +662,8 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                       );
                       const sortedElimPicks = [...elimPicks]
                         .sort((a, b) => {
-                          const aKey = a.teamId ? `elim-${a.teamId}` : null;
-                          const bKey = b.teamId ? `elim-${b.teamId}` : null;
+                          const aKey = a.teamId ? `0-3-${a.teamId}` : null;
+                          const bKey = b.teamId ? `0-3-${b.teamId}` : null;
                           if (!aKey && !bKey) return 0;
                           if (!aKey) return 1;
                           if (!bKey) return -1;

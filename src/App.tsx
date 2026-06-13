@@ -14,6 +14,8 @@ import { HomeView } from "./views/HomeView";
 import { SummaryView } from "./views/SummaryView";
 import { MajorsHistoryView } from "./views/MajorsHistoryView";
 import { RankingsView } from "./views/RankingsView";
+import { GlobalSimulationView } from "./views/GlobalSimulationView";
+import { SimulatorView } from "./views/SimulatorView";
 import { ImageExportModal } from "./components/ImageExportModal";
 import { TextExportModal } from "./components/TextExportModal";
 import { DialogManager, dialog } from "./components/DialogManager";
@@ -30,17 +32,20 @@ export default function App() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [dataLoadError, setDataLoadError] = useState(false);
+  const [rankingDegraded, setRankingDegraded] = useState(false);
   const [isRefreshingData, setIsRefreshingData] = useState(false);
 
   const handleRefreshMatchData = async () => {
     setIsRefreshingData(true);
     try {
-      await import("./utils/fetchE5Data").then((m) =>
+      const res = await import("./utils/fetchE5Data").then((m) =>
         m.fetchAndPatchCSGOData(),
       );
-      setDataLoadError(false);
+      setDataLoadError(!res.matchSuccess);
+      setRankingDegraded(!res.rankingSuccess);
     } catch {
       setDataLoadError(true);
+      setRankingDegraded(true);
     }
     loadPicks();
     setRefreshTrigger((prev) => prev + 1);
@@ -52,12 +57,14 @@ export default function App() {
   useEffect(() => {
     import("./utils/fetchE5Data")
       .then((m) => m.fetchAndPatchCSGOData())
-      .then(() => {
-        setDataLoadError(false);
+      .then((res) => {
+        setDataLoadError(!res.matchSuccess);
+        setRankingDegraded(!res.rankingSuccess);
         setDataLoaded(true);
       })
       .catch(() => {
         setDataLoadError(true);
+        setRankingDegraded(true);
         setDataLoaded(true);
       });
   }, []);
@@ -70,7 +77,13 @@ export default function App() {
     return () => window.removeEventListener("force-refresh-matches", handler);
   }, [handleRefreshMatchData]);
 
-  type MainViewMode = "bracket" | "summary" | "history";
+  type MainViewMode =
+    | "bracket"
+    | "summary"
+    | "history"
+    | "ranking"
+    | "globalSim"
+    | "simulator";
   type PanelViewMode = "home" | "edit";
 
   const [mainView, setMainView] = useState<MainViewMode>("bracket");
@@ -78,16 +91,27 @@ export default function App() {
 
   const lastAutoSwitchRef = useRef<string | null>(null);
 
-  const setViewMode = useCallback((mode: "home" | "edit" | "summary" | "history" | "ranking") => {
-    if (mode === "summary" || mode === "history" || mode === "ranking") {
-      setMainView(mode as any);
-    } else {
-      setMainView("bracket");
-      setPanelView(mode);
-      setIsFloatingPanelExpanded(true);
-      if (window.innerWidth < 1024) setIsSchedulePanelExpanded(false);
-    }
-  }, []);
+  const setViewMode = useCallback(
+    (
+      mode: "home" | "edit" | "summary" | "history" | "ranking" | "globalSim" | "simulator",
+    ) => {
+      if (
+        mode === "summary" ||
+        mode === "history" ||
+        mode === "ranking" ||
+        mode === "globalSim" ||
+        mode === "simulator"
+      ) {
+        setMainView(mode);
+      } else {
+        setMainView("bracket");
+        setPanelView(mode as PanelViewMode);
+        setIsFloatingPanelExpanded(true);
+        if (window.innerWidth < 1024) setIsSchedulePanelExpanded(false);
+      }
+    },
+    [],
+  );
 
   const [newNickname, setNewNickname] = useState("");
   const [activeStage, setActiveStage] = useState<StageKey>("stage1");
@@ -114,6 +138,8 @@ export default function App() {
     useState(false);
   const [imageExportShowTeamNames, setImageExportShowTeamNames] =
     useState(false);
+  const [imageExportSimCount, setImageExportSimCount] =
+    useState<number>(100000);
   const [imageExportStyle, setImageExportStyle] = useState<
     "standard" | "compact"
   >("standard");
@@ -131,14 +157,22 @@ export default function App() {
 
   useEffect(() => {
     if (globalSelectedMatch) {
-      const allStageMaps = [MATCHES["stage1"], MATCHES["stage2"], MATCHES["stage3"], MATCHES["playoffs"]];
+      const allStageMaps = [
+        MATCHES["stage1"],
+        MATCHES["stage2"],
+        MATCHES["stage3"],
+        MATCHES["playoffs"],
+      ];
       let updatedMatch = null;
       out: for (const stageMap of allStageMaps) {
         if (!stageMap) continue;
         for (const group of Object.values(stageMap)) {
-          const found = group.find((m: any) => 
-            (m.externalId && m.externalId === globalSelectedMatch.externalId) || 
-            (m.team1Id === globalSelectedMatch.team1Id && m.team2Id === globalSelectedMatch.team2Id)
+          const found = group.find(
+            (m: any) =>
+              (m.externalId &&
+                m.externalId === globalSelectedMatch.externalId) ||
+              (m.team1Id === globalSelectedMatch.team1Id &&
+                m.team2Id === globalSelectedMatch.team2Id),
           );
           if (found) {
             updatedMatch = found;
@@ -147,7 +181,7 @@ export default function App() {
         }
       }
       if (updatedMatch) {
-        setGlobalSelectedMatch({...updatedMatch});
+        setGlobalSelectedMatch({ ...updatedMatch });
       }
     }
   }, [refreshTrigger, globalSelectedMatch]);
@@ -262,7 +296,14 @@ export default function App() {
   }, [dataLoaded, refreshTrigger, mainView, panelView, activeStage]);
 
   useEffect(() => {
-    const currentViewKey = mainView === "summary" ? "summary" : (mainView === "history" ? "history" : (mainView === "ranking" ? "ranking" : panelView));
+    const currentViewKey =
+      mainView === "summary"
+        ? "summary"
+        : mainView === "history"
+          ? "history"
+          : mainView === "ranking"
+            ? "ranking"
+            : panelView;
     if (
       dataLoaded &&
       (currentViewKey === "edit" || currentViewKey === "summary")
@@ -274,12 +315,7 @@ export default function App() {
     } else if (currentViewKey === "home") {
       lastAutoSwitchRef.current = null;
     }
-  }, [
-    dataLoaded,
-    panelView,
-    mainView,
-    getRecommendedStage,
-  ]);
+  }, [dataLoaded, panelView, mainView, getRecommendedStage]);
 
   const [detailedFutures, setDetailedFutures] = useState<any>(null);
   const [isSimulatingProbability, setIsSimulatingProbability] = useState(false);
@@ -303,7 +339,7 @@ export default function App() {
       setSimulationProgress(0);
       // We defer it slightly to let react render the loading state
       await new Promise((r) => setTimeout(r, 50));
-      const futures = await runSimulationAsync(1000000, (p) =>
+      const futures = await runSimulationAsync(imageExportSimCount, (p) =>
         setSimulationProgress(p),
       );
       setDetailedFutures(futures);
@@ -368,7 +404,7 @@ export default function App() {
       const stagePicks = p.picks[activeStage] || [];
       stagePicks.forEach((slot) => {
         if (slot.teamId) {
-          const type = slot.type === "0-3" ? "elim" : "adv";
+          const type = slot.type;
           const key = `${type}-${slot.teamId}`;
           freq[key] = (freq[key] || 0) + 1;
         }
@@ -389,7 +425,7 @@ export default function App() {
         const items = new Set<string>();
         (p.picks[activeStage] || []).forEach((slot) => {
           if (slot.teamId) {
-            const type = slot.type === "0-3" ? "elim" : "adv";
+            const type = slot.type;
             items.add(`${type}-${slot.teamId}`);
           }
         });
@@ -742,7 +778,7 @@ export default function App() {
         <div
           className={cn(
             "w-full flex-1 max-w-full relative z-10 flex flex-col pt-0 overflow-hidden",
-            (mainView === "summary" || mainView === "history" || mainView === "ranking") ? "hidden" : "",
+            mainView !== "bracket" ? "hidden" : "",
           )}
         >
           <div className="flex border-b border-white/5 items-center justify-center gap-2 pb-2 shrink-0 z-10 w-full bg-[#070b09]/80 backdrop-blur sticky top-0 mt-0">
@@ -773,8 +809,10 @@ export default function App() {
           <div className="flex-1 overflow-auto bg-zinc-950/40 relative flex flex-col">
             {!dataLoaded ? (
               <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 gap-3">
-                 <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                 <div className="text-sm font-bold animate-pulse">正在同步数据...</div>
+                <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="text-sm font-bold animate-pulse">
+                  正在同步数据...
+                </div>
               </div>
             ) : activeStage === "playoffs" ? (
               <div className="w-full h-full relative p-4 lg:p-8">
@@ -832,6 +870,8 @@ export default function App() {
             <RankingsView
               activeStage={activeStage}
               setActiveStage={setActiveStage}
+              isDegraded={rankingDegraded}
+              getComputedActuals={getComputedActuals}
             />
           </div>
         )}
@@ -842,13 +882,39 @@ export default function App() {
           </div>
         )}
 
+        {mainView === "globalSim" && (
+          <div className="w-full flex-1 relative z-10 flex flex-col p-0 overflow-hidden bg-[#070b09]">
+            <GlobalSimulationView
+              currentMatches={MATCHES}
+              computedActuals={{
+                stage1: getComputedActuals("stage1"),
+                stage2: getComputedActuals("stage2"),
+                stage3: getComputedActuals("stage3"),
+                playoffs: getComputedActuals("playoffs"),
+              }}
+              onMatchClick={(m) => setGlobalSelectedMatch(m)}
+            />
+          </div>
+        )}
+
+        {mainView === "simulator" && (
+          <div className="w-full flex-1 relative z-10 flex flex-col p-0 overflow-hidden bg-[#070b09]">
+            <SimulatorView
+              activeStage={activeStage}
+              setActiveStage={setActiveStage}
+              currentMatches={MATCHES}
+            />
+          </div>
+        )}
+
         {mainView === "bracket" && (
           <>
             <FloatingPanel
               isExpanded={isFloatingPanelExpanded}
               setIsExpanded={(val) => {
                 setIsFloatingPanelExpanded(val);
-                if (val && window.innerWidth < 1024) setIsSchedulePanelExpanded(false);
+                if (val && window.innerWidth < 1024)
+                  setIsSchedulePanelExpanded(false);
               }}
               title="竞猜"
               position="right"
@@ -891,7 +957,8 @@ export default function App() {
               isExpanded={isSchedulePanelExpanded}
               setIsExpanded={(val) => {
                 setIsSchedulePanelExpanded(val);
-                if (val && window.innerWidth < 1024) setIsFloatingPanelExpanded(false);
+                if (val && window.innerWidth < 1024)
+                  setIsFloatingPanelExpanded(false);
               }}
               title="赛程"
               position="left"
@@ -922,6 +989,8 @@ export default function App() {
         setImageExportShowProbabilities={setImageExportShowProbabilities}
         imageExportShowTeamNames={imageExportShowTeamNames}
         setImageExportShowTeamNames={setImageExportShowTeamNames}
+        imageExportSimCount={imageExportSimCount}
+        setImageExportSimCount={setImageExportSimCount}
         imageExportStyle={imageExportStyle}
         setImageExportStyle={setImageExportStyle}
         imageExportIds={imageExportIds}

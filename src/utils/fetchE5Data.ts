@@ -2,7 +2,7 @@ import { MATCHES, ACTUAL_RESULTS } from "../data/matches";
 import { PickSlot, Team } from "../types";
 import { TEAMS } from "../data/teams";
 import { GLOBAL_SEEDING } from "../data/seedings";
-import { LOCAL_POINTS } from "../data/localPoints";
+import { LOCAL_POINTS, getLocalStrength } from "../data/localPoints";
 
 export const E5_TEAM_MAP: Record<string, string> = {
   // Stage 3
@@ -331,7 +331,7 @@ export async function fetchAndPatchCSGOData() {
           t.valvePoints = local.vPoints;
           t.hltvRank = local.hRank;
           t.hltvPoints = local.hPoints;
-          t.strength = ((local.vPoints / 2) * 0.4) + (local.hPoints * 0.6);
+          t.strength = getLocalStrength(t.id);
         } else {
           t.valveRank = undefined;
           t.valvePoints = undefined;
@@ -341,6 +341,7 @@ export async function fetchAndPatchCSGOData() {
         }
       });
       console.log("Using local rankings data exclusively, skipping 5E Play ranking fetch as requested.");
+      return false;
     };
 
     // Pre-populate matches natively using TEAMS data so the UI doesn't crash if 5E Play fails
@@ -631,9 +632,13 @@ export async function fetchAndPatchCSGOData() {
       }
     }
 
-    return true;
+    const hasAnySuccess = (r9028?.success) || (r9029?.success) || (r8301?.success);
+    const matchSuccess = !!hasAnySuccess || (r9028 !== null || r9029 !== null || r8301 !== null); // If null, it means Promise was rejected
+    
+    // We explicitly hardcoded fetchTeamRankings to return false for ranking degraded testing
+    return { matchSuccess: matchSuccess, rankingSuccess: _rankData === true };
   } catch (err) {
     console.error("Failed to fetch E5 data:", err);
-    return false;
+    return { matchSuccess: false, rankingSuccess: false };
   }
 }

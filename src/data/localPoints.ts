@@ -33,8 +33,8 @@ export const LOCAL_POINTS: Record<string, { vRank: number; vPoints: number; hRan
   flyquest: { vRank: 53, vPoints: 1230, hRank: 35, hPoints: 45 }
 };
 
-export function getLocalStrength(teamId: string): number | undefined {
+export function getLocalStrength(teamId: string, hltvWeight: number = 0.5, vrsWeight: number = 0.5): number | undefined {
   const points = LOCAL_POINTS[teamId];
   if (!points) return undefined;
-  return ((points.vPoints / 2) * 0.4) + (points.hPoints * 0.6);
+  return ((points.vPoints / 2) * vrsWeight) + (points.hPoints * hltvWeight);
 }

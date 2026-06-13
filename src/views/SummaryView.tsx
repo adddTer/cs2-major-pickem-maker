@@ -269,8 +269,8 @@ export const SummaryView: React.FC<SummaryViewProps> = React.memo(
                 const picks30 = theirPicks.filter((s) => s.type === "3-0");
                 const sorted30Picks = [...picks30]
                   .sort((a, b) => {
-                    const aKey = a.teamId ? `adv-${a.teamId}` : null;
-                    const bKey = b.teamId ? `adv-${b.teamId}` : null;
+                    const aKey = a.teamId ? `3-0-${a.teamId}` : null;
+                    const bKey = b.teamId ? `3-0-${b.teamId}` : null;
                     if (!aKey && !bKey) return 0;
                     if (!aKey) return 1;
                     if (!bKey) return -1;
@@ -299,8 +299,8 @@ export const SummaryView: React.FC<SummaryViewProps> = React.memo(
                 );
                 const sortedAdvancePicks = [...picksAdvance]
                   .sort((a, b) => {
-                    const aKey = a.teamId ? `adv-${a.teamId}` : null;
-                    const bKey = b.teamId ? `adv-${b.teamId}` : null;
+                    const aKey = a.teamId ? `advance-${a.teamId}` : null;
+                    const bKey = b.teamId ? `advance-${b.teamId}` : null;
                     if (!aKey && !bKey) return 0;
                     if (!aKey) return 1;
                     if (!bKey) return -1;
@@ -327,8 +327,8 @@ export const SummaryView: React.FC<SummaryViewProps> = React.memo(
                 const elimPicks = theirPicks.filter((s) => s.type === "0-3");
                 const sortedElimPicks = [...elimPicks]
                   .sort((a, b) => {
-                    const aKey = a.teamId ? `elim-${a.teamId}` : null;
-                    const bKey = b.teamId ? `elim-${b.teamId}` : null;
+                    const aKey = a.teamId ? `0-3-${a.teamId}` : null;
+                    const bKey = b.teamId ? `0-3-${b.teamId}` : null;
                     if (!aKey && !bKey) return 0;
                     if (!aKey) return 1;
                     if (!bKey) return -1;

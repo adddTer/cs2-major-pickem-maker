@@ -129,14 +129,10 @@ const BracketSlot: React.FC<{
               e.dataTransfer.dropEffect = "move";
             }
       }
-      onClick={
-        readOnly
-          ? undefined
-          : () => slot && onClick && onClick(slot.id, slot.teamId)
-      }
+      onClick={() => slot && onClick && onClick(slot.id, slot.teamId)}
       className={cn(
         "w-[180px] h-[40px] rounded-[6px] flex items-center px-3 gap-2 border transition-colors relative overflow-hidden",
-        !readOnly ? "cursor-pointer" : "",
+        onClick ? "cursor-pointer" : !readOnly ? "cursor-pointer" : "",
         team
           ? cn(
               "bg-zinc-800 border-white/20 shadow-sm",
@@ -163,7 +159,7 @@ const BracketSlot: React.FC<{
           <span className="font-bold text-zinc-200 text-sm flex-1 truncate">
             {team.name}
           </span>
-          {slot?.score !== undefined && slot?.score !== null && (
+          {slot?.score !== undefined && slot?.score !== null ? (
             <div className="flex flex-col items-center justify-center min-w-[24px] shrink-0 relative">
               <div className="flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded bg-black/40 text-xs font-black text-white shadow-inner">
                 {slot.score}
@@ -174,7 +170,11 @@ const BracketSlot: React.FC<{
                 </span>
               )}
             </div>
-          )}
+          ) : slot?.bottomText ? (
+            <div className="text-[10px] sm:text-xs font-mono font-bold text-emerald-400 shrink-0">
+              {slot.bottomText}
+            </div>
+          ) : null}
         </>
       ) : (
         <span
@@ -193,9 +193,18 @@ export const PlayoffsBracket: React.FC<{
   readOnly?: boolean;
   showResults?: boolean;
   refreshTrigger?: number;
+  disableAutoFill?: boolean;
   onDrop?: (e: React.DragEvent, slotId: string) => void;
   onClick?: (slotId: string, teamId: string | null) => void;
-}> = ({ slots, readOnly = false, showResults = false, refreshTrigger, onDrop, onClick }) => {
+}> = ({
+  slots,
+  readOnly = false,
+  showResults = false,
+  refreshTrigger,
+  disableAutoFill = false,
+  onDrop,
+  onClick,
+}) => {
   const [selectedMatch, setSelectedMatch] = React.useState<BracketMatch | null>(
     null,
   );
@@ -205,9 +214,11 @@ export const PlayoffsBracket: React.FC<{
       const playoffsMatches = MATCHES["playoffs"] || {};
       let updatedMatch = null;
       for (const group of Object.values(playoffsMatches)) {
-        const found = group.find((m: any) => 
-          (m.externalId && m.externalId === selectedMatch.externalId) || 
-          (m.team1Id === selectedMatch.team1Id && m.team2Id === selectedMatch.team2Id)
+        const found = group.find(
+          (m: any) =>
+            (m.externalId && m.externalId === selectedMatch.externalId) ||
+            (m.team1Id === selectedMatch.team1Id &&
+              m.team2Id === selectedMatch.team2Id),
         );
         if (found) {
           updatedMatch = found;
@@ -227,7 +238,7 @@ export const PlayoffsBracket: React.FC<{
     }
 
     // Auto-fill quarter-finalists from actual schedule, since users don't pick them
-    if (baseSlot.type === "qf") {
+    if (baseSlot.type === "qf" && !disableAutoFill) {
       const qfMatches = MATCHES["playoffs"]?.["qf"] || [];
       const qfIndex = parseInt(id.replace("qf-", ""), 10) - 1;
       const matchIndex = Math.floor(qfIndex / 2);
@@ -245,7 +256,7 @@ export const PlayoffsBracket: React.FC<{
 
     let score: number | null | undefined = null;
     let isLive = false;
-    if (baseSlot.teamId && baseSlot.type !== "champion") {
+    if (baseSlot.teamId && baseSlot.type !== "champion" && !disableAutoFill) {
       const roundMatches = MATCHES["playoffs"]?.[baseSlot.type] || [];
       for (const m of roundMatches) {
         if (m.team1Id === baseSlot.teamId && m.score1 !== undefined) {

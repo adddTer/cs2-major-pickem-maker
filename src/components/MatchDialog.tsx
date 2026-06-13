@@ -7,6 +7,8 @@ import { TeamLogo } from "./TeamLogo";
 import { RefreshCw } from "lucide-react";
 import { MatchAnalytics } from "./MatchAnalytics";
 import { MatchStats } from "./MatchStats";
+import { GLOBAL_SEEDING } from "../data/seedings";
+import { getLocalStrength } from "../data/localPoints";
 
 interface MapVetoDisplayProps {
   externalId?: string;
@@ -237,6 +239,88 @@ const MapVetoDisplay: React.FC<MapVetoDisplayProps & { matchData?: any }> = ({
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+};
+
+const MatchPrediction: React.FC<{
+  match: BracketMatch | null;
+}> = ({ match }) => {
+  if (!match || !match.team1Id || !match.team2Id || match.team1Id === "tbd" || match.team2Id === "tbd") {
+    return null;
+  }
+
+  const t1Data = TEAMS.find(t => t.id === match.team1Id);
+  const t2Data = TEAMS.find(t => t.id === match.team2Id);
+  if (!t1Data || !t2Data) return null;
+
+  const fallbackS1 = getLocalStrength(match.team1Id) || (2000 - (GLOBAL_SEEDING[match.team1Id] || 32) * 30);
+  const fallbackS2 = getLocalStrength(match.team2Id) || (2000 - (GLOBAL_SEEDING[match.team2Id] || 32) * 30);
+  const s1 = t1Data.strength || fallbackS1;
+  const s2 = t2Data.strength || fallbackS2;
+
+  const getSingleMapProb = (strength1: number, strength2: number) => {
+    const M = 1300;
+    return 1 / (1 + Math.pow(10, (strength2 - strength1) / M));
+  };
+
+  let probT1 = 0;
+  if (match.format === "bo3") {
+    const mapAdv = 150;
+    const pMap1 = getSingleMapProb(s1 + mapAdv, s2);
+    const pMap2 = getSingleMapProb(s1, s2 + mapAdv);
+    const pMap3 = getSingleMapProb(s1, s2);
+    probT1 = pMap1 * pMap2 + pMap1 * (1 - pMap2) * pMap3 + (1 - pMap1) * pMap2 * pMap3;
+  } else if (match.format === "bo5") {
+    const p = getSingleMapProb(s1, s2);
+    const q = 1 - p;
+    probT1 = p * p * p * (1 + 3 * q + 6 * q * q);
+  } else {
+    probT1 = getSingleMapProb(s1, s2);
+  }
+
+  const isFinished = match.status === "past" || (match.score1 !== undefined && match.score2 !== undefined && (match.score1 > 0 || match.score2 > 0) && match.score1 !== match.score2);
+  let winner = 0;
+  if (isFinished) {
+    winner = (match.score1 ?? 0) > (match.score2 ?? 0) ? 1 : 2;
+  }
+
+  let t1BarColor = "bg-blue-500/60";
+  let t2BarColor = "bg-amber-500/60";
+  let t1TextColor = "text-blue-400";
+  let t2TextColor = "text-amber-400";
+
+  if (winner === 1) {
+    t1BarColor = "bg-emerald-500";
+    t2BarColor = "bg-zinc-700";
+    t1TextColor = "text-emerald-400 font-bold";
+    t2TextColor = "text-zinc-500";
+  } else if (winner === 2) {
+    t1BarColor = "bg-zinc-700";
+    t2BarColor = "bg-emerald-500";
+    t1TextColor = "text-zinc-500";
+    t2TextColor = "text-emerald-400 font-bold";
+  }
+
+  return (
+    <div className="flex flex-col gap-2 mt-2 pt-4 px-1 w-full border-t border-white/5">
+      <h4 className="text-[11px] font-medium text-white/50 tracking-widest px-1 text-center">
+        预测
+      </h4>
+      <div className="flex items-center w-full h-1.5 rounded-full overflow-hidden bg-black border border-white/5 mt-1">
+        <div style={{ width: `${(probT1 * 100).toFixed(1)}%` }} className={`h-full ${t1BarColor} transition-all`}></div>
+        <div style={{ width: `${((1 - probT1) * 100).toFixed(1)}%` }} className={`h-full ${t2BarColor} transition-all`}></div>
+      </div>
+      <div className="flex items-center justify-between px-1 mt-0.5">
+        <span className={`text-[11px] font-mono ${t1TextColor}`}>
+          {winner === 1 && "✓ "}
+          {(probT1 * 100).toFixed(1)}%
+        </span>
+        <span className={`text-[11px] font-mono ${t2TextColor}`}>
+          {((1 - probT1) * 100).toFixed(1)}%
+          {winner === 2 && " ✓"}
+        </span>
       </div>
     </div>
   );
@@ -519,6 +603,8 @@ export const MatchDialog: React.FC<{
               </div>
             </div>
           </div>
+          
+          <MatchPrediction match={match} />
 
           {/* BP SEQUENCE / ANALYTICS */}
           <div className="flex-1 pb-4">

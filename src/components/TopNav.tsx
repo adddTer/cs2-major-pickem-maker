@@ -1,10 +1,19 @@
 import React from "react";
-import { ListTree, Users, RefreshCw, Trophy, BarChart } from "lucide-react";
+import {
+  ListTree,
+  Users,
+  RefreshCw,
+  Trophy,
+  BarChart,
+  Activity,
+} from "lucide-react";
 import { cn } from "../lib/utils";
 
 interface TopNavProps {
-  mainView: "bracket" | "summary" | "history" | "ranking";
-  setMainView: (mode: "bracket" | "summary" | "history" | "ranking") => void;
+  mainView: "bracket" | "summary" | "history" | "ranking" | "globalSim" | "simulator";
+  setMainView: (
+    mode: "bracket" | "summary" | "history" | "ranking" | "globalSim" | "simulator",
+  ) => void;
   handleRefresh: () => void;
   isRefreshing: boolean;
 }
@@ -55,6 +64,30 @@ export const TopNav: React.FC<TopNavProps> = ({
         >
           <ListTree className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
           <span>对阵图</span>
+        </div>
+        <div
+          onClick={() => setMainView("globalSim")}
+          className={cn(
+            "px-3 sm:px-5 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-sm cursor-pointer transition-colors flex items-center gap-1.5 sm:gap-2",
+            mainView === "globalSim"
+              ? "bg-zinc-800 text-white shadow-sm"
+              : "text-zinc-500 hover:text-zinc-300",
+          )}
+        >
+          <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+          <span>全局模拟</span>
+        </div>
+        <div
+          onClick={() => setMainView("simulator")}
+          className={cn(
+            "px-3 sm:px-5 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-sm cursor-pointer transition-colors flex items-center gap-1.5 sm:gap-2",
+            mainView === "simulator"
+              ? "bg-zinc-800 text-white shadow-sm"
+              : "text-zinc-500 hover:text-zinc-300",
+          )}
+        >
+          <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+          <span>竞猜推演器</span>
         </div>
         <div
           onClick={() => setMainView("ranking")}

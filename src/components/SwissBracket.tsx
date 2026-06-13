@@ -297,20 +297,31 @@ const AbsoluteBox = ({
 
 export const SwissBracket = ({
   activeStage,
+  externalPredictions,
+  isAnimating,
 }: {
   activeStage: string;
+  externalPredictions?: Record<string, any>;
+  isAnimating?: boolean;
 }) => {
   const [selectedMatch, setSelectedMatch] = useState<BracketMatch | null>(null);
   const [simulationMode, setSimulationMode] = useState(false);
   const [predictions, setPredictions] = useState<Record<string, any>>({});
+  
+  const calculatedScale = isAnimating 
+    ? Math.min((window.innerWidth * 0.95) / 1200, (window.innerHeight * 0.75) / 840)
+    : 1;
 
   React.useEffect(() => {
     if (!simulationMode) setPredictions({});
   }, [simulationMode]);
 
+  const activePredictions = externalPredictions || predictions;
+  const activeSimMode = simulationMode || !!externalPredictions;
+
   const matchesMap = React.useMemo(() => {
     const origMap = MATCHES[activeStage] || {};
-    if (!simulationMode) return origMap;
+    if (!activeSimMode) return origMap;
 
     const map: Record<string, BracketMatch[]> = {};
     const teamsRecord: Record<
@@ -403,40 +414,67 @@ export const SwissBracket = ({
         });
 
         const pool = [...remainingTeams];
-        let pairings: [string, string][] | null = null;
+        let pairings: [string, string][] = [];
+        let poolMatched = new Set<string>();
 
-        if (w === 0 && l === 0) {
-          pairings = [];
-          const half = Math.floor(pool.length / 2);
-          for (let i = 0; i < half; i++) {
-            pairings.push([pool[i], pool[i + half]]);
-          }
-        } else {
-          function findValidPairing(teams: string[]): [string, string][] | null {
-            if (teams.length === 0) return [];
-            const t1 = teams[0];
-            for (let i = teams.length - 1; i >= 1; i--) {
-              const t2 = teams[i];
-              if (!teamsRecord[t1].opponents.includes(t2)) {
-                const rest = [...teams];
-                rest.splice(i, 1);
-                rest.splice(0, 1);
-                const sub = findValidPairing(rest);
-                if (sub !== null) {
-                  return [[t1, t2], ...sub];
-                }
+        if (activeSimMode && Object.keys(activePredictions).length > 0) {
+          for (const t1 of pool) {
+            if (poolMatched.has(t1)) continue;
+            for (const t2 of pool) {
+              if (t1 === t2 || poolMatched.has(t2)) continue;
+              const k1 = `${t1}-${t2}`;
+              const k2 = `${t2}-${t1}`;
+              const p = activePredictions[k1] || activePredictions[k2];
+              if (p && (p.stageRound === undefined || p.stageRound === roundIndex)) {
+                pairings.push([t1, t2]);
+                poolMatched.add(t1);
+                poolMatched.add(t2);
+                break;
               }
             }
-            return null;
           }
+        }
 
-          pairings = findValidPairing([...pool]);
-          if (!pairings) {
-            pairings = [];
-            const temp = [...pool];
-            while (temp.length >= 2) {
-              pairings.push([temp.shift()!, temp.pop()!]);
+        const remainingPool = pool.filter(t => !poolMatched.has(t));
+        
+        if (remainingPool.length > 0) {
+          let remainingPairings: [string, string][] | null = null;
+          if (w === 0 && l === 0 && remainingPool.length === pool.length) {
+            remainingPairings = [];
+            const half = Math.floor(remainingPool.length / 2);
+            for (let i = 0; i < half; i++) {
+              remainingPairings.push([remainingPool[i], remainingPool[i + half]]);
             }
+          } else {
+            function findValidPairing(teams: string[]): [string, string][] | null {
+              if (teams.length === 0) return [];
+              const t1 = teams[0];
+              for (let i = teams.length - 1; i >= 1; i--) {
+                const t2 = teams[i];
+                if (!teamsRecord[t1].opponents.includes(t2)) {
+                  const rest = [...teams];
+                  rest.splice(i, 1);
+                  rest.splice(0, 1);
+                  const sub = findValidPairing(rest);
+                  if (sub !== null) {
+                    return [[t1, t2], ...sub];
+                  }
+                }
+              }
+              return null;
+            }
+
+            remainingPairings = findValidPairing([...remainingPool]);
+            if (!remainingPairings) {
+              remainingPairings = [];
+              const temp = [...remainingPool];
+              while (temp.length >= 2) {
+                remainingPairings.push([temp.shift()!, temp.pop()!]);
+              }
+            }
+          }
+          if (remainingPairings) {
+            pairings.push(...remainingPairings);
           }
         }
 
@@ -453,15 +491,20 @@ export const SwissBracket = ({
 
           const pKey = `${m.team1Id}-${m.team2Id}`;
           const pKeyRev = `${m.team2Id}-${m.team1Id}`;
-          let pVal = predictions[pKey];
-          if (!pVal && predictions[pKeyRev]) {
-            const reverse = predictions[pKeyRev];
-            if (reverse.winner !== 0) {
-              pVal = {
-                winner: reverse.winner === 1 ? 2 : 1,
-                score1: reverse.score2,
-                score2: reverse.score1,
-              };
+          let pVal = activePredictions[pKey];
+          if (pVal && pVal.stageRound !== undefined && pVal.stageRound !== roundIndex) {
+            pVal = undefined;
+          }
+          if (!pVal && activePredictions[pKeyRev]) {
+            const reverse = activePredictions[pKeyRev];
+            if (reverse.stageRound === undefined || reverse.stageRound === roundIndex) {
+              if (reverse.winner !== 0) {
+                pVal = {
+                  winner: reverse.winner === 1 ? 2 : 1,
+                  score1: reverse.score2,
+                  score2: reverse.score1,
+                };
+              }
             }
           }
 
@@ -487,9 +530,7 @@ export const SwissBracket = ({
               m.score2 !== undefined &&
               m.status === "past";
             if (hasResult) {
-              const t1Wins =
-                (m.format === "bo3" && m.score1 === 2) ||
-                (m.format === "bo1" && m.score1 === 1);
+              const t1Wins = m.score1! > m.score2!;
               if (t1Wins) {
                 roundRecordUpdates.push(() => {
                   teamsRecord[m.team1Id].wins++;
@@ -522,7 +563,7 @@ export const SwissBracket = ({
     });
 
     return map;
-  }, [simulationMode, activeStage, predictions]);
+  }, [activeSimMode, activeStage, activePredictions]);
 
   React.useEffect(() => {
     if (selectedMatch) {
@@ -694,19 +735,8 @@ export const SwissBracket = ({
         let hasResult =
           match.score1 !== undefined && match.score2 !== undefined;
         if (hasResult) {
-          let t1Win = false;
-          let t2Win = false;
-
-          if (match.format === "bo1") {
-            t1Win = match.score1 === 1;
-            t2Win = match.score2 === 1;
-          } else if (match.format === "bo5") {
-            t1Win = match.score1 === 3;
-            t2Win = match.score2 === 3;
-          } else {
-            t1Win = match.score1 === 2;
-            t2Win = match.score2 === 2;
-          }
+          let t1Win = match.score1! > match.score2!;
+          let t2Win = match.score2! > match.score1!;
 
           if (!t1Win && !t2Win) {
             hasResult = false;
@@ -742,45 +772,47 @@ export const SwissBracket = ({
   return (
     <div className="w-full h-full flex flex-col overflow-hidden z-10 relative">
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
-        <div className="flex gap-2 isolate">
-          <button
-            onClick={() => {
-              if (isRoundIncomplete) return;
-              setSimulationMode(!simulationMode);
-            }}
-            disabled={isRoundIncomplete}
-            className={cn(
-              "px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2",
-              isRoundIncomplete
-                ? "opacity-50 cursor-not-allowed bg-black/50 text-zinc-600 border-white/5"
-                : simulationMode
-                  ? "bg-blue-600/20 text-blue-400 border-blue-500/50"
-                  : "bg-black/50 text-zinc-400 border-white/10 hover:bg-white/5",
+        {!isAnimating && !externalPredictions && (
+          <div className="flex gap-2 isolate">
+            <button
+              onClick={() => {
+                if (isRoundIncomplete) return;
+                setSimulationMode(!simulationMode);
+              }}
+              disabled={isRoundIncomplete}
+              className={cn(
+                "px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2",
+                isRoundIncomplete
+                  ? "opacity-50 cursor-not-allowed bg-black/50 text-zinc-600 border-white/5"
+                  : simulationMode
+                    ? "bg-blue-600/20 text-blue-400 border-blue-500/50"
+                    : "bg-black/50 text-zinc-400 border-white/10 hover:bg-white/5",
+              )}
+            >
+              {simulationMode ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                  模拟模式已开启
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-zinc-600" />
+                  开启预测模拟
+                </>
+              )}
+            </button>
+            {simulationMode && (
+               <button 
+                 onClick={handleAutoSimulateNextRound}
+                 className="px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2 bg-zinc-700/50 text-zinc-300 border-zinc-600/50 hover:bg-zinc-700/80"
+               >
+                 推演下一轮
+               </button>
             )}
-          >
-            {simulationMode ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                模拟模式已开启
-              </>
-            ) : (
-              <>
-                <span className="w-2 h-2 rounded-full bg-zinc-600" />
-                开启预测模拟
-              </>
-            )}
-          </button>
-          {simulationMode && (
-             <button 
-               onClick={handleAutoSimulateNextRound}
-               className="px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2 bg-zinc-700/50 text-zinc-300 border-zinc-600/50 hover:bg-zinc-700/80"
-             >
-               推演下一轮
-             </button>
-          )}
-        </div>
+          </div>
+        )}
 
-        {isRoundIncomplete ? (
+        {!isAnimating && !externalPredictions && (isRoundIncomplete ? (
           <div className="mt-2 text-[10px] text-rose-400/80 bg-rose-500/10 px-2 py-1 rounded w-max border border-rose-500/20">
             初始对决尚未完全确定，暂不支持模拟
           </div>
@@ -790,12 +822,12 @@ export const SwissBracket = ({
               点击队伍标识切换胜负关系
             </div>
           )
-        )}
+        ))}
       </div>
 
       <div className="w-full flex-1 relative">
         <TransformWrapper
-          initialScale={1}
+          initialScale={calculatedScale}
           minScale={0.1}
           maxScale={2}
           centerOnInit={true}

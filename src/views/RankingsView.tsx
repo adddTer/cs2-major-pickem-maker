@@ -1,8 +1,9 @@
 import React from "react";
+import { AlertCircle } from "lucide-react";
 import { StageKey } from "../types";
 import { cn } from "../lib/utils";
 import { TEAMS } from "../data/teams";
-import { MATCHES } from "../data/matches";
+import { MATCHES, ACTUAL_RESULTS } from "../data/matches";
 import { GLOBAL_SEEDING } from "../data/seedings";
 import { getLocalStrength } from "../data/localPoints";
 import { TeamLogo } from "../components/TeamLogo";
@@ -10,10 +11,11 @@ import { TeamLogo } from "../components/TeamLogo";
 interface RankingsViewProps {
   activeStage: StageKey;
   setActiveStage: (val: StageKey) => void;
+  isDegraded?: boolean;
+  getComputedActuals?: (stage: string) => any[];
 }
 
-export const RankingsView: React.FC<RankingsViewProps> = React.memo(
-  ({ activeStage, setActiveStage }) => {
+export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActiveStage, isDegraded, getComputedActuals }) => {
     // Get teams participating in the active stage
     const getTeamsForStage = (stage: StageKey) => {
       let stageTeams = new Set<string>();
@@ -34,16 +36,60 @@ export const RankingsView: React.FC<RankingsViewProps> = React.memo(
         });
       }
 
-      const foundTeams = TEAMS.filter((t) => stageTeams.has(t.id));
+      // If we have teams actively scheduled in this stage, we can include them
+      let foundTeams = TEAMS.filter((t) => stageTeams.has(t.id));
 
-      // Fallback to startStage logic if no matches are populated yet
-      if (foundTeams.length === 0) {
-        if (stage === "stage1") return TEAMS.filter((t) => t.startStage === 1);
-        if (stage === "stage2") return TEAMS.filter((t) => t.startStage === 1 || t.startStage === 2);
-        if (stage === "stage3") return TEAMS.filter((t) => t.startStage === 1 || t.startStage === 2 || t.startStage === 3);
+      // As to not lose teams that definitely belong in this stage but haven't played yet
+      // we combine with teams that natively start in this stage
+      if (stage === "stage1") {
+        const nativeTeams = TEAMS.filter(t => t.startStage === 1);
+        nativeTeams.forEach(t => { if (!stageTeams.has(t.id)) foundTeams.push(t); });
+      }
+      
+      if (stage === "stage2") {
+        const nativeTeams = TEAMS.filter(t => t.startStage === 2);
+        nativeTeams.forEach(t => { if (!stageTeams.has(t.id)) foundTeams.push(t); });
+        
+        // Add anyone who officially advanced from stage 1
+        const advStage1 = getComputedActuals ? getComputedActuals("stage1") : ACTUAL_RESULTS.stage1 || [];
+        advStage1.forEach((slot: any) => {
+          if (slot.teamId && !stageTeams.has(slot.teamId)) {
+            const team = TEAMS.find(t => t.id === slot.teamId);
+            if (team) foundTeams.push(team);
+          }
+        });
+      }
+      
+      if (stage === "stage3") {
+        const nativeTeams = TEAMS.filter(t => t.startStage === 3);
+        nativeTeams.forEach(t => { if (!stageTeams.has(t.id)) foundTeams.push(t); });
+        
+        // Add anyone who officially advanced from stage 2
+        const advStage2 = getComputedActuals ? getComputedActuals("stage2") : ACTUAL_RESULTS.stage2 || [];
+        advStage2.forEach((slot: any) => {
+          if (slot.teamId && !stageTeams.has(slot.teamId)) {
+            const team = TEAMS.find(t => t.id === slot.teamId);
+            if (team) foundTeams.push(team);
+          }
+        });
+      }
+      
+      if (stage === "playoffs") {
+        // Add anyone who officially advanced from stage 3
+        const advStage3 = getComputedActuals ? getComputedActuals("stage3") : ACTUAL_RESULTS.stage3 || [];
+        advStage3.forEach((slot: any) => {
+          if (slot.teamId && !stageTeams.has(slot.teamId)) {
+            const team = TEAMS.find(t => t.id === slot.teamId);
+            if (team) foundTeams.push(team);
+          }
+        });
       }
 
-      return foundTeams;
+      // Deduplicate before returning
+      const finalIds = new Set(foundTeams.map(t => t.id));
+      return Array.from(finalIds)
+        .map(id => TEAMS.find(t => t.id === id))
+        .filter((t): t is (typeof TEAMS)[0] => !!t);
     };
 
     const currentTeams = getTeamsForStage(activeStage);
@@ -60,8 +106,14 @@ export const RankingsView: React.FC<RankingsViewProps> = React.memo(
     return (
       <div className="flex-1 flex flex-col bg-zinc-900/60 border border-white/5 rounded-lg shadow-xl relative backdrop-blur-md overflow-hidden p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6 shrink-0">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-2">
             <h2 className="text-sm font-bold text-zinc-100">参赛队伍排名</h2>
+            {isDegraded && (
+              <div className="flex items-center gap-1.5 text-yellow-500/90 text-[11px] bg-yellow-500/10 px-2 py-1 rounded-md border border-yellow-500/20 w-fit">
+                <AlertCircle className="w-3 h-3" />
+                <span>无法获取实时数据，已降级为本地预设排名</span>
+              </div>
+            )}
           </div>
           <div className="flex bg-black/40 p-1 rounded-md border border-white/5 overflow-x-auto custom-scrollbar shrink-0 max-w-full">
             {["stage1", "stage2", "stage3", "playoffs"].map((tabId) => {
@@ -187,5 +239,5 @@ export const RankingsView: React.FC<RankingsViewProps> = React.memo(
         </div>
       </div>
     );
-  },
-);
+  };
+

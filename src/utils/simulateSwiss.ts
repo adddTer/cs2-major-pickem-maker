@@ -5,6 +5,8 @@ export interface SwissSimulationResult {
   teams30: Set<string>;
   teams03: Set<string>;
   teamsAdvance: Set<string>;
+  simPredictions?: Record<string, any>;
+  simPredictionsByRound?: Record<string, any>[];
 }
 
 export function simulateSwiss(
@@ -13,7 +15,8 @@ export function simulateSwiss(
   scheduledMatches: { t1: string; t2: string }[],
   numSimulations: number = 200,
   teamStrengths: Record<string, number> = {},
-  activeStage: string = "stage1"
+  activeStage: string = "stage1",
+  customMatrix?: Record<string, Record<string, number>>
 ): SwissSimulationResult[] {
   const initialRecords: Record<string, { w: number; l: number }> = {};
   const initialPlayed: Record<string, Set<string>> = {};
@@ -44,6 +47,8 @@ export function simulateSwiss(
   const results: SwissSimulationResult[] = [];
 
   for (let sim = 0; sim < numSimulations; sim++) {
+    const simPredictions: Record<string, any> = {};
+    const simPredictionsByRound: Record<string, any>[] = [];
     const records = { ...initialRecords };
     for (const t in records) records[t] = { ...records[t] };
 
@@ -56,6 +61,7 @@ export function simulateSwiss(
         .map(([t]) => t);
 
     let safetyCounter = 0;
+    let stageRound = 0;
 
     while (getActiveTeams().length > 0 && safetyCounter < 50) {
       safetyCounter++;
@@ -78,32 +84,41 @@ export function simulateSwiss(
       };
 
       const getWinner = (t1: string, t2: string, format: string) => {
-        const fallbackS1 = getLocalStrength(t1) || (2000 - (GLOBAL_SEEDING[t1] || 32) * 30);
-        const fallbackS2 = getLocalStrength(t2) || (2000 - (GLOBAL_SEEDING[t2] || 32) * 30);
-        const s1 = teamStrengths[t1] || fallbackS1;
-        const s2 = teamStrengths[t2] || fallbackS2;
+        let pMap1, pMap2, pMap3, p1;
+
+        if (customMatrix && customMatrix[t1] && customMatrix[t1][t2] !== undefined) {
+          // If custom matrix is used, we treat probabilities directly without "mapAdv"
+          p1 = customMatrix[t1][t2];
+          pMap1 = p1;
+          pMap2 = p1;
+          pMap3 = p1;
+        } else {
+          const fallbackS1 = getLocalStrength(t1) || (2000 - (GLOBAL_SEEDING[t1] || 32) * 30);
+          const fallbackS2 = getLocalStrength(t2) || (2000 - (GLOBAL_SEEDING[t2] || 32) * 30);
+          const s1 = teamStrengths[t1] || fallbackS1;
+          const s2 = teamStrengths[t2] || fallbackS2;
+          
+          p1 = getSingleMapProb(s1, s2);
+          const mapAdv = 150;
+          pMap1 = getSingleMapProb(s1 + mapAdv, s2); // T1 pick
+          pMap2 = getSingleMapProb(s1, s2 + mapAdv); // T2 pick
+          pMap3 = p1; // Decider
+        }
         
         let w1 = 0;
         let w2 = 0;
 
         if (format === "bo3") {
-          const mapAdv = 150;
-          const pMap1 = getSingleMapProb(s1 + mapAdv, s2); // T1 pick
-          const pMap2 = getSingleMapProb(s1, s2 + mapAdv); // T2 pick
-          const pMap3 = getSingleMapProb(s1, s2);          // Decider
-
           if (Math.random() < pMap1) w1++; else w2++;
           if (Math.random() < pMap2) w1++; else w2++;
           if (w1 === 1 && w2 === 1) {
             if (Math.random() < pMap3) w1++; else w2++;
           }
         } else if (format === "bo5") {
-          const p1 = getSingleMapProb(s1, s2);
           while (w1 < 3 && w2 < 3) {
             if (Math.random() < p1) w1++; else w2++;
           }
         } else {
-          const p1 = getSingleMapProb(s1, s2);
           if (Math.random() < p1) w1++; else w2++;
         }
         
@@ -119,7 +134,8 @@ export function simulateSwiss(
           !matched.has(m.t1) &&
           !matched.has(m.t2) &&
           active.includes(m.t1) &&
-          active.includes(m.t2)
+          active.includes(m.t2) &&
+          !played[m.t1].has(m.t2)
         ) {
           const r1 = records[m.t1];
           const r2 = records[m.t2];
@@ -134,6 +150,7 @@ export function simulateSwiss(
             roundWinnerUpdates.push(winner);
             roundLoserUpdates.push(loser);
             playedUpdates.push([m.t1, m.t2]);
+            simPredictions[`${m.t1}-${m.t2}`] = { winner: winner === m.t1 ? 1 : 2, score1: w1, score2: w2, stageRound };
           }
         }
       }
@@ -229,6 +246,7 @@ export function simulateSwiss(
             roundWinnerUpdates.push(winner);
             roundLoserUpdates.push(loser);
             playedUpdates.push([t1, bestMatch]);
+            simPredictions[`${t1}-${bestMatch}`] = { winner: winner === t1 ? 1 : 2, score1: w1, score2: w2, stageRound };
         }
       }
 
@@ -238,6 +256,8 @@ export function simulateSwiss(
         played[t1].add(t2);
         played[t2].add(t1);
       }
+      simPredictionsByRound.push({ ...simPredictions });
+      stageRound++;
     }
 
     const teams30 = new Set<string>();
@@ -250,7 +270,8 @@ export function simulateSwiss(
       else if (r.w === 3) teamsAdvance.add(t);
     }
 
-    results.push({ teams30, teams03, teamsAdvance });
+    results.push({ teams30, teams03, teamsAdvance, simPredictions, simPredictionsByRound });
+
   }
 
   return results;
