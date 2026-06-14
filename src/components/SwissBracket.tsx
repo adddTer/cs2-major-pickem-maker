@@ -876,129 +876,130 @@ export const SwissBracket = ({
           <TransformComponent
             wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}
           >
-            <div className="w-[1200px] h-[840px] relative pointer-events-none px-4 flex-shrink-0">
-              {/* SVG Connections */}
-              <svg
-                className="absolute inset-0 w-full h-full z-0 opacity-45 pointer-events-none"
-                style={{ left: 0, top: 0 }}
-              >
-                <defs>
-                  <linearGradient id="win-grad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity="0" />
-                    <stop offset="100%" stopColor="#10b981" stopOpacity="1" />
-                  </linearGradient>
-                  <linearGradient id="loss-grad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#f43f5e" stopOpacity="0" />
-                    <stop offset="100%" stopColor="#f43f5e" stopOpacity="1" />
-                  </linearGradient>
-                </defs>
-                {pathLines.map((l, i) => (
-                  <DrawPath key={i} p1={l.p1} p2={l.p2} win={l.win} />
-                ))}
-              </svg>
+            <div className="w-[1800px] h-[1400px] relative pointer-events-none flex-shrink-0 flex items-center justify-center">
+              <div className="w-[1200px] h-[840px] relative pointer-events-none px-4">
+                {/* SVG Connections */}
+                <svg
+                  className="absolute inset-0 w-full h-full z-0 opacity-45 pointer-events-none"
+                  style={{ left: 0, top: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="win-grad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity="0" />
+                      <stop offset="100%" stopColor="#10b981" stopOpacity="1" />
+                    </linearGradient>
+                    <linearGradient id="loss-grad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#f43f5e" stopOpacity="0" />
+                      <stop offset="100%" stopColor="#f43f5e" stopOpacity="1" />
+                    </linearGradient>
+                  </defs>
+                  {pathLines.map((l, i) => (
+                    <DrawPath key={i} p1={l.p1} p2={l.p2} win={l.win} />
+                  ))}
+                </svg>
 
-              {/* Swiss Bracket Boxes */}
-              <AbsoluteBox p={pos.g00}>
-                <GroupBox
-                  score="0:0"
-                  count={8}
-                  matches={getMatches("0:0")}
-                  onMatchClick={setSelectedMatch}
-                  simulateWinner={
-                    simulationMode ? handleSimulateWinner : undefined
-                  }
-                />
-              </AbsoluteBox>
-              <AbsoluteBox p={pos.g10}>
-                <GroupBox
-                  score="1:0"
-                  count={4}
-                  matches={getMatches("1:0")}
-                  onMatchClick={setSelectedMatch}
-                  simulateWinner={
-                    simulationMode ? handleSimulateWinner : undefined
-                  }
-                />
-              </AbsoluteBox>
-              <AbsoluteBox p={pos.g01}>
-                <GroupBox
-                  score="0:1"
-                  count={4}
-                  matches={getMatches("0:1")}
-                  onMatchClick={setSelectedMatch}
-                  simulateWinner={
-                    simulationMode ? handleSimulateWinner : undefined
-                  }
-                />
-              </AbsoluteBox>
-              <AbsoluteBox p={pos.g20}>
-                <GroupBox
-                  score="2:0"
-                  count={2}
-                  matches={getMatches("2:0")}
-                  onMatchClick={setSelectedMatch}
-                  simulateWinner={
-                    simulationMode ? handleSimulateWinner : undefined
-                  }
-                />
-              </AbsoluteBox>
-              <AbsoluteBox p={pos.g11}>
-                <GroupBox
-                  score="1:1"
-                  count={4}
-                  matches={getMatches("1:1")}
-                  onMatchClick={setSelectedMatch}
-                  simulateWinner={
-                    simulationMode ? handleSimulateWinner : undefined
-                  }
-                />
-              </AbsoluteBox>
-              <AbsoluteBox p={pos.g02}>
-                <GroupBox
-                  score="0:2"
-                  count={2}
-                  matches={getMatches("0:2")}
-                  onMatchClick={setSelectedMatch}
-                  simulateWinner={
-                    simulationMode ? handleSimulateWinner : undefined
-                  }
-                />
-              </AbsoluteBox>
-              <AbsoluteBox p={pos.g21}>
-                <GroupBox
-                  score="2:1"
-                  count={3}
-                  matches={getMatches("2:1")}
-                  onMatchClick={setSelectedMatch}
-                  simulateWinner={
-                    simulationMode ? handleSimulateWinner : undefined
-                  }
-                />
-              </AbsoluteBox>
-              <AbsoluteBox p={pos.g12}>
-                <GroupBox
-                  score="1:2"
-                  count={3}
-                  matches={getMatches("1:2")}
-                  onMatchClick={setSelectedMatch}
-                  simulateWinner={
-                    simulationMode ? handleSimulateWinner : undefined
-                  }
-                />
-              </AbsoluteBox>
-              <AbsoluteBox p={pos.g22}>
-                <GroupBox
-                  score="2:2"
-                  count={3}
-                  matches={getMatches("2:2")}
-                  onMatchClick={setSelectedMatch}
-                  simulateWinner={
-                    simulationMode ? handleSimulateWinner : undefined
-                  }
-                />
-              </AbsoluteBox>
+                {/* Swiss Bracket Boxes */}
+                <AbsoluteBox p={pos.g00}>
+                  <GroupBox
+                    score="0:0"
+                    count={8}
+                    matches={getMatches("0:0")}
+                    onMatchClick={setSelectedMatch}
+                    simulateWinner={
+                      simulationMode ? handleSimulateWinner : undefined
+                    }
+                  />
+                </AbsoluteBox>
+                <AbsoluteBox p={pos.g10}>
+                  <GroupBox
+                    score="1:0"
+                    count={4}
+                    matches={getMatches("1:0")}
+                    onMatchClick={setSelectedMatch}
+                    simulateWinner={
+                      simulationMode ? handleSimulateWinner : undefined
+                    }
+                  />
+                </AbsoluteBox>
+                <AbsoluteBox p={pos.g01}>
+                  <GroupBox
+                    score="0:1"
+                    count={4}
+                    matches={getMatches("0:1")}
+                    onMatchClick={setSelectedMatch}
+                    simulateWinner={
+                      simulationMode ? handleSimulateWinner : undefined
+                    }
+                  />
+                </AbsoluteBox>
+                <AbsoluteBox p={pos.g20}>
+                  <GroupBox
+                    score="2:0"
+                    count={2}
+                    matches={getMatches("2:0")}
+                    onMatchClick={setSelectedMatch}
+                    simulateWinner={
+                      simulationMode ? handleSimulateWinner : undefined
+                    }
+                  />
+                </AbsoluteBox>
+                <AbsoluteBox p={pos.g11}>
+                  <GroupBox
+                    score="1:1"
+                    count={4}
+                    matches={getMatches("1:1")}
+                    onMatchClick={setSelectedMatch}
+                    simulateWinner={
+                      simulationMode ? handleSimulateWinner : undefined
+                    }
+                  />
+                </AbsoluteBox>
+                <AbsoluteBox p={pos.g02}>
+                  <GroupBox
+                    score="0:2"
+                    count={2}
+                    matches={getMatches("0:2")}
+                    onMatchClick={setSelectedMatch}
+                    simulateWinner={
+                      simulationMode ? handleSimulateWinner : undefined
+                    }
+                  />
+                </AbsoluteBox>
+                <AbsoluteBox p={pos.g21}>
+                  <GroupBox
+                    score="2:1"
+                    count={3}
+                    matches={getMatches("2:1")}
+                    onMatchClick={setSelectedMatch}
+                    simulateWinner={
+                      simulationMode ? handleSimulateWinner : undefined
+                    }
+                  />
+                </AbsoluteBox>
+                <AbsoluteBox p={pos.g12}>
+                  <GroupBox
+                    score="1:2"
+                    count={3}
+                    matches={getMatches("1:2")}
+                    onMatchClick={setSelectedMatch}
+                    simulateWinner={
+                      simulationMode ? handleSimulateWinner : undefined
+                    }
+                  />
+                </AbsoluteBox>
+                <AbsoluteBox p={pos.g22}>
+                  <GroupBox
+                    score="2:2"
+                    count={3}
+                    matches={getMatches("2:2")}
+                    onMatchClick={setSelectedMatch}
+                    simulateWinner={
+                      simulationMode ? handleSimulateWinner : undefined
+                    }
+                  />
+                </AbsoluteBox>
 
-              {/* Advance / Eliminate Result Groups */}
+                {/* Advance / Eliminate Result Groups */}
               <AbsoluteBox p={pos.g30}>
                 <ResultGroup
                   score="3:0"
@@ -1048,6 +1049,7 @@ export const SwissBracket = ({
                   teams={getFinalTeams(2, 3)}
                 />
               </AbsoluteBox>
+            </div>
             </div>
           </TransformComponent>
         </TransformWrapper>

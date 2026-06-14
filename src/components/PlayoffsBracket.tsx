@@ -321,82 +321,84 @@ export const PlayoffsBracket: React.FC<{
         <TransformComponent
           wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}
         >
-          <div className="w-[1100px] h-[800px] relative pointer-events-none flex-shrink-0">
-            <svg
-              className="absolute inset-0 w-full h-full z-0 pointer-events-none"
-              style={{ left: 0, top: 0 }}
-            >
-              {edges.map(([from, to], i) => (
-                <DrawPath key={i} fromId={from} toId={to} />
-              ))}
-            </svg>
+          <div className="w-[1800px] h-[1400px] relative pointer-events-none flex-shrink-0 flex items-center justify-center">
+            <div className="w-[1100px] h-[800px] relative pointer-events-none">
+              <svg
+                className="absolute inset-0 w-full h-full z-0 pointer-events-none"
+                style={{ left: 0, top: 0 }}
+              >
+                {edges.map(([from, to], i) => (
+                  <DrawPath key={i} fromId={from} toId={to} />
+                ))}
+              </svg>
 
-            {[
-              { type: "qf", matchIndex: 0, nodeTop: "qf-1", title: "1/4决赛" },
-              { type: "qf", matchIndex: 1, nodeTop: "qf-3", title: "1/4决赛" },
-              { type: "qf", matchIndex: 2, nodeTop: "qf-5", title: "1/4决赛" },
-              { type: "qf", matchIndex: 3, nodeTop: "qf-7", title: "1/4决赛" },
-              { type: "sf", matchIndex: 0, nodeTop: "sf-1", title: "半决赛" },
-              { type: "sf", matchIndex: 1, nodeTop: "sf-3", title: "半决赛" },
-              {
-                type: "final",
-                matchIndex: 0,
-                nodeTop: "final-1",
-                title: "决 赛",
-              },
-            ].map((header, i) => {
-              const pos = nodes[header.nodeTop];
-              if (!pos) return null;
+              {[
+                { type: "qf", matchIndex: 0, nodeTop: "qf-1", title: "1/4决赛" },
+                { type: "qf", matchIndex: 1, nodeTop: "qf-3", title: "1/4决赛" },
+                { type: "qf", matchIndex: 2, nodeTop: "qf-5", title: "1/4决赛" },
+                { type: "qf", matchIndex: 3, nodeTop: "qf-7", title: "1/4决赛" },
+                { type: "sf", matchIndex: 0, nodeTop: "sf-1", title: "半决赛" },
+                { type: "sf", matchIndex: 1, nodeTop: "sf-3", title: "半决赛" },
+                {
+                  type: "final",
+                  matchIndex: 0,
+                  nodeTop: "final-1",
+                  title: "决 赛",
+                },
+              ].map((header, i) => {
+                const pos = nodes[header.nodeTop];
+                if (!pos) return null;
 
-              const match: BracketMatch | undefined =
-                MATCHES["playoffs"]?.[header.type]?.[header.matchIndex];
+                const match: BracketMatch | undefined =
+                  MATCHES["playoffs"]?.[header.type]?.[header.matchIndex];
 
-              return (
-                <div
-                  key={`header-${i}`}
-                  className="absolute text-[12px] text-zinc-900 dark:text-zinc-200 bg-zinc-200/60 dark:bg-black/60 rounded-sm px-1 py-0.5 font-bold tracking-wider flex items-center justify-center pointer-events-auto cursor-pointer hover:bg-zinc-200/80 dark:bg-black/80 w-[180px] z-50 shadow-md transition-colors hover:text-black dark:text-white"
-                  style={{ left: pos.x, top: pos.y - 24 }}
-                  onClick={() => {
-                    if (match) setSelectedMatch(match);
-                  }}
-                  title="点击查看赛况"
-                >
-                  {header.title}
-                </div>
-              );
-            })}
+                return (
+                  <div
+                    key={`header-${i}`}
+                    className="absolute text-[12px] text-zinc-900 dark:text-zinc-200 bg-zinc-200/60 dark:bg-black/60 rounded-sm px-1 py-0.5 font-bold tracking-wider flex items-center justify-center pointer-events-auto cursor-pointer hover:bg-zinc-200/80 dark:bg-black/80 w-[180px] z-50 shadow-md transition-colors hover:text-black dark:text-white"
+                    style={{ left: pos.x, top: pos.y - 24 }}
+                    onClick={() => {
+                      if (match) setSelectedMatch(match);
+                    }}
+                    title="点击查看赛况"
+                  >
+                    {header.title}
+                  </div>
+                );
+              })}
 
-            {Object.entries(nodes).map(([id, pos]) => {
-              const isCol1 = id.startsWith("qf-");
-              const emptyTitle = readOnly
-                ? "待定"
-                : isCol1
+              {Object.entries(nodes).map(([id, pos]) => {
+                const isCol1 = id.startsWith("qf-");
+                const emptyTitle = readOnly
                   ? "待定"
-                  : "作出您的选择";
+                  : isCol1
+                    ? "待定"
+                    : "作出您的选择";
 
-              return (
-                <div
-                  key={id}
-                  style={{ left: pos.x, top: pos.y }}
-                  className="absolute pointer-events-auto shadow-sm"
-                >
-                  <BracketSlot
-                    slot={
-                      getSlot(id) || {
-                        id,
-                        type: id.split("-")[0] as any,
-                        teamId: null,
+                return (
+                  <div
+                    key={id}
+                    style={{ left: pos.x, top: pos.y }}
+                    className="absolute pointer-events-auto shadow-sm"
+                  >
+                    <BracketSlot
+                      slot={
+                        getSlot(id) || {
+                          id,
+                          type: id.split("-")[0] as any,
+                          teamId: null,
+                        }
                       }
-                    }
-                    readOnly={readOnly}
-                    disableDragDrop={isCol1}
-                    onDrop={onDrop}
-                    onClick={onClick}
-                    emptyTitle={emptyTitle}
-                  />
-                </div>
-              );
-            })}
+                      readOnly={readOnly}
+                      disableDragDrop={isCol1}
+                      onDrop={onDrop}
+                      onClick={onClick}
+                      emptyTitle={emptyTitle}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </TransformComponent>
       </TransformWrapper>
