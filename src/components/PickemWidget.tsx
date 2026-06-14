@@ -55,12 +55,12 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
   return (
     <div className="flex flex-col gap-6 w-full h-full relative">
       {/* 1. Predict ID & Save */}
-      <div className="flex flex-col gap-3 p-4 bg-black/40 rounded-xl border border-white/5">
+      <div className="flex flex-col gap-3 p-4 bg-zinc-200/40 dark:bg-black/40 rounded-xl border border-black/5 dark:border-white/5">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">
+          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest">
             预测昵称 / ID
           </span>
-          <span className="text-[10px] text-zinc-500 flex items-center gap-1">
+          <span className="text-[10px] text-zinc-500 dark:text-zinc-500 flex items-center gap-1">
             <Clock className="w-3 h-3" /> {getStageStatus(activeStage)}
           </span>
         </div>
@@ -69,12 +69,12 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
             type="text"
             value={newNickname}
             onChange={(e) => setNewNickname(e.target.value)}
-            className="flex-1 bg-zinc-900 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-zinc-100 outline-none focus:border-blue-500 transition-colors shadow-inner w-full"
+            className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:border-blue-500 transition-colors shadow-inner w-full"
             placeholder="输入昵称..."
           />
           <button
             onClick={handleSavePick}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors rounded-lg flex items-center justify-center gap-1.5 shrink-0 shadow-lg shadow-blue-900/20"
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-black dark:text-white font-bold text-sm transition-colors rounded-lg flex items-center justify-center gap-1.5 shrink-0 shadow-lg shadow-blue-900/20"
           >
             <CheckCircle2 className="w-4 h-4" /> 保存
           </button>
@@ -82,8 +82,8 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
       </div>
 
       {/* 2. Drag Source Pool */}
-      <div className="flex flex-col gap-3 p-4 bg-zinc-900/50 rounded-xl border border-white/5">
-        <div className="text-[11px] text-zinc-400 font-medium">
+      <div className="flex flex-col gap-3 p-4 bg-zinc-100/50 dark:bg-zinc-900/50 rounded-xl border border-black/5 dark:border-white/5">
+        <div className="text-[11px] text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 font-medium">
           点击队伍，再点击下方槽位；或直接拖动。
         </div>
         {activeStage === "playoffs" && currentPoolTeams.length < 8 && (
@@ -118,13 +118,13 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
                   setSelectedTeamId(isSelected ? null : team.id);
                 }}
                 className={cn(
-                  "w-[46px] h-[46px] sm:w-[50px] sm:h-[50px] flex items-center justify-center rounded-[6px] transition-all bg-black/40 border shrink-0",
+                  "w-[46px] h-[46px] sm:w-[50px] sm:h-[50px] flex items-center justify-center rounded-[6px] transition-all bg-zinc-200/40 dark:bg-black/40 border shrink-0",
                   isPlaced
                     ? "opacity-20 grayscale pointer-events-none border-transparent"
-                    : "cursor-pointer active:cursor-grabbing hover:bg-white/10 hover:border-white/20",
+                    : "cursor-pointer active:cursor-grabbing hover:bg-black/10 dark:bg-white/10 hover:border-black/20 dark:border-white/20",
                   isSelected
                     ? "border-blue-500 bg-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.3)]"
-                    : "border-white/5",
+                    : "border-black/5 dark:border-white/5",
                 )}
               >
                 <div className="w-[30px] h-[30px] sm:w-[32px] sm:h-[32px] flex items-center justify-center pointer-events-none">
@@ -142,7 +142,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
       {/* 3. PickEm Slots */}
       <div className="flex flex-col gap-3">
         {activeStage === "playoffs" ? (
-          <div className="w-full bg-zinc-900/50 p-4 rounded-xl border border-white/5 overflow-x-hidden">
+          <div className="w-full bg-zinc-100/50 dark:bg-zinc-900/50 p-4 rounded-xl border border-black/5 dark:border-white/5 overflow-x-hidden">
             <MiniPlayoffsBracket
               slots={currentSlots.map((s) => ({
                 ...s,

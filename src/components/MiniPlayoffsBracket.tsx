@@ -33,18 +33,18 @@ export const MiniPlayoffsBracket: React.FC<{
   ) => (
     <div
       key={s.id || i}
-      className={`flex items-center gap-1.5 flex-col ${isExport ? "w-[44px]" : "w-[36px] sm:w-[44px]"}`}
+      className={`flex items-center gap-1 flex-col ${isExport ? (compact ? "w-8" : "w-11") : "w-10 sm:w-11"}`}
     >
       <SlotBox
         slot={s}
-        border="border-white/10"
+        border="border-black/10 dark:border-white/10"
         readOnly={readOnly}
         size={compact ? "xs" : "sm"}
         onDrop={onDrop}
         onClick={onClick}
       />
       {showTeamNames && s.teamId && (
-        <div className="text-[9px] text-center font-bold text-zinc-400 break-words leading-[1.1] max-w-full truncate">
+        <div className="text-[9px] text-center font-bold text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 break-words leading-[1.1] max-w-full truncate">
           {TEAMS.find((t) => t.id === s.teamId)?.shortName}
         </div>
       )}
@@ -71,7 +71,7 @@ export const MiniPlayoffsBracket: React.FC<{
             <>
               {!compact && (
                 <span
-                  className={`font-bold text-zinc-400 whitespace-nowrap ${isExport ? "text-[10px] text-left" : "text-[9px] sm:text-[10px] text-center sm:text-left truncate"}`}
+                  className={`font-bold text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 whitespace-nowrap ${isExport ? "text-[10px] text-left" : "text-[9px] sm:text-[10px] text-center sm:text-left truncate"}`}
                 >
                   1/4 决赛胜者
                 </span>
@@ -86,13 +86,13 @@ export const MiniPlayoffsBracket: React.FC<{
               </div>
             </>
           ) : (
-            <span className="text-[10px] text-zinc-600 font-bold py-2 italic opacity-60">
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
               暂无
             </span>
           )}
         </div>
 
-        <div className="hidden sm:block w-px self-stretch my-1 bg-white/5 opacity-50"></div>
+        <div className="hidden sm:block w-px self-stretch my-1 bg-black/5 dark:bg-white/5 opacity-50"></div>
 
         {/* 半决赛胜者 (2 Slots) */}
         <div
@@ -117,13 +117,13 @@ export const MiniPlayoffsBracket: React.FC<{
               </div>
             </>
           ) : (
-            <span className="text-[10px] text-zinc-600 font-bold py-2 italic opacity-60">
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
               暂无
             </span>
           )}
         </div>
 
-        <div className="hidden sm:block w-px self-stretch my-1 bg-white/5 opacity-50"></div>
+        <div className="hidden sm:block w-px self-stretch my-1 bg-black/5 dark:bg-white/5 opacity-50"></div>
 
         {/* 冠军 (1 Slot) */}
         <div
@@ -148,7 +148,7 @@ export const MiniPlayoffsBracket: React.FC<{
               </div>
             </>
           ) : (
-            <span className="text-[10px] text-zinc-600 font-bold py-2 italic opacity-60">
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
               暂无
             </span>
           )}

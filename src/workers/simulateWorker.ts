@@ -1,14 +1,14 @@
 import { simulateSwiss } from '../utils/simulateSwiss';
 
 self.onmessage = async (e: MessageEvent) => {
-    const { allTeams, pastMatches, scheduledMatches, numSimulations, teamStrengths, activeStage, customMatrix } = e.data;
+    const { allTeams, pastMatches, scheduledMatches, numSimulations, teamStrengths, activeStage, customMatrix, isSwissAllBo3 } = e.data;
     const chunkSize = 2000;
     
     const data = new Uint16Array(numSimulations * 3);
     
     for (let simCount = 0; simCount < numSimulations; simCount += chunkSize) {
         const toSimulate = Math.min(chunkSize, numSimulations - simCount);
-        const chunkResults = simulateSwiss(allTeams, pastMatches, scheduledMatches, toSimulate, teamStrengths, activeStage, customMatrix);
+        const chunkResults = simulateSwiss(allTeams, pastMatches, scheduledMatches, toSimulate, teamStrengths, activeStage, customMatrix, isSwissAllBo3);
         
         for (let i = 0; i < chunkResults.length; i++) {
             const r = chunkResults[i];

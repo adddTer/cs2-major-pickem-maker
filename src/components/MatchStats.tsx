@@ -150,13 +150,13 @@ export const MatchStats: React.FC<MatchStatsProps> = ({ matchData, t1, t2 }) => 
                   <TeamLogo team={team} fallbackClasses="text-[9px]" />
                 </div>
               )}
-              <span className="text-[13px] font-bold text-zinc-200">{team?.name || (isT1 ? "Team 1" : "Team 2")}</span>
+              <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-200">{team?.name || (isT1 ? "Team 1" : "Team 2")}</span>
             </div>
             <table className="w-full text-left text-[11px] whitespace-nowrap">
-              <thead className="text-zinc-500 border-b border-white/5 uppercase font-medium">
+              <thead className="text-zinc-500 dark:text-zinc-500 border-b border-black/5 dark:border-white/5 uppercase font-medium">
                 <tr>
                   <th className="font-medium p-2 pl-3">选手</th>
-                  <th className="font-medium p-2 text-center text-zinc-300 w-[50px]">Rating</th>
+                  <th className="font-medium p-2 text-center text-zinc-800 dark:text-zinc-300 w-[50px]">Rating</th>
                   <th className="font-medium p-2 text-center w-[60px]">K-D-A</th>
                   <th className="font-medium p-2 text-center w-[40px]">+ / -</th>
                   <th className="font-medium p-2 text-center w-[50px]">KPR</th>
@@ -172,31 +172,31 @@ export const MatchStats: React.FC<MatchStatsProps> = ({ matchData, t1, t2 }) => 
                 {stats.map((player, idx) => {
                   const rating = parseFloat(player.rating || "0");
                   // 1.00-1.10之间显示为白色。往上显示为绿色，向下显示为红色。
-                  let ratingColor = "text-white";
+                  let ratingColor = "text-black dark:text-white";
                   if (rating > 1.10) {
-                    ratingColor = "text-emerald-400";
+                    ratingColor = "text-emerald-600 dark:text-emerald-400";
                   } else if (rating < 1.00) {
-                    ratingColor = "text-rose-400";
+                    ratingColor = "text-rose-600 dark:text-rose-400";
                   }
                   
                   const diff = player.kd_diff || "";
-                  const diffColor = diff.startsWith("+") ? "text-emerald-400" : diff.startsWith("-") ? "text-rose-400" : "text-zinc-400";
+                  const diffColor = diff.startsWith("+") ? "text-emerald-600 dark:text-emerald-400" : diff.startsWith("-") ? "text-rose-600 dark:text-rose-400" : "text-zinc-500 dark:text-zinc-600 dark:text-zinc-400";
                   
                   const swing = player.swing || "";
-                  const swingColor = swing.startsWith("+") ? "text-emerald-400" : swing.startsWith("-") ? "text-rose-400" : "text-zinc-400";
+                  const swingColor = swing.startsWith("+") ? "text-emerald-600 dark:text-emerald-400" : swing.startsWith("-") ? "text-rose-600 dark:text-rose-400" : "text-zinc-500 dark:text-zinc-600 dark:text-zinc-400";
                   return (
-                    <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="p-2 pl-3 font-bold text-zinc-200">{player.name}</td>
+                    <tr key={idx} className="hover:bg-black/[0.02] dark:bg-white/[0.02] transition-colors">
+                      <td className="p-2 pl-3 font-bold text-zinc-900 dark:text-zinc-200">{player.name}</td>
                       <td className={cn("p-2 text-center font-bold font-mono", ratingColor)}>{player.rating}</td>
-                      <td className="p-2 text-center font-mono text-zinc-400">{player.kill}-{player.death}-{player.assist}</td>
+                      <td className="p-2 text-center font-mono text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">{player.kill}-{player.death}-{player.assist}</td>
                       <td className={cn("p-2 text-center font-mono", diffColor)}>{player.kd_diff}</td>
-                      <td className="p-2 text-center font-mono text-zinc-400">{player.kpr}</td>
-                      <td className="p-2 text-center font-mono text-zinc-400">{player.dpr}</td>
-                      <td className="p-2 text-center font-mono text-zinc-400">{player.kast}</td>
-                      <td className="p-2 text-center font-mono text-zinc-400">{player.adr}</td>
+                      <td className="p-2 text-center font-mono text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">{player.kpr}</td>
+                      <td className="p-2 text-center font-mono text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">{player.dpr}</td>
+                      <td className="p-2 text-center font-mono text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">{player.kast}</td>
+                      <td className="p-2 text-center font-mono text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">{player.adr}</td>
                       <td className={cn("p-2 text-center font-mono", swingColor)}>{player.swing}</td>
-                      <td className="p-2 text-center font-mono text-zinc-400">{player.head_shot_rate}</td>
-                      <td className="p-2 text-center font-mono text-zinc-400">{player.first_blood_num}</td>
+                      <td className="p-2 text-center font-mono text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">{player.head_shot_rate}</td>
+                      <td className="p-2 text-center font-mono text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">{player.first_blood_num}</td>
                     </tr>
                   )
                 })}
@@ -222,11 +222,11 @@ export const MatchStats: React.FC<MatchStatsProps> = ({ matchData, t1, t2 }) => 
   return (
     <div className="flex flex-col gap-4 mt-6 w-full px-1 pb-4">
       <div className="flex items-center justify-between">
-        <h4 className="text-[11px] font-medium text-white/50 tracking-widest px-1">
+        <h4 className="text-[11px] font-medium text-zinc-500 dark:text-white/50 tracking-widest px-1">
           数据总览
         </h4>
         {bouts.length > 1 && (
-          <div className="flex bg-zinc-900 border border-white/5 rounded-lg p-0.5 mt-1 overflow-x-auto scrollbar-none">
+          <div className="flex bg-zinc-100 dark:bg-zinc-900 border border-black/5 dark:border-white/5 rounded-lg p-0.5 mt-1 overflow-x-auto scrollbar-none">
             {bouts.map((bout: any, idx: number) => (
               <button
                 key={idx}
@@ -234,8 +234,8 @@ export const MatchStats: React.FC<MatchStatsProps> = ({ matchData, t1, t2 }) => 
                 className={cn(
                   "px-3 py-1.5 text-[10px] font-bold rounded-md transition-all whitespace-nowrap",
                   activeBoutIndex === idx 
-                    ? "bg-zinc-800 text-white shadow-sm border border-white/10" 
-                    : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+                    ? "bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm border border-black/10 dark:border-white/10" 
+                    : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-300 hover:bg-black/5 dark:bg-white/5"
                 )}
               >
                 {getBoutDisplay(bout, idx)}
@@ -245,7 +245,7 @@ export const MatchStats: React.FC<MatchStatsProps> = ({ matchData, t1, t2 }) => 
         )}
       </div>
 
-      <div className="bg-zinc-900/80 border border-white/5 rounded-xl p-3 pt-5 flex flex-col items-center">
+      <div className="bg-zinc-100/80 dark:bg-zinc-900/80 border border-black/5 dark:border-white/5 rounded-xl p-3 pt-5 flex flex-col items-center">
         {renderTable(t1, activeBout.t1_pr_stats, true)}
         {renderTable(t2, activeBout.t2_pr_stats, false)}
       </div>

@@ -20,7 +20,7 @@ export const MatchParticipant = ({ teamId }: { teamId?: string }) => {
     );
   }
   return (
-    <div className="w-[32px] h-[32px] shrink-0 rounded-[4px] bg-zinc-950/80 border border-white/10 flex items-center justify-center font-bold text-zinc-500 text-[11px] shadow-inner pb-[1px] relative zoom-in-95 animate-in">
+    <div className="w-[32px] h-[32px] shrink-0 rounded-[4px] bg-zinc-50/80 dark:bg-zinc-950/80 border border-black/10 dark:border-white/10 flex items-center justify-center font-bold text-zinc-500 dark:text-zinc-500 text-[11px] shadow-inner pb-[1px] relative zoom-in-95 animate-in">
       ?
     </div>
   );
@@ -33,6 +33,18 @@ const MatchLine: React.FC<{
   isSimulated?: boolean;
 }> = ({ match, onClick, simulateWinner, isSimulated }) => {
   const hasResult = match?.score1 !== undefined && match?.score2 !== undefined;
+  
+  let isFinished = false;
+  if (hasResult) {
+    if (match?.format === "bo3") {
+      isFinished = match.score1 === 2 || match.score2 === 2;
+    } else if (match?.format === "bo5") {
+      isFinished = match.score1 === 3 || match.score2 === 3;
+    } else {
+      isFinished = match.score1 !== match.score2; // bo1, not a draw
+    }
+  }
+  
   const isLive = match?.status === "live";
 
   let displayLeft = match?.score1;
@@ -73,8 +85,8 @@ const MatchLine: React.FC<{
   return (
     <div
       className={cn(
-        "flex flex-col items-center relative z-20 w-full px-2 h-[54px] justify-center border-b border-white/5 last:border-[0px] transition-colors group rounded-sm",
-        isClickable ? "cursor-pointer hover:bg-white/5" : "",
+        "flex flex-col items-center relative z-20 w-full px-2 h-[54px] justify-center border-b border-black/5 dark:border-white/5 last:border-[0px] transition-colors group rounded-sm",
+        isClickable ? "cursor-pointer hover:bg-black/5 dark:bg-white/5" : "",
       )}
       title={titleStr}
       onClick={() => {
@@ -88,7 +100,7 @@ const MatchLine: React.FC<{
           onClick={(e) => (simulateWinner ? handleTeamClick(e, 1) : undefined)}
           className={cn(
             "p-1 rounded transition-all",
-            simulateWinner ? "cursor-pointer hover:bg-white/10" : "",
+            simulateWinner ? "cursor-pointer hover:bg-black/10 dark:bg-white/10" : "",
             hasResult && (match?.score2 ?? 0) > (match?.score1 ?? 0)
               ? "opacity-30 grayscale"
               : "opacity-100",
@@ -106,40 +118,40 @@ const MatchLine: React.FC<{
                 className={cn(
                   "flex-1 text-right text-[11px] font-bold",
                   isLive && !isSimulated
-                    ? "text-white"
+                    ? "text-black dark:text-white"
                     : (displayLeft ?? 0) > (displayRight ?? 0)
                       ? "text-emerald-400 drop-shadow-sm"
-                      : "text-zinc-500",
+                      : "text-zinc-500 dark:text-zinc-500",
                 )}
               >
                 {displayLeft}
               </span>
-              <span className="w-[8px] text-center shrink-0 text-[10px] text-zinc-700">
+              <span className="w-[8px] text-center shrink-0 text-[10px] text-zinc-400 dark:text-zinc-700">
                 -
               </span>
               <span
                 className={cn(
                   "flex-1 text-left text-[11px] font-bold",
                   isLive && !isSimulated
-                    ? "text-white"
+                    ? "text-black dark:text-white"
                     : (displayRight ?? 0) > (displayLeft ?? 0)
                       ? "text-emerald-400 drop-shadow-sm"
-                      : "text-zinc-500",
+                      : "text-zinc-500 dark:text-zinc-500",
                 )}
               >
                 {displayRight}
               </span>
             </div>
             {isSimulated ? (
-              <span className="absolute -bottom-[4px] text-[8px] text-zinc-100 font-bold bg-blue-600/90 px-1 rounded-[2px] tracking-tighter scale-[0.8]">
+              <span className="absolute -bottom-[4px] text-[8px] text-zinc-900 dark:text-zinc-100 font-bold bg-blue-600/90 px-1 rounded-[2px] tracking-tighter scale-[0.8]">
                 SIM
               </span>
             ) : isLive ? (
-              <span className="absolute -bottom-[4px] text-[8px] text-zinc-100 font-bold bg-rose-600/90 px-1 rounded-[2px] tracking-tighter scale-[0.8]">
+              <span className="absolute -bottom-[4px] text-[8px] text-zinc-900 dark:text-zinc-100 font-bold bg-rose-600/90 px-1 rounded-[2px] tracking-tighter scale-[0.8]">
                 LIVE
               </span>
             ) : match.format === "bo3" || match.format === "bo5" ? (
-              <span className="absolute -bottom-[4px] text-[8px] text-zinc-500 uppercase font-mono tracking-tighter scale-75">
+              <span className="absolute -bottom-[4px] text-[8px] text-zinc-500 dark:text-zinc-500 uppercase font-mono tracking-tighter scale-75">
                 {match.format.toUpperCase()}
               </span>
             ) : null}
@@ -149,18 +161,22 @@ const MatchLine: React.FC<{
             <span className="text-[10px] text-zinc-600/80 font-medium w-full text-center uppercase tracking-widest shrink-0 transition-colors">
               vs
             </span>
-            {(match?.format === "bo3" || match?.format === "bo5") && (
-              <span className="absolute -bottom-[4px] text-[8px] text-zinc-500 uppercase font-mono tracking-tighter scale-75">
+            {isLive ? (
+              <span className="absolute -bottom-[4px] text-[8px] text-zinc-900 dark:text-zinc-100 font-bold bg-rose-600/90 px-1 rounded-[2px] tracking-tighter scale-[0.8]">
+                LIVE
+              </span>
+            ) : (match?.format === "bo3" || match?.format === "bo5") ? (
+              <span className="absolute -bottom-[4px] text-[8px] text-zinc-500 dark:text-zinc-500 uppercase font-mono tracking-tighter scale-75">
                 {match.format.toUpperCase()}
               </span>
-            )}
+            ) : null}
           </div>
         )}
         <div
           onClick={(e) => (simulateWinner ? handleTeamClick(e, 2) : undefined)}
           className={cn(
             "p-1 rounded transition-all",
-            simulateWinner ? "cursor-pointer hover:bg-white/10" : "",
+            simulateWinner ? "cursor-pointer hover:bg-black/10 dark:bg-white/10" : "",
             hasResult && (match?.score1 ?? 0) > (match?.score2 ?? 0)
               ? "opacity-30 grayscale"
               : "opacity-100",
@@ -190,8 +206,8 @@ const GroupBox = ({
   simulateWinner?: (m: BracketMatch, winner: 1 | 2 | 0) => void;
 }) => {
   return (
-    <div className="bg-zinc-900/60 border border-white/5 rounded-[8px] px-1 pt-6 pb-2 flex flex-col items-center relative shadow-lg w-[156px] shrink-0 z-10 backdrop-blur-sm pointer-events-auto">
-      <div className="absolute top-1.5 right-2 text-[11px] font-bold text-zinc-500 uppercase tracking-tighter">
+    <div className="bg-white/80 dark:bg-zinc-900/60 border border-black/10 dark:border-white/5 rounded-[8px] px-1 pt-6 pb-2 flex flex-col items-center relative shadow-md dark:shadow-none w-[156px] shrink-0 z-10 backdrop-blur-sm pointer-events-auto">
+      <div className="absolute top-1.5 right-2 text-[11px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-tighter">
         {score}
       </div>
       <div className="flex flex-col w-full items-center justify-center relative">
@@ -248,16 +264,16 @@ const ResultGroup = ({
   return (
     <div
       className={cn(
-        "border rounded-[8px] px-1 pt-6 pb-2 flex flex-col items-center relative shadow-lg w-[156px] shrink-0 z-10 backdrop-blur-sm pointer-events-auto",
+        "border rounded-[8px] px-1 pt-6 pb-2 flex flex-col items-center relative shadow-md dark:shadow-none w-[156px] shrink-0 z-10 backdrop-blur-sm pointer-events-auto",
         win
-          ? "bg-emerald-900/60 border-emerald-500/20"
-          : "bg-rose-950/60 border-rose-500/20",
+          ? "bg-emerald-50/80 dark:bg-emerald-900/60 border-emerald-500/30 dark:border-emerald-500/20 bg-gradient-to-bl from-emerald-500/10 dark:from-emerald-500/20 via-transparent dark:via-transparent to-transparent"
+          : "bg-rose-50/80 dark:bg-rose-950/60 border-rose-500/30 dark:border-rose-500/20 bg-gradient-to-bl from-rose-500/10 dark:from-rose-500/20 via-transparent dark:via-transparent to-transparent",
       )}
     >
       <div
         className={cn(
           "absolute top-1.5 right-2 text-[11px] font-bold uppercase tracking-tighter",
-          win ? "text-emerald-500/80" : "text-rose-500/80",
+          win ? "text-emerald-600 dark:text-emerald-500/80" : "text-rose-600 dark:text-rose-500/80",
         )}
       >
         {score}
@@ -266,7 +282,7 @@ const ResultGroup = ({
         {Array.from({ length: count }).map((_, i) => (
           <div
             key={i}
-            className="flex flex-col items-center relative z-20 w-full px-2 h-[54px] justify-center border-b border-white/5 last:border-[0px]"
+            className="flex flex-col items-center relative z-20 w-full px-2 h-[54px] justify-center border-b border-black/5 dark:border-white/5 last:border-[0px]"
           >
             <div className="flex items-center gap-2 justify-center w-full">
                <div className="p-1 rounded opacity-100">
@@ -299,10 +315,14 @@ export const SwissBracket = ({
   activeStage,
   externalPredictions,
   isAnimating,
+  refreshTrigger,
+  currentEvent,
 }: {
   activeStage: string;
   externalPredictions?: Record<string, any>;
   isAnimating?: boolean;
+  refreshTrigger?: number;
+  currentEvent?: import("../types").TournamentEvent;
 }) => {
   const [selectedMatch, setSelectedMatch] = useState<BracketMatch | null>(null);
   const [simulationMode, setSimulationMode] = useState(false);
@@ -482,7 +502,7 @@ export const SwissBracket = ({
           map[group].push({
             team1Id: teamA,
             team2Id: teamB,
-            format: activeStage === "stage3" ? "bo3" : (w === 2 || l === 2 ? "bo3" : "bo1"),
+            format: currentEvent?.isSwissAllBo3 ? "bo3" : (activeStage === "stage3" ? "bo3" : (w === 2 || l === 2 ? "bo3" : "bo1")),
           } as BracketMatch);
         });
 
@@ -525,12 +545,25 @@ export const SwissBracket = ({
               teamsRecord[m.team2Id].wins++;
             });
           } else {
-            const hasResult =
+            let hasResult =
               m.score1 !== undefined &&
               m.score2 !== undefined &&
               m.status === "past";
+            
+            let t1Wins = false;
             if (hasResult) {
-              const t1Wins = m.score1! > m.score2!;
+              if (m.format === "bo3") {
+                t1Wins = m.score1 === 2;
+                if (m.score1 !== 2 && m.score2 !== 2) hasResult = false;
+              } else if (m.format === "bo5") {
+                t1Wins = m.score1 === 3;
+                if (m.score1 !== 3 && m.score2 !== 3) hasResult = false;
+              } else {
+                t1Wins = m.score1! > m.score2!;
+              }
+            }
+
+            if (hasResult) {
               if (t1Wins) {
                 roundRecordUpdates.push(() => {
                   teamsRecord[m.team1Id].wins++;
@@ -563,7 +596,7 @@ export const SwissBracket = ({
     });
 
     return map;
-  }, [activeSimMode, activeStage, activePredictions]);
+  }, [activeSimMode, activeStage, activePredictions, refreshTrigger]);
 
   React.useEffect(() => {
     if (selectedMatch) {
@@ -579,11 +612,11 @@ export const SwissBracket = ({
           break;
         }
       }
-      if (updatedMatch) {
+      if (updatedMatch && JSON.stringify(selectedMatch) !== JSON.stringify(updatedMatch)) {
         setSelectedMatch(updatedMatch);
       }
     }
-  }, [matchesMap]);
+  }, [matchesMap, selectedMatch]);
 
   const handleSimulateWinner = (match: BracketMatch, winner: 1 | 2 | 0) => {
     let score1 = 0;
@@ -734,21 +767,26 @@ export const SwissBracket = ({
         const match = m as BracketMatch;
         let hasResult =
           match.score1 !== undefined && match.score2 !== undefined;
+        
         if (hasResult) {
-          let t1Win = match.score1! > match.score2!;
-          let t2Win = match.score2! > match.score1!;
-
-          if (!t1Win && !t2Win) {
-            hasResult = false;
+          let isFinished = false;
+          if (match.format === "bo3") {
+            isFinished = match.score1 === 2 || match.score2 === 2;
+          } else if (match.format === "bo5") {
+            isFinished = match.score1 === 3 || match.score2 === 3;
+          } else {
+            isFinished = match.score1 !== match.score2;
           }
-
-          if (hasResult) {
-            if (match.team1Id) {
+          
+          if (isFinished) {
+            let t1Win = match.score1! > match.score2!;
+            
+            if (match.team1Id && match.team1Id !== "tbd") {
               if (!records[match.team1Id])
                 records[match.team1Id] = { w: 0, l: 0 };
               t1Win ? records[match.team1Id].w++ : records[match.team1Id].l++;
             }
-            if (match.team2Id) {
+            if (match.team2Id && match.team2Id !== "tbd") {
               if (!records[match.team2Id])
                 records[match.team2Id] = { w: 0, l: 0 };
               t1Win ? records[match.team2Id].l++ : records[match.team2Id].w++;
@@ -783,10 +821,10 @@ export const SwissBracket = ({
               className={cn(
                 "px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2",
                 isRoundIncomplete
-                  ? "opacity-50 cursor-not-allowed bg-black/50 text-zinc-600 border-white/5"
+                  ? "opacity-50 cursor-not-allowed bg-zinc-200/50 dark:bg-black/50 text-zinc-500 dark:text-zinc-600 border-black/5 dark:border-white/5"
                   : simulationMode
                     ? "bg-blue-600/20 text-blue-400 border-blue-500/50"
-                    : "bg-black/50 text-zinc-400 border-white/10 hover:bg-white/5",
+                    : "bg-zinc-200/50 dark:bg-black/50 text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 border-black/10 dark:border-white/10 hover:bg-black/5 dark:bg-white/5",
               )}
             >
               {simulationMode ? (
@@ -804,7 +842,7 @@ export const SwissBracket = ({
             {simulationMode && (
                <button 
                  onClick={handleAutoSimulateNextRound}
-                 className="px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2 bg-zinc-700/50 text-zinc-300 border-zinc-600/50 hover:bg-zinc-700/80"
+                 className="px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2 bg-zinc-700/50 text-zinc-800 dark:text-zinc-300 border-zinc-600/50 hover:bg-zinc-700/80"
                >
                  推演下一轮
                </button>
@@ -818,7 +856,7 @@ export const SwissBracket = ({
           </div>
         ) : (
           simulationMode && (
-            <div className="mt-2 text-[10px] text-zinc-400 bg-black/50 px-2 py-1 rounded w-max border border-white/5">
+            <div className="mt-2 text-[10px] text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 bg-zinc-200/50 dark:bg-black/50 px-2 py-1 rounded w-max border border-black/5 dark:border-white/5">
               点击队伍标识切换胜负关系
             </div>
           )

@@ -1,14 +1,18 @@
-import { useMemo, useCallback, useState, useEffect } from "react";
+import { useMemo, useCallback, useState, useEffect, useRef } from "react";
 import { MATCHES, ACTUAL_RESULTS } from "../data/matches";
 import { TEAMS } from "../data/teams";
 import { PickSlot, SlotType } from "../types";
+
+import { TournamentEvent } from "../types";
 
 export function useMatchLogic(
   activeStage: string,
   refreshTrigger?: number,
   viewMode?: string,
+  currentEvent?: TournamentEvent
 ) {
   const [simulatedFutures, setSimulatedFutures] = useState<any>([]);
+  const [isSimulatingStage, setIsSimulatingStage] = useState(false);
 
   const getScheduledMatches = (stage: string) => {
     const stageMatchesMap = MATCHES[stage];
@@ -149,31 +153,47 @@ export function useMatchLogic(
           numSimulations,
           teamStrengths,
           activeStage,
+          isSwissAllBo3: currentEvent?.isSwissAllBo3,
         });
       });
     },
     [activeStage, refreshTrigger],
   );
 
+  const simulationSeedRef = useRef("");
+
   useEffect(() => {
     let isMounted = true;
-    setSimulatedFutures([]);
+
+    const seedStr = JSON.stringify({
+      s: activeStage,
+      m: MATCHES[activeStage],
+      a: ACTUAL_RESULTS[activeStage],
+    });
+
+    if (simulationSeedRef.current === seedStr && simulatedFutures.length > 0) {
+      return;
+    }
+    simulationSeedRef.current = seedStr;
+
+    setIsSimulatingStage(true);
 
     const targetCount = viewMode === "summary" ? 5000 : 300;
     runSimulationAsync(targetCount, (p, partial) => {
-      if (isMounted && partial) {
+      if (isMounted && partial && viewMode !== "summary") {
         setSimulatedFutures(partial);
       }
     }).then((results) => {
       if (isMounted) {
         setSimulatedFutures(results);
+        setIsSimulatingStage(false);
       }
     });
 
     return () => {
       isMounted = false;
     };
-  }, [runSimulationAsync, viewMode]);
+  }, [runSimulationAsync, viewMode, activeStage]);
 
   const getTeamRecords = useCallback(
     (stage: string) => {
@@ -363,7 +383,27 @@ export function useMatchLogic(
 
   const getSetStatus = useCallback(
     (theirPicks: PickSlot[], stage: string, customFutures?: any[]) => {
-      if (stage === "playoffs") return null;
+      if (stage === "playoffs") {
+        let correctCount = 0;
+        let pendingCount = 0;
+        let incorrectCount = 0;
+        
+        theirPicks.forEach(p => {
+          if (p.teamId) {
+            const pred = checkPrediction(p.teamId, p.type, stage);
+            if (pred === "correct") correctCount++;
+            else if (pred === "incorrect") incorrectCount++;
+            else pendingCount++;
+          }
+        });
+        
+        return {
+          correctCount,
+          possiblePass: pendingCount > 0 ? 1 : 0, 
+          clashes: [],
+          perfectMath: false
+        };
+      }
 
       const records = getTeamRecords(stage) as Record<
         string,
@@ -705,5 +745,6 @@ export function useMatchLogic(
     activeStageActuals,
     checkPrediction,
     getSetStatus,
+    isSimulatingStage,
   };
 }

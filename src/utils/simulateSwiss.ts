@@ -16,7 +16,8 @@ export function simulateSwiss(
   numSimulations: number = 200,
   teamStrengths: Record<string, number> = {},
   activeStage: string = "stage1",
-  customMatrix?: Record<string, Record<string, number>>
+  customMatrix?: Record<string, Record<string, number>>,
+  isSwissAllBo3: boolean = false
 ): SwissSimulationResult[] {
   const initialRecords: Record<string, { w: number; l: number }> = {};
   const initialPlayed: Record<string, Set<string>> = {};
@@ -49,29 +50,30 @@ export function simulateSwiss(
   for (let sim = 0; sim < numSimulations; sim++) {
     const simPredictions: Record<string, any> = {};
     const simPredictionsByRound: Record<string, any>[] = [];
-    const records = { ...initialRecords };
-    for (const t in records) records[t] = { ...records[t] };
+    const records: Record<string, {w: number, l: number}> = {};
+    const played: Record<string, Set<string>> = {};
+    let active: string[] = [];
 
-    const played = { ...initialPlayed };
-    for (const t in played) played[t] = new Set(played[t]);
-
-    const getActiveTeams = () =>
-      Object.entries(records)
-        .filter(([_, r]) => r.w < 3 && r.l < 3)
-        .map(([t]) => t);
+    for (const t of allTeams) {
+      records[t] = { w: initialRecords[t].w, l: initialRecords[t].l };
+      played[t] = new Set(initialPlayed[t]);
+      if (records[t].w < 3 && records[t].l < 3) {
+        active.push(t);
+      }
+    }
 
     let safetyCounter = 0;
     let stageRound = 0;
 
-    while (getActiveTeams().length > 0 && safetyCounter < 50) {
+    while (active.length > 0 && safetyCounter < 50) {
       safetyCounter++;
-      const active = getActiveTeams();
 
       const roundWinnerUpdates: string[] = [];
       const roundLoserUpdates: string[] = [];
       const playedUpdates: [string, string][] = [];
 
       const getFormat = (w: number, l: number) => {
+        if (isSwissAllBo3) return "bo3";
         if (activeStage === "stage3") return "bo3";
         return w === 2 || l === 2 ? "bo3" : "bo1";
       };
@@ -179,7 +181,10 @@ export function simulateSwiss(
         };
 
         const getInitialSeed = (t: string) => {
-          return GLOBAL_SEEDING[t] || allTeams.indexOf(t) || 99;
+          const globalSeed = GLOBAL_SEEDING[t];
+          if (globalSeed !== undefined) return globalSeed;
+          const idx = allTeams.indexOf(t);
+          return idx !== -1 ? idx : 99;
         };
 
         // Sort teams by Buchholz, then Initial Seed
@@ -256,6 +261,15 @@ export function simulateSwiss(
         played[t1].add(t2);
         played[t2].add(t1);
       }
+      
+      const nextActive: string[] = [];
+      for (const t of active) {
+        if (records[t].w < 3 && records[t].l < 3) {
+          nextActive.push(t);
+        }
+      }
+      active = nextActive;
+
       simPredictionsByRound.push({ ...simPredictions });
       stageRound++;
     }

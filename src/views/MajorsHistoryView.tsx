@@ -99,30 +99,30 @@ export const MajorsHistoryView: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full h-full p-4 lg:p-8 overflow-y-auto custom-scrollbar flex flex-col gap-6 text-zinc-200">
+    <div className="w-full h-full p-4 lg:p-8 overflow-y-auto custom-scrollbar flex flex-col gap-6 text-zinc-900 dark:text-zinc-200">
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-20">
         {updatedMajorHistory.map((major, index) => (
           <div
             key={index}
-            className="flex flex-col rounded-xl overflow-hidden bg-[#0a0f0d]/80 border border-white/5 shadow-2xl backdrop-blur-md"
+            className="flex flex-col rounded-xl overflow-hidden bg-white/80 dark:bg-[#0a0f0d]/80 border border-black/10 dark:border-white/5 shadow-md dark:shadow-2xl backdrop-blur-md"
           >
-            <div className="px-5 py-4 border-b border-white/10 bg-black/40 flex flex-col gap-3">
+            <div className="px-5 py-4 border-b border-black/5 dark:border-white/10 bg-zinc-100/50 dark:bg-black/40 flex flex-col gap-3">
               <div className="flex items-start justify-between gap-4">
-                <h2 className="text-lg font-bold text-zinc-100 leading-tight">
+                <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-tight">
                   {major.name}
                 </h2>
                 <span
                   className={cn(
                     "text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded whitespace-nowrap",
                     major.game === "CS2"
-                      ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-                      : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                      ? "bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/20 dark:border-orange-500/30"
+                      : "bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 dark:border-blue-500/30"
                   )}
                 >
                   {major.game}
                 </span>
               </div>
-              <div className="flex items-center gap-5 text-xs font-medium text-zinc-400">
+              <div className="flex items-center gap-5 text-xs font-medium text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">
                 <div className="flex items-center gap-1.5" title="举办时间">
                   <Calendar className="w-3.5 h-3.5 opacity-70" />
                   {major.date}
@@ -138,26 +138,26 @@ export const MajorsHistoryView: React.FC = () => {
               {/* Champion & Runner-up */}
               <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-white/10 gap-4 sm:gap-0">
                 <div className="flex-1 flex flex-col gap-2 sm:pr-4">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-yellow-500/80 uppercase tracking-widest">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-yellow-600 dark:text-yellow-500/80 uppercase tracking-widest">
                     <Trophy className="w-3.5 h-3.5" /> 冠军
                   </div>
-                  <div className="text-yellow-400">
+                  <div className="text-yellow-600 dark:text-yellow-400">
                     <TeamDisplay name={major.champion} isLarge={true} />
                   </div>
                 </div>
                 <div className="flex-1 flex flex-col gap-2 pt-4 sm:pt-0 sm:pl-4">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
                     <Medal className="w-3.5 h-3.5" /> 亚军
                   </div>
-                  <div className="text-zinc-200">
+                  <div className="text-zinc-900 dark:text-zinc-200">
                     <TeamDisplay name={major.runnerUp} isLarge={true} />
                   </div>
                 </div>
               </div>
 
               {/* 3rd-4th */}
-              <div className="flex flex-col gap-3 pt-4 border-t border-white/5">
-                <div className="text-xs font-bold text-orange-400/80 uppercase tracking-widest flex items-center gap-1.5">
+              <div className="flex flex-col gap-3 pt-4 border-t border-black/5 dark:border-white/5">
+                <div className="text-xs font-bold text-orange-600 dark:text-orange-400/80 uppercase tracking-widest flex items-center gap-1.5">
                   <Star className="w-3 h-3" /> 3-4名
                 </div>
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -168,8 +168,8 @@ export const MajorsHistoryView: React.FC = () => {
               </div>
 
               {/* 5th-8th */}
-              <div className="flex flex-col gap-3 pt-4 border-t border-white/5">
-                <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+              <div className="flex flex-col gap-3 pt-4 border-t border-black/5 dark:border-white/5">
+                <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest">
                   5-8名
                 </div>
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-3">

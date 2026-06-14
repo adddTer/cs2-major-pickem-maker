@@ -19,7 +19,7 @@ export const TeamLogo = ({
       return (
         <div
           className={cn(
-            "flex items-center justify-center w-full h-full text-center overflow-hidden rounded-[2px] bg-transparent text-zinc-500 font-bold text-lg",
+            "flex items-center justify-center w-full h-full text-center overflow-hidden rounded-[2px] bg-transparent text-zinc-500 dark:text-zinc-500 font-bold text-lg",
             fallbackClasses,
           )}
         >
@@ -54,7 +54,7 @@ export const TeamLogo = ({
       alt={team.name}
       {...(forceProxy ? { crossOrigin: "anonymous" } : {})}
       referrerPolicy="no-referrer"
-      className={cn("max-w-full max-h-full object-contain filter", !forceProxy && "p-[2px]")}
+      className={cn("max-w-full max-h-full object-contain filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)] dark:drop-shadow-none transition-all", !forceProxy && "p-[2px]")}
       onError={() => {
         if (!useProxy) {
           setUseProxy(true);

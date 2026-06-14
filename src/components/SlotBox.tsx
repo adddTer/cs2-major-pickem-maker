@@ -49,20 +49,20 @@ export const SlotBox: React.FC<{
           : () => onClick && onClick(slot.id, slot.teamId)
       }
       className={cn(
-        "rounded-[12px] bg-zinc-900/60 flex items-center justify-center transition-all duration-300 group relative border shrink-0",
+        "rounded-[12px] bg-zinc-100/60 dark:bg-zinc-900/60 flex items-center justify-center transition-all duration-300 group relative border shrink-0",
         !isExport &&
           !isTbd &&
-          "backdrop-blur-md shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]",
-        isExport && isTbd && "bg-zinc-900",
+          "backdrop-blur-md shadow-[inset_0_1px_4px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]",
+        isExport && isTbd && "bg-zinc-100 dark:bg-zinc-900",
         isXs
-          ? "w-7 h-7 sm:w-8 sm:h-8 rounded-md"
+          ? "w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg"
           : isSm
-            ? "w-9 h-9 sm:w-11 sm:h-11"
-            : "w-[3.25rem] h-[3.25rem] md:w-[68px] md:h-[68px] z-10",
+            ? "w-9 h-9 sm:w-11 sm:h-11 rounded-[10px] sm:rounded-xl"
+            : "w-[3.25rem] h-[3.25rem] md:w-[68px] md:h-[68px] rounded-xl lg:rounded-2xl z-10",
         readOnly && !slot.resultStatus
           ? ""
           : !readOnly && !isTbd
-            ? "hover:bg-zinc-800/80 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
+            ? "hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
             : "",
         slot.resultStatus === "correct"
           ? cn(
@@ -73,11 +73,11 @@ export const SlotBox: React.FC<{
             ? "border-rose-500/40 bg-rose-500/10"
             : team && !isTbd
               ? cn(
-                  "border-white/15 bg-zinc-800 hover:bg-zinc-700/80",
-                  !isExport && "shadow-md",
+                  "border-black/15 dark:border-white/15 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700/80",
+                  !isExport && "shadow-md dark:shadow-md",
                   border,
                 )
-              : "border-white/20 hover:border-white/40 border-dashed bg-zinc-800/40 shadow-inner",
+              : "border-black/10 dark:border-white/20 hover:border-black/20 dark:border-white/40 border-dashed bg-zinc-200/50 dark:bg-zinc-800/40 shadow-inner",
         slot.clashType === "x-one" &&
           slot.resultStatus === "unknown" &&
           "border-amber-500/30 bg-amber-500/5",
@@ -92,34 +92,34 @@ export const SlotBox: React.FC<{
       {slot.resultStatus === "correct" && (
         <CheckCircle2
           color="#34d399"
-          className="absolute -top-1.5 -right-1.5 text-emerald-400 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20"
+          className="absolute -top-1.5 -right-1.5 text-emerald-400 w-3 h-3 sm:w-4 sm:h-4 bg-white dark:bg-black rounded-full z-20"
         />
       )}
       {slot.resultStatus === "incorrect" && (
         <XCircle
           color="#f43f5e"
-          className="absolute -top-1.5 -right-1.5 text-rose-500 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20"
+          className="absolute -top-1.5 -right-1.5 text-rose-500 w-3 h-3 sm:w-4 sm:h-4 bg-white dark:bg-black rounded-full z-20"
         />
       )}
 
       {slot.resultStatus === "unknown" && slot.clashType === "x-one" && (
         <Swords
           color="#f59e0b"
-          className="absolute -top-1.5 -right-1.5 text-amber-500 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20 p-[1px] sm:p-[2px]"
+          className="absolute -top-1.5 -right-1.5 text-amber-500 w-3 h-3 sm:w-4 sm:h-4 bg-white dark:bg-black rounded-full z-20 p-[1px] sm:p-[2px]"
           title="内战：这两支选择队伍中必定有一支正确，一支错误"
         />
       )}
       {slot.resultStatus === "unknown" && slot.clashType === "x-fail" && (
         <AlertCircle
           color="#f43f5e"
-          className="absolute -top-1.5 -right-1.5 text-rose-500 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20"
+          className="absolute -top-1.5 -right-1.5 text-rose-500 w-3 h-3 sm:w-4 sm:h-4 bg-white dark:bg-black rounded-full z-20"
           title="内战：这两支选择队伍中必定有一支会错误，仅可能存活一支"
         />
       )}
       {slot.resultStatus === "unknown" && slot.clashType === "x-pass" && (
         <CheckCircle2
           color="#10b981"
-          className="absolute -top-1.5 -right-1.5 text-emerald-500 w-3 h-3 sm:w-4 sm:h-4 bg-black rounded-full z-20 opacity-80"
+          className="absolute -top-1.5 -right-1.5 text-emerald-500 w-3 h-3 sm:w-4 sm:h-4 bg-white dark:bg-black rounded-full z-20 opacity-80"
           title="内战：这两支选择队伍中必定有一支会正确晋级"
         />
       )}
@@ -129,10 +129,10 @@ export const SlotBox: React.FC<{
           className={cn(
             "flex flex-col items-center justify-center animate-in zoom-in-95 duration-200 overflow-hidden",
             isXs
-              ? "w-5 h-5 sm:w-6 sm:h-6"
+              ? "w-[85%] h-[85%]"
               : isSm
-                ? "w-7 h-7 sm:w-8 sm:h-8"
-                : "w-[2.375rem] h-[2.375rem] md:w-[46px] md:h-[46px]",
+                ? "w-[85%] h-[85%]"
+                : "w-[80%] h-[80%]",
           )}
         >
           <TeamLogo
@@ -146,7 +146,7 @@ export const SlotBox: React.FC<{
       ) : slot.resultStatus === "unknown" ? (
         <span
           className={cn(
-            "font-black tracking-widest transition-opacity opacity-50 group-hover:opacity-60 text-zinc-500",
+            "font-black tracking-widest transition-opacity opacity-50 group-hover:opacity-60 text-zinc-500 dark:text-zinc-500",
             isXs
               ? "text-sm sm:text-lg"
               : isSm
@@ -159,7 +159,7 @@ export const SlotBox: React.FC<{
       ) : (
         <span
           className={cn(
-            "font-medium transition-opacity opacity-20 group-hover:opacity-40 text-zinc-400 cursor-copy",
+            "font-medium transition-opacity opacity-20 group-hover:opacity-40 text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 cursor-copy",
             isXs
               ? "text-[6px] sm:text-[8px]"
               : isSm

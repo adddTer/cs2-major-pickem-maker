@@ -93,10 +93,10 @@ export const PickEmDock: React.FC<{
           <button
             onClick={onToggleResults}
             className={cn(
-              "px-3 py-1.5 border border-white/10 rounded-[3px] transition-colors text-[11px] font-bold",
+              "px-3 py-1.5 border border-black/10 dark:border-white/10 rounded-[3px] transition-colors text-[11px] font-bold",
               showResults
                 ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
-                : "hover:bg-white/10 text-zinc-400",
+                : "hover:bg-black/10 dark:bg-white/10 text-zinc-500 dark:text-zinc-600 dark:text-zinc-400",
             )}
           >
             {showResults ? "隐藏实际赛果" : "展示比赛结果"}
@@ -112,7 +112,7 @@ export const PickEmDock: React.FC<{
         {/* 3:0 (2 Slots) */}
         <div
           className={cn(
-            "flex flex-col bg-zinc-900/60 rounded-xl border border-emerald-500/20 shadow-lg shadow-emerald-500/5 relative",
+            "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-emerald-500/20 shadow-lg shadow-emerald-500/5 relative",
             "w-full col-span-1",
           )}
         >
@@ -124,7 +124,7 @@ export const PickEmDock: React.FC<{
               全胜晋级
             </span>
           </div>
-          <div className="p-3 sm:p-5 flex gap-2 sm:gap-5 justify-center flex-1 items-center bg-zinc-950/40 rounded-b-xl flex-wrap">
+          <div className="p-3 sm:p-5 flex gap-2 sm:gap-5 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl flex-wrap">
             {slots30.map((s) => (
               <SlotBox
                 key={s.id}
@@ -141,7 +141,7 @@ export const PickEmDock: React.FC<{
         {/* 0:3 (2 Slots) */}
         <div
           className={cn(
-            "flex flex-col bg-zinc-900/60 rounded-xl border border-rose-500/20 shadow-lg shadow-rose-500/5 relative",
+            "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-rose-500/20 shadow-lg shadow-rose-500/5 relative",
             "w-full col-span-1 order-none",
           )}
         >
@@ -153,7 +153,7 @@ export const PickEmDock: React.FC<{
               全败淘汰
             </span>
           </div>
-          <div className="p-3 sm:p-5 flex gap-2 sm:gap-5 justify-center flex-1 items-center bg-zinc-950/40 rounded-b-xl flex-wrap">
+          <div className="p-3 sm:p-5 flex gap-2 sm:gap-5 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl flex-wrap">
             {slots03.map((s) => (
               <SlotBox
                 key={s.id}
@@ -170,7 +170,7 @@ export const PickEmDock: React.FC<{
         {/* Advance (6 Slots) */}
         <div
           className={cn(
-            "flex flex-col bg-zinc-900/60 rounded-xl border border-blue-500/20 shadow-lg shadow-blue-500/5 relative",
+            "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-blue-500/20 shadow-lg shadow-blue-500/5 relative",
             "w-full col-span-2",
           )}
         >
@@ -182,7 +182,7 @@ export const PickEmDock: React.FC<{
               晋级
             </span>
           </div>
-          <div className="p-3 sm:p-5 flex flex-wrap gap-2 sm:gap-5 justify-center flex-1 items-center bg-zinc-950/40 rounded-b-xl">
+          <div className="p-3 sm:p-5 flex flex-wrap gap-2 sm:gap-5 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl">
             {slotsAdv.map((s) => (
               <SlotBox
                 key={s.id}

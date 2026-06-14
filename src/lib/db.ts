@@ -39,13 +39,14 @@ export async function deletePickSet(id: string): Promise<void> {
   await db.delete(STORE_NAME, id);
 }
 
-export async function getAllMatrixSets(stage?: string): Promise<MatrixSet[]> {
+export async function getAllMatrixSets(stage?: string, eventId?: string): Promise<MatrixSet[]> {
   const db = await initDB();
+  let sets = await db.getAll(MATRIX_STORE);
   if (stage) {
-    const index = db.transaction(MATRIX_STORE).store.index('stage');
-    return index.getAll(stage);
+    sets = sets.filter((s) => s.stage === stage);
   }
-  return db.getAll(MATRIX_STORE);
+  sets = sets.filter((s) => s.eventId === eventId || (!s.eventId && eventId === 'iem_cologne_2026'));
+  return sets;
 }
 
 export async function saveMatrixSet(matrixSet: MatrixSet): Promise<void> {

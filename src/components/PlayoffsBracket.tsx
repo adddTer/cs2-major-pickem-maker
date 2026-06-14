@@ -74,7 +74,8 @@ const DrawPath: React.FC<{ fromId: string; toId: string }> = ({
   return (
     <path
       d={d}
-      stroke="rgba(255,255,255,0.15)"
+      stroke="currentColor"
+      className="text-black/15 dark:text-white/15"
       strokeWidth="1.5"
       fill="none"
       strokeLinecap="round"
@@ -135,12 +136,12 @@ const BracketSlot: React.FC<{
         onClick ? "cursor-pointer" : !readOnly ? "cursor-pointer" : "",
         team
           ? cn(
-              "bg-zinc-800 border-white/20 shadow-sm",
-              !readOnly && "hover:border-white/40 hover:bg-zinc-700/80",
+              "bg-white dark:bg-zinc-800 border-black/20 dark:border-white/20 shadow-sm",
+              !readOnly && "hover:border-black/40 dark:border-white/40 hover:bg-zinc-700/80",
             )
           : cn(
-              "bg-zinc-800/40 border-white/20 border-dashed shadow-inner text-zinc-400",
-              !readOnly && "hover:border-white/40",
+              "bg-black/40 dark:bg-white/40 dark:bg-zinc-800/40 border-black/20 dark:border-white/20 border-dashed shadow-inner text-zinc-500 dark:text-zinc-600 dark:text-zinc-400",
+              !readOnly && "hover:border-black/40 dark:border-white/40",
             ),
         readOnly && !team && "opacity-60 cursor-default",
         slot?.resultStatus === "correct"
@@ -156,12 +157,12 @@ const BracketSlot: React.FC<{
           <div className="w-6 h-6 flex items-center justify-center shrink-0">
             <TeamLogo team={team} fallbackClasses="text-[10px]" />
           </div>
-          <span className="font-bold text-zinc-200 text-sm flex-1 truncate">
+          <span className="font-bold text-zinc-900 dark:text-zinc-200 text-sm flex-1 truncate">
             {team.name}
           </span>
           {slot?.score !== undefined && slot?.score !== null ? (
             <div className="flex flex-col items-center justify-center min-w-[24px] shrink-0 relative">
-              <div className="flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded bg-black/40 text-xs font-black text-white shadow-inner">
+              <div className="flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded bg-zinc-200/40 dark:bg-black/40 text-xs font-black text-black dark:text-white shadow-inner">
                 {slot.score}
               </div>
               {slot.isLive && (
@@ -170,15 +171,24 @@ const BracketSlot: React.FC<{
                 </span>
               )}
             </div>
-          ) : slot?.bottomText ? (
-            <div className="text-[10px] sm:text-xs font-mono font-bold text-emerald-400 shrink-0">
-              {slot.bottomText}
+          ) : (
+            <div className="flex flex-col items-center justify-center min-w-[24px] shrink-0 relative h-full">
+              {slot?.bottomText ? (
+                <div className="text-[10px] sm:text-xs font-mono font-bold text-emerald-400 shrink-0">
+                  {slot.bottomText}
+                </div>
+              ) : null}
+              {slot?.isLive && (
+                <span className="text-[8px] font-black text-rose-500 scale-[0.7] absolute bottom-1 tracking-widest uppercase">
+                  LIVE
+                </span>
+              )}
             </div>
-          ) : null}
+          )}
         </>
       ) : (
         <span
-          className="text-xs font-semibold mx-auto tracking-widest text-zinc-500"
+          className="text-xs font-semibold mx-auto tracking-widest text-zinc-500 dark:text-zinc-500"
           style={{ letterSpacing: "0.1em" }}
         >
           {emptyTitle}
@@ -225,11 +235,11 @@ export const PlayoffsBracket: React.FC<{
           break;
         }
       }
-      if (updatedMatch) {
+      if (updatedMatch && JSON.stringify(selectedMatch) !== JSON.stringify(updatedMatch)) {
         setSelectedMatch(updatedMatch);
       }
     }
-  }, [refreshTrigger]);
+  }, [refreshTrigger, selectedMatch]);
 
   const getSlot = (id: string) => {
     let baseSlot = slots.find((s) => s.id === id || s.id === `playoffs-${id}`);
@@ -259,13 +269,13 @@ export const PlayoffsBracket: React.FC<{
     if (baseSlot.teamId && baseSlot.type !== "champion" && !disableAutoFill) {
       const roundMatches = MATCHES["playoffs"]?.[baseSlot.type] || [];
       for (const m of roundMatches) {
-        if (m.team1Id === baseSlot.teamId && m.score1 !== undefined) {
-          score = m.score1;
+        if (m.team1Id === baseSlot.teamId) {
+          if (m.score1 !== undefined) score = m.score1;
           isLive = m.status === "live";
           break;
         }
-        if (m.team2Id === baseSlot.teamId && m.score2 !== undefined) {
-          score = m.score2;
+        if (m.team2Id === baseSlot.teamId) {
+          if (m.score2 !== undefined) score = m.score2;
           isLive = m.status === "live";
           break;
         }
@@ -344,7 +354,7 @@ export const PlayoffsBracket: React.FC<{
               return (
                 <div
                   key={`header-${i}`}
-                  className="absolute text-[12px] text-zinc-200 bg-black/60 rounded-sm px-1 py-0.5 font-bold tracking-wider flex items-center justify-center pointer-events-auto cursor-pointer hover:bg-black/80 w-[180px] z-50 shadow-md transition-colors hover:text-white"
+                  className="absolute text-[12px] text-zinc-900 dark:text-zinc-200 bg-zinc-200/60 dark:bg-black/60 rounded-sm px-1 py-0.5 font-bold tracking-wider flex items-center justify-center pointer-events-auto cursor-pointer hover:bg-zinc-200/80 dark:bg-black/80 w-[180px] z-50 shadow-md transition-colors hover:text-black dark:text-white"
                   style={{ left: pos.x, top: pos.y - 24 }}
                   onClick={() => {
                     if (match) setSelectedMatch(match);

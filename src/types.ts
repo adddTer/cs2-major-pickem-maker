@@ -84,6 +84,7 @@ export interface PickSlot {
 
 export interface MatrixSet {
   id: string;
+  eventId?: string;
   name: string;
   stage: StageKey;
   isDefault: boolean;
@@ -91,8 +92,22 @@ export interface MatrixSet {
   createdAt: number;
 }
 
+export interface TournamentEvent {
+  id: string;
+  name: string;
+  shortName: string;
+  logoUrl: string;
+  isSwissAllBo3?: boolean;
+  stages?: {
+    stage1?: { externalId: string };
+    stage2?: { externalId: string };
+    stage3?: { externalId: string };
+  };
+}
+
 export interface PickSet {
   id: string;
+  eventId?: string;
   name: string; // Used for display
   createdAt: number;
   picks: Record<string, PickSlot[]>;

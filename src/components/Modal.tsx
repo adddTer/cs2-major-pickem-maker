@@ -24,27 +24,27 @@ export const Modal: React.FC<{
   return createPortal(
     <div
       className={cn(
-        "fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm",
+        "fixed inset-0 z-[99999] flex items-center justify-center bg-zinc-200/60 dark:bg-black/60 backdrop-blur-sm",
         fullScreenOnMobile ? "p-0 md:p-4" : "p-4",
       )}
     >
       <div
         className={cn(
-          "bg-zinc-900 border-white/10 shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200",
+          "bg-zinc-100 dark:bg-zinc-900 border-black/10 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200",
           fullScreenOnMobile
             ? "w-full h-full md:h-auto md:max-h-[90vh] md:rounded-xl md:border"
             : "rounded-xl border w-full max-h-[90vh]",
           maxWidthClass,
         )}
       >
-        <div className="flex items-center justify-between p-4 border-b border-white/5 bg-black/20 shrink-0">
+        <div className="flex items-center justify-between p-4 border-b border-black/5 dark:border-white/5 bg-zinc-200/20 dark:bg-black/20 shrink-0">
           <div className="flex items-center gap-3">
-            <h3 className="font-bold text-zinc-100">{title}</h3>
+            <h3 className="font-bold text-zinc-900 dark:text-zinc-100">{title}</h3>
             {headerExtras}
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-zinc-400 hover:text-white transition-colors"
+            className="p-1 text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 hover:text-black dark:text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </button>

@@ -53,7 +53,7 @@ const MapVetoDisplay: React.FC<MapVetoDisplayProps & { matchData?: any }> = ({
 
   if (!externalId) {
     return (
-      <div className="text-zinc-500 text-[11px] p-4 text-center">暂无数据</div>
+      <div className="text-zinc-500 dark:text-zinc-500 text-[11px] p-4 text-center">暂无数据</div>
     );
   }
 
@@ -133,7 +133,7 @@ const MapVetoDisplay: React.FC<MapVetoDisplayProps & { matchData?: any }> = ({
             <div
               key={i}
               className={cn(
-                "relative group overflow-hidden rounded-lg bg-zinc-900 border border-white/5 flex items-center justify-between",
+                "relative group overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-black/5 dark:border-white/5 flex items-center justify-between",
                 isLive && isCurrentlyPlaying
                   ? "ring-1 ring-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
                   : "h-[42px]",
@@ -145,8 +145,8 @@ const MapVetoDisplay: React.FC<MapVetoDisplayProps & { matchData?: any }> = ({
                     className={cn(
                       "absolute inset-0 z-10",
                       isBan
-                        ? "bg-zinc-950/90"
-                        : "bg-gradient-to-r from-zinc-900 via-zinc-900/80 to-transparent",
+                        ? "bg-zinc-50/90 dark:bg-zinc-950/90"
+                        : "bg-gradient-to-r from-zinc-100 dark:from-zinc-900 via-zinc-100/90 dark:via-zinc-900/80 to-transparent",
                     )}
                   ></div>
                   <img
@@ -181,10 +181,10 @@ const MapVetoDisplay: React.FC<MapVetoDisplayProps & { matchData?: any }> = ({
                   className={cn(
                     "text-sm font-medium tracking-wide",
                     isBan
-                      ? "text-zinc-400"
+                      ? "text-zinc-500 dark:text-zinc-400"
                       : isCurrentlyPlaying
-                        ? "text-emerald-400 font-bold"
-                        : "text-zinc-200",
+                        ? "text-emerald-600 dark:text-emerald-400 font-bold"
+                        : "text-zinc-900 dark:text-zinc-200",
                   )}
                 >
                   {nameZh}
@@ -193,22 +193,22 @@ const MapVetoDisplay: React.FC<MapVetoDisplayProps & { matchData?: any }> = ({
 
               <div className="relative z-10 flex items-center gap-3 pr-3">
                 {scoreItem && (
-                  <div className="flex items-center gap-1.5 font-mono text-[13px] bg-black/40 px-2.5 py-0.5 rounded border border-white/5">
+                  <div className="flex items-center gap-1.5 font-mono text-[13px] bg-zinc-200/40 dark:bg-black/40 px-2.5 py-0.5 rounded border border-black/5 dark:border-white/5">
                     <span
                       className={cn(
                         (scoreItem.score1 ?? 0) > (scoreItem.score2 ?? 0)
-                          ? "text-emerald-400 font-bold"
-                          : "text-zinc-300",
+                          ? "text-emerald-600 dark:text-emerald-400 font-bold"
+                          : "text-zinc-800 dark:text-zinc-300",
                       )}
                     >
                       {scoreItem.score1}
                     </span>
-                    <span className="text-zinc-600">-</span>
+                    <span className="text-zinc-500 dark:text-zinc-600">-</span>
                     <span
                       className={cn(
                         (scoreItem.score2 ?? 0) > (scoreItem.score1 ?? 0)
-                          ? "text-emerald-400 font-bold"
-                          : "text-zinc-300",
+                          ? "text-emerald-600 dark:text-emerald-400 font-bold"
+                          : "text-zinc-800 dark:text-zinc-300",
                       )}
                     >
                       {scoreItem.score2}
@@ -220,10 +220,10 @@ const MapVetoDisplay: React.FC<MapVetoDisplayProps & { matchData?: any }> = ({
                   className={cn(
                     "flex items-center gap-2 pl-2 pr-2 py-1 rounded backdrop-blur-sm border",
                     isBan
-                      ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                      ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
                       : isLeft
-                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                        : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+                        ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                        : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
                   )}
                 >
                   {activeTeam && (
@@ -280,7 +280,16 @@ const MatchPrediction: React.FC<{
     probT1 = getSingleMapProb(s1, s2);
   }
 
-  const isFinished = match.status === "past" || (match.score1 !== undefined && match.score2 !== undefined && (match.score1 > 0 || match.score2 > 0) && match.score1 !== match.score2);
+  let isFinished = match.status === "past";
+  if (!isFinished && match.score1 !== undefined && match.score2 !== undefined) {
+    if (match.format === "bo3") {
+      isFinished = match.score1 === 2 || match.score2 === 2;
+    } else if (match.format === "bo5") {
+      isFinished = match.score1 === 3 || match.score2 === 3;
+    } else {
+      isFinished = (match.score1 > 0 || match.score2 > 0) && match.score1 !== match.score2;
+    }
+  }
   let winner = 0;
   if (isFinished) {
     winner = (match.score1 ?? 0) > (match.score2 ?? 0) ? 1 : 2;
@@ -288,27 +297,27 @@ const MatchPrediction: React.FC<{
 
   let t1BarColor = "bg-blue-500/60";
   let t2BarColor = "bg-amber-500/60";
-  let t1TextColor = "text-blue-400";
-  let t2TextColor = "text-amber-400";
+  let t1TextColor = "text-blue-600 dark:text-blue-400";
+  let t2TextColor = "text-amber-600 dark:text-amber-400";
 
   if (winner === 1) {
     t1BarColor = "bg-emerald-500";
-    t2BarColor = "bg-zinc-700";
-    t1TextColor = "text-emerald-400 font-bold";
-    t2TextColor = "text-zinc-500";
+    t2BarColor = "bg-zinc-200 dark:bg-zinc-700";
+    t1TextColor = "text-emerald-600 dark:text-emerald-400 font-bold";
+    t2TextColor = "text-zinc-500 dark:text-zinc-500";
   } else if (winner === 2) {
-    t1BarColor = "bg-zinc-700";
+    t1BarColor = "bg-zinc-200 dark:bg-zinc-700";
     t2BarColor = "bg-emerald-500";
-    t1TextColor = "text-zinc-500";
-    t2TextColor = "text-emerald-400 font-bold";
+    t1TextColor = "text-zinc-500 dark:text-zinc-500";
+    t2TextColor = "text-emerald-600 dark:text-emerald-400 font-bold";
   }
 
   return (
-    <div className="flex flex-col gap-2 mt-2 pt-4 px-1 w-full border-t border-white/5">
-      <h4 className="text-[11px] font-medium text-white/50 tracking-widest px-1 text-center">
+    <div className="flex flex-col gap-2 mt-2 pt-4 px-1 w-full border-t border-black/5 dark:border-white/5">
+      <h4 className="text-[11px] font-medium text-zinc-500 dark:text-white/50 tracking-widest px-1 text-center">
         预测
       </h4>
-      <div className="flex items-center w-full h-1.5 rounded-full overflow-hidden bg-black border border-white/5 mt-1">
+      <div className="flex items-center w-full h-1.5 rounded-full overflow-hidden bg-white dark:bg-black border border-black/5 dark:border-white/5 mt-1">
         <div style={{ width: `${(probT1 * 100).toFixed(1)}%` }} className={`h-full ${t1BarColor} transition-all`}></div>
         <div style={{ width: `${((1 - probT1) * 100).toFixed(1)}%` }} className={`h-full ${t2BarColor} transition-all`}></div>
       </div>
@@ -335,6 +344,7 @@ export const MatchDialog: React.FC<{
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [matchData, setMatchData] = useState<any>(null);
   const [analysisData, setAnalysisData] = useState<any>(null);
+  const prevMatchId = React.useRef<string>("");
 
   const fetchLiveStreams = async () => {
     if (!match?.externalId) return;
@@ -371,8 +381,11 @@ export const MatchDialog: React.FC<{
 
   useEffect(() => {
     if (match) {
-      setMatchData(null);
-      setAnalysisData(null);
+      if (prevMatchId.current !== match.externalId) {
+        setMatchData(null);
+        setAnalysisData(null);
+        prevMatchId.current = match.externalId || "";
+      }
       fetchLiveStreams();
     }
   }, [match]);
@@ -462,7 +475,7 @@ export const MatchDialog: React.FC<{
       headerExtras={
         <button
           onClick={handleRefresh}
-          className="p-1 text-zinc-400 hover:text-white transition-colors"
+          className="p-1 text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 hover:text-black dark:text-white transition-colors"
           title="刷新数据"
         >
           <RefreshCw
@@ -479,9 +492,9 @@ export const MatchDialog: React.FC<{
       >
         {hasLiveStream && (
           <div className="flex flex-col gap-3 flex-1 lg:w-[60%] xl:w-[65%] shrink-0">
-            <div className="w-full aspect-video bg-black rounded-lg overflow-hidden border border-white/10 shadow-2xl relative group">
+            <div className="w-full aspect-video bg-white dark:bg-black rounded-lg overflow-hidden border border-black/10 dark:border-white/10 shadow-2xl relative group">
               <iframe
-                className="w-full h-full absolute inset-0 border-none bg-zinc-950"
+                className="w-full h-full absolute inset-0 border-none bg-zinc-50 dark:bg-zinc-950"
                 src={liveStreams[activeStreamIndex]?.url}
                 allowFullScreen
                 scrolling="no"
@@ -496,7 +509,7 @@ export const MatchDialog: React.FC<{
                     "px-3 py-1.5 text-[11px] font-bold rounded flex-shrink-0 whitespace-nowrap transition-colors border",
                     activeStreamIndex === i
                       ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                      : "bg-zinc-900 border-white/5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800",
+                      : "bg-zinc-100 dark:bg-zinc-900 border-black/5 dark:border-white/5 text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-200 hover:bg-white dark:bg-zinc-800",
                   )}
                 >
                   {stream.name}
@@ -515,15 +528,15 @@ export const MatchDialog: React.FC<{
           )}
         >
           {match.format && (
-            <div className="flex flex-col items-center justify-center text-[11px] font-sans text-zinc-500 uppercase pb-3 border-b border-white/5 shrink-0 gap-1.5">
+            <div className="flex flex-col items-center justify-center text-[11px] font-sans text-zinc-500 dark:text-zinc-500 uppercase pb-3 border-b border-black/5 dark:border-white/5 shrink-0 gap-1.5">
               <div>
                 赛制: {match.format.toUpperCase()} • 状态:{" "}
                 <span
                   className={cn(
                     "ml-1 font-bold",
                     match.status === "live"
-                      ? "text-emerald-400"
-                      : "text-zinc-300",
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-zinc-800 dark:text-zinc-300",
                   )}
                 >
                   {getStatusText(match.status)}
@@ -531,7 +544,7 @@ export const MatchDialog: React.FC<{
               </div>
               {tLabel && (
                 <div className="flex items-center gap-2">
-                  <span className="text-zinc-400">{tLabel}</span>
+                  <span className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">{tLabel}</span>
                   {targetTime > 0 &&
                     match.status !== "past" &&
                     match.status !== "live" && (
@@ -544,40 +557,40 @@ export const MatchDialog: React.FC<{
             </div>
           )}
 
-          <div className="flex items-stretch justify-between px-4 py-5 bg-zinc-900/50 rounded-xl border border-white/5 shadow-inner shrink-0 mt-2">
+          <div className="flex items-stretch justify-between px-4 py-5 bg-zinc-100/50 dark:bg-zinc-900/50 rounded-xl border border-black/5 dark:border-white/5 shadow-inner shrink-0 mt-2">
             <div className="flex flex-col justify-between items-center gap-2 w-[35%] shrink-0">
               {t1 ? (
-                <div className="w-14 h-14 relative flex items-center justify-center bg-black/30 rounded-full shadow-lg border border-white/5 p-1.5">
+                <div className="w-14 h-14 relative flex items-center justify-center bg-zinc-200/30 dark:bg-black/30 rounded-full shadow-lg border border-black/5 dark:border-white/5 p-1.5">
                   <TeamLogo
                     team={t1}
                     fallbackClasses="w-10 h-10 object-contain"
                   />
                 </div>
               ) : (
-                <div className="w-14 h-14 bg-zinc-900 rounded-full border border-dashed border-white/10" />
+                <div className="w-14 h-14 bg-zinc-100 dark:bg-zinc-900 rounded-full border border-dashed border-black/10 dark:border-white/10" />
               )}
               <div className="flex-1 flex items-center">
-                <div className="text-[13px] leading-tight font-bold text-zinc-100 tracking-wide text-center whitespace-normal break-words max-w-[100px]">
+                <div className="text-[13px] leading-tight font-bold text-zinc-900 dark:text-zinc-100 tracking-wide text-center whitespace-normal break-words max-w-[100px]">
                   {t1NameStr}
                 </div>
               </div>
             </div>
 
             <div className="flex flex-col items-center justify-center gap-2 w-[30%] shrink-0 px-1">
-              <div className="text-3xl font-mono font-black tabular-nums tracking-tighter text-white drop-shadow-md flex items-center gap-1.5">
+              <div className="text-3xl font-mono font-black tabular-nums tracking-tighter text-black dark:text-white drop-shadow-md flex items-center gap-1.5">
                 <span
                   className={cn(
                     (match.score1 ?? 0) > (match.score2 ?? 0) &&
-                      "text-emerald-400",
+                      "text-emerald-600 dark:text-emerald-400",
                   )}
                 >
                   {match.score1 ?? "-"}
                 </span>
-                <span className="text-zinc-600 text-xl pb-1">:</span>
+                <span className="text-zinc-500 dark:text-zinc-600 text-xl pb-1">:</span>
                 <span
                   className={cn(
                     (match.score2 ?? 0) > (match.score1 ?? 0) &&
-                      "text-emerald-400",
+                      "text-emerald-600 dark:text-emerald-400",
                   )}
                 >
                   {match.score2 ?? "-"}
@@ -587,17 +600,17 @@ export const MatchDialog: React.FC<{
 
             <div className="flex flex-col justify-between items-center gap-2 w-[35%] shrink-0">
               {t2 ? (
-                <div className="w-14 h-14 relative flex items-center justify-center bg-black/30 rounded-full shadow-lg border border-white/5 p-1.5">
+                <div className="w-14 h-14 relative flex items-center justify-center bg-zinc-200/30 dark:bg-black/30 rounded-full shadow-lg border border-black/5 dark:border-white/5 p-1.5">
                   <TeamLogo
                     team={t2}
                     fallbackClasses="w-10 h-10 object-contain"
                   />
                 </div>
               ) : (
-                <div className="w-14 h-14 bg-zinc-900 rounded-full border border-dashed border-white/10" />
+                <div className="w-14 h-14 bg-zinc-100 dark:bg-zinc-900 rounded-full border border-dashed border-black/10 dark:border-white/10" />
               )}
               <div className="flex-1 flex items-center">
-                <div className="text-[13px] leading-tight font-bold text-zinc-100 tracking-wide text-center whitespace-normal break-words max-w-[100px]">
+                <div className="text-[13px] leading-tight font-bold text-zinc-900 dark:text-zinc-100 tracking-wide text-center whitespace-normal break-words max-w-[100px]">
                   {t2NameStr}
                 </div>
               </div>
@@ -631,7 +644,7 @@ export const MatchDialog: React.FC<{
               </>
             ) : null}
             {match.status === "upcoming" && !matchData && !analysisData && (
-              <div className="text-[11px] text-zinc-500 text-center py-6">
+              <div className="text-[11px] text-zinc-500 dark:text-zinc-500 text-center py-6">
                 比赛尚未开始
               </div>
             )}

@@ -271,26 +271,26 @@ export const TextExportModal: React.FC<TextExportModalProps> = ({
       {previewText ? (
         <div className="flex flex-col gap-4 max-w-full">
           <textarea
-            className="w-full h-80 bg-zinc-950 text-emerald-400 font-mono text-xs p-3 rounded border border-white/10 resize-none focus:outline-none custom-scrollbar"
+            className="w-full h-80 bg-zinc-50 dark:bg-zinc-950 text-emerald-400 font-mono text-xs p-3 rounded border border-black/10 dark:border-white/10 resize-none focus:outline-none custom-scrollbar"
             readOnly
             value={previewText}
           />
           <div className="flex justify-end gap-3 mt-2">
             <button
               onClick={() => setPreviewText(null)}
-              className="px-4 py-2 border border-white/10 hover:bg-white/5 text-zinc-300 font-bold text-sm transition-colors rounded-md"
+              className="px-4 py-2 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:bg-white/5 text-zinc-800 dark:text-zinc-300 font-bold text-sm transition-colors rounded-md"
             >
               返回修改
             </button>
             <button
               onClick={handleCopy}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20 flex items-center gap-2"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20 flex items-center gap-2"
             >
               <Copy className="w-4 h-4" /> 复制文本
             </button>
             <button
               onClick={handleDownload}
-              className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-emerald-900/20 flex items-center gap-2"
+              className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-emerald-900/20 flex items-center gap-2"
             >
               <Download className="w-4 h-4" /> 下载 TXT
             </button>
@@ -298,7 +298,7 @@ export const TextExportModal: React.FC<TextExportModalProps> = ({
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest px-1">
+          <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest px-1">
             要导出的阶段 (可多选)
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -307,7 +307,7 @@ export const TextExportModal: React.FC<TextExportModalProps> = ({
               return (
                 <div
                   key={st}
-                  className={`flex items-center gap-3 p-3 rounded cursor-pointer transition-colors border ${isSelected ? "bg-blue-500/10 border-blue-500/30" : "bg-black/20 border-white/5 hover:bg-black/40"}`}
+                  className={`flex items-center gap-3 p-3 rounded cursor-pointer transition-colors border ${isSelected ? "bg-blue-500/10 border-blue-500/30" : "bg-zinc-200/20 dark:bg-black/20 border-black/5 dark:border-white/5 hover:bg-zinc-200/40 dark:bg-black/40"}`}
                   onClick={() =>
                     setSelectedStages((prev) =>
                       prev.includes(st as StageKey)
@@ -319,9 +319,9 @@ export const TextExportModal: React.FC<TextExportModalProps> = ({
                   {isSelected ? (
                     <CheckSquare className="w-5 h-5 text-blue-400" />
                   ) : (
-                    <Square className="w-5 h-5 text-zinc-500" />
+                    <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
                   )}
-                  <span className="font-bold text-sm text-zinc-200">
+                  <span className="font-bold text-sm text-zinc-900 dark:text-zinc-200">
                     {stageLabels[st]}
                   </span>
                 </div>
@@ -329,29 +329,29 @@ export const TextExportModal: React.FC<TextExportModalProps> = ({
             })}
           </div>
 
-          <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-2 px-1">
+          <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest mt-2 px-1">
             导出内容
           </div>
           <div
-            className="flex items-center justify-between p-3 bg-zinc-800/50 rounded cursor-pointer border border-white/5"
+            className="flex items-center justify-between p-3 bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 rounded cursor-pointer border border-black/5 dark:border-white/5"
             onClick={() => setIncludeResults(!includeResults)}
           >
-            <span className="text-sm font-bold text-zinc-200">
+            <span className="text-sm font-bold text-zinc-900 dark:text-zinc-200">
               包含实际比赛结果
             </span>
             {includeResults ? (
               <CheckSquare className="w-5 h-5 text-blue-400" />
             ) : (
-              <Square className="w-5 h-5 text-zinc-500" />
+              <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
             )}
           </div>
 
-          <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-2 px-1">
+          <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest mt-2 px-1">
             选择包含的社区竞猜
           </div>
           <div className="flex flex-col gap-2">
             <div
-              className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded cursor-pointer hover:bg-zinc-800 transition-colors border border-white/5"
+              className="flex items-center gap-3 p-3 bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 rounded cursor-pointer hover:bg-white dark:bg-zinc-800 transition-colors border border-black/5 dark:border-white/5"
               onClick={() =>
                 setSelectedIds(
                   selectedIds.length === communityPicks.length
@@ -364,19 +364,19 @@ export const TextExportModal: React.FC<TextExportModalProps> = ({
               communityPicks.length > 0 ? (
                 <CheckSquare className="w-5 h-5 text-blue-400" />
               ) : (
-                <Square className="w-5 h-5 text-zinc-500" />
+                <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
               )}
-              <span className="font-bold text-sm text-zinc-200">
+              <span className="font-bold text-sm text-zinc-900 dark:text-zinc-200">
                 全选 ({selectedIds.length}/{communityPicks.length})
               </span>
             </div>
-            <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[120px] custom-scrollbar border border-white/5 rounded pl-1">
+            <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[120px] custom-scrollbar border border-black/5 dark:border-white/5 rounded pl-1">
               {sortedCommunityPicks.map((item) => {
                 const isSelected = selectedIds.includes(item.id);
                 return (
                   <div
                     key={item.id}
-                    className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${isSelected ? "bg-blue-500/10 text-blue-400" : "hover:bg-black/40 text-zinc-300"}`}
+                    className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${isSelected ? "bg-blue-500/10 text-blue-400" : "hover:bg-zinc-200/40 dark:bg-black/40 text-zinc-800 dark:text-zinc-300"}`}
                     onClick={() =>
                       setSelectedIds((prev) =>
                         prev.includes(item.id)
@@ -388,7 +388,7 @@ export const TextExportModal: React.FC<TextExportModalProps> = ({
                     {isSelected ? (
                       <CheckSquare className="w-4 h-4 text-blue-400" />
                     ) : (
-                      <Square className="w-4 h-4 text-zinc-500" />
+                      <Square className="w-4 h-4 text-zinc-500 dark:text-zinc-500" />
                     )}
                     <span className="font-bold text-sm truncate">
                       {item.name}
@@ -402,7 +402,7 @@ export const TextExportModal: React.FC<TextExportModalProps> = ({
           <div className="mt-4 flex justify-end">
             <button
               onClick={handleGeneratePreview}
-              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20 flex items-center gap-2"
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20 flex items-center gap-2"
             >
               <FileText className="w-4 h-4" /> 生成文本预览
             </button>

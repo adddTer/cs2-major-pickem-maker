@@ -98,7 +98,7 @@ export const DialogManager: React.FC = () => {
       title={current.title || "提示"}
     >
       <div className="flex flex-col gap-4">
-        <div className="text-zinc-200 text-sm whitespace-pre-wrap">
+        <div className="text-zinc-900 dark:text-zinc-200 text-sm whitespace-pre-wrap">
           {current.message}
         </div>
 
@@ -108,7 +108,7 @@ export const DialogManager: React.FC = () => {
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            className="p-2 bg-zinc-800 border border-white/10 rounded text-sm text-zinc-200 w-full focus:outline-none focus:border-blue-500"
+            className="p-2 bg-white dark:bg-zinc-800 border border-black/10 dark:border-white/10 rounded text-sm text-zinc-900 dark:text-zinc-200 w-full focus:outline-none focus:border-blue-500"
             onKeyDown={(e) => {
               if (e.key === "Enter") handleConfirm();
               if (e.key === "Escape") handleCancel();
@@ -120,14 +120,14 @@ export const DialogManager: React.FC = () => {
           {current.type !== "alert" && (
             <button
               onClick={handleCancel}
-              className="px-4 py-2 border border-white/10 hover:bg-white/5 text-zinc-300 font-bold text-sm transition-colors rounded-md"
+              className="px-4 py-2 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:bg-white/5 text-zinc-800 dark:text-zinc-300 font-bold text-sm transition-colors rounded-md"
             >
               取消
             </button>
           )}
           <button
             onClick={handleConfirm}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20"
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20"
           >
             确定
           </button>

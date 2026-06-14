@@ -1,5 +1,5 @@
 import { MATCHES, ACTUAL_RESULTS } from "../data/matches";
-import { PickSlot, Team } from "../types";
+import { PickSlot, Team, TournamentEvent } from "../types";
 import { TEAMS } from "../data/teams";
 import { GLOBAL_SEEDING } from "../data/seedings";
 import { LOCAL_POINTS, getLocalStrength } from "../data/localPoints";
@@ -57,7 +57,8 @@ function getTeamId(t1: any): string | undefined {
     const cleanStr = (s: string) =>
       s
         .toLowerCase()
-        .replace(/^team\s+/i, "")
+        .replace(/^(team|the)\s+/i, "")
+        .replace(/\s+(esports|gaming|club)$/i, "")
         .replace(/\s+/g, "");
 
     const t1NameClean = cleanStr(t1.nameEn || t1.nameZh || t1.name || "");
@@ -66,13 +67,8 @@ function getTeamId(t1: any): string | undefined {
 
     return (
       idLower === t1NameClean ||
-      shortLower === t1AbbrClean ||
-      idLower === t1AbbrClean ||
       tNameClean === t1NameClean ||
-      t1NameClean.includes(idLower) ||
-      idLower.includes(t1NameClean) ||
-      (t1AbbrClean &&
-        (shortLower.includes(t1AbbrClean) || t1AbbrClean.includes(shortLower)))
+      (t1AbbrClean && (shortLower === t1AbbrClean || idLower === t1AbbrClean))
     );
   });
 
@@ -88,7 +84,8 @@ function parseSwissGraph(
   stageData: any,
   matchesMap: Record<string, { plan_ts?: string; star?: number }> = {},
   oldMatchesMap: Record<string, any[]> = {},
-  isStage3: boolean = false
+  isStage3: boolean = false,
+  isSwissAllBo3: boolean = false
 ) {
   let graphData: any = {};
   try {
@@ -139,7 +136,7 @@ function parseSwissGraph(
         if ((!t1Id && !t2Id) || (t1Id === "tbd" && t2Id === "tbd")) return;
 
         const format =
-          isStage3 ? "bo3" : (m.format === "3" ? "bo3" : m.format === "5" ? "bo5" : "bo1");
+          (isStage3 || isSwissAllBo3) ? "bo3" : (m.format === "3" ? "bo3" : m.format === "5" ? "bo5" : "bo1");
         const externalId = m.absId || m.id || m.matchId || m.match_id;
 
         let matchTime =
@@ -257,8 +254,45 @@ function parseSwissGraph(
   return newMatches;
 }
 
-export async function fetchAndPatchCSGOData() {
+let globalRankingCacheSuccess = false;
+
+export async function fetchAndPatchCSGOData(currentEvent?: TournamentEvent, isAutoRefresh: boolean = false) {
   try {
+    MATCHES.stage1 = {};
+    MATCHES.stage2 = {};
+    MATCHES.stage3 = {};
+    MATCHES.playoffs = {};
+    
+    // Pre-populate matches natively using TEAMS data so the UI doesn't crash if 5E Play fails
+    const initLocalStage = (stageStr: string, stageNum: number) => {
+      let stageTeams = TEAMS.filter((t) => t.startStage === stageNum).sort((a,b) => {
+        const aRank = LOCAL_POINTS[a.id]?.vRank || GLOBAL_SEEDING[a.id] || 99;
+        const bRank = LOCAL_POINTS[b.id]?.vRank || GLOBAL_SEEDING[b.id] || 99;
+        return aRank - bRank;
+      });
+      if (currentEvent && currentEvent.id !== "iem_cologne_2026") {
+        stageTeams = [];
+      }
+      const pool = [...stageTeams.map(t => t.id)];
+      // Pad to 16 if necessary
+      while (pool.length < 16) pool.push("tbd");
+      
+      const m00: any[] = [];
+      const half = 8;
+      for (let i = 0; i < half; i++) {
+        m00.push({
+          team1Id: pool[i],
+          team2Id: pool[i + half],
+          format: currentEvent?.isSwissAllBo3 ? "bo3" : "bo1", // overriden in rendering for stage3 natively
+          status: "upcoming"
+        });
+      }
+      MATCHES[stageStr] = { "0:0": m00 };
+    };
+    initLocalStage("stage1", 1);
+    initLocalStage("stage2", 2);
+    initLocalStage("stage3", 3);
+
     const fetchStage = async (id: string) => {
       const res = await fetch(
         `https://esports-data.5eplaycdn.com/v1/api/csgo/tournaments/${id}/stages?_t=${Date.now()}`,
@@ -340,60 +374,91 @@ export async function fetchAndPatchCSGOData() {
           t.strength = undefined;
         }
       });
-      console.log("Using local rankings data exclusively, skipping 5E Play ranking fetch as requested.");
-      return false;
-    };
-
-    // Pre-populate matches natively using TEAMS data so the UI doesn't crash if 5E Play fails
-    const initLocalStage = (stageStr: string, stageNum: number) => {
-      const stageTeams = TEAMS.filter((t) => t.startStage === stageNum).sort((a,b) => {
-        const aRank = LOCAL_POINTS[a.id]?.vRank || GLOBAL_SEEDING[a.id] || 99;
-        const bRank = LOCAL_POINTS[b.id]?.vRank || GLOBAL_SEEDING[b.id] || 99;
-        return aRank - bRank;
-      });
-      const pool = [...stageTeams.map(t => t.id)];
-      // Pad to 16 if necessary
-      while (pool.length < 16) pool.push("tbd");
       
-      const m00: any[] = [];
-      const half = 8;
-      for (let i = 0; i < half; i++) {
-        m00.push({
-          team1Id: pool[i],
-          team2Id: pool[i + half],
-          format: "bo1", // Will be overridden in rendering for stage3
-          status: "upcoming"
-        });
-      }
-      MATCHES[stageStr] = { "0:0": m00 };
-    };
-    initLocalStage("stage1", 1);
-    initLocalStage("stage2", 2);
-    initLocalStage("stage3", 3);
+      // If we already succeeded fetching ranking previously, DO NOT fetch again ever.
+      if (globalRankingCacheSuccess) return true;
+      // If this is an auto refresh from setInterval, DO NOT try to re-fetch ranking if it failed previously to avoid spamming.
+      if (isAutoRefresh) return false;
 
-    const [r9028, r9029, r8301, m9028, m9029, m8301, _rankData] = await Promise.allSettled([
-      fetchStage("csgo_tt_9028"),
-      fetchStage("csgo_tt_9029"),
-      fetchStage("csgo_tt_8301"),
-      fetchEventMatches("csgo_tt_9028"),
-      fetchEventMatches("csgo_tt_9029"),
-      fetchEventMatches("csgo_tt_8301"),
+      try {
+        const res = await fetch(`/api/hltv-rankings`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            
+            const updateLocalData = (items: any[], type: "valve" | "hltv") => {
+                if (!Array.isArray(items)) return;
+                const updatedIds = new Set<string>();
+                items.forEach((teamData: any) => {
+                  const name = teamData.name;
+                  const id = getTeamId({ nameEn: name, nameZh: name });
+                  if (id) {
+                    const t = TEAMS.find(x => x.id === id);
+                    if (t) {
+                      if (type === "valve") {
+                          if (!updatedIds.has(id + "_valve") || (t.valveRank !== undefined && teamData.rank < t.valveRank)) {
+                              t.valveRank = teamData.rank;
+                              t.valvePoints = teamData.points;
+                              updatedIds.add(id + "_valve");
+                          }
+                      } else {
+                          if (!updatedIds.has(id + "_hltv") || (t.hltvRank !== undefined && teamData.rank < t.hltvRank)) {
+                              t.hltvRank = teamData.rank;
+                              t.hltvPoints = teamData.points;
+                              updatedIds.add(id + "_hltv");
+                          }
+                      }
+                    }
+                  }
+                });
+            };
+
+            updateLocalData(data.valve, "valve");
+            updateLocalData(data.hltv, "hltv");
+
+            console.log("Team rankings fetched successfully from HLTV via API proxy.");
+            globalRankingCacheSuccess = true;
+            return true;
+          }
+        }
+        return false;
+      } catch (err) {
+        console.error("Failed to fetch rankings entirely", err);
+        return false;
+      }
+    };
+
+    const s1Id = currentEvent?.stages?.stage1?.externalId;
+    const s2Id = currentEvent?.stages?.stage2?.externalId;
+    const s3Id = currentEvent?.stages?.stage3?.externalId;
+
+    const fetchPromises: Promise<any>[] = [
+      s1Id ? fetchStage(s1Id) : Promise.resolve(null),
+      s2Id ? fetchStage(s2Id) : Promise.resolve(null),
+      s3Id ? fetchStage(s3Id) : Promise.resolve(null),
+      s1Id ? fetchEventMatches(s1Id) : Promise.resolve({}),
+      s2Id ? fetchEventMatches(s2Id) : Promise.resolve({}),
+      s3Id ? fetchEventMatches(s3Id) : Promise.resolve({}),
       fetchTeamRankings(),
-    ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null));
+    ];
+
+    const [r9028, r9029, r8301, m9028, m9029, m8301, _rankData] = await Promise.allSettled(fetchPromises).then((results) =>
+      results.map((r) => (r.status === "fulfilled" ? r.value : null))
+    );
 
     if (r9028?.success && r9028.data?.[0]) {
-      const s1 = parseSwissGraph(r9028.data[0], m9028, MATCHES.stage1);
+      const s1 = parseSwissGraph(r9028.data[0], m9028, MATCHES.stage1, false, currentEvent?.isSwissAllBo3);
       if (s1) MATCHES.stage1 = s1;
     }
 
     if (r9029?.success && r9029.data?.[0]) {
-      const s2 = parseSwissGraph(r9029.data[0], m9029, MATCHES.stage2);
+      const s2 = parseSwissGraph(r9029.data[0], m9029, MATCHES.stage2, false, currentEvent?.isSwissAllBo3);
       if (s2) MATCHES.stage2 = s2;
     }
 
     if (r8301?.success) {
       if (r8301.data?.[0]) {
-        const s3 = parseSwissGraph(r8301.data[0], m8301, MATCHES.stage3, true);
+        const s3 = parseSwissGraph(r8301.data[0], m8301, MATCHES.stage3, true, currentEvent?.isSwissAllBo3);
         if (s3) {
            MATCHES.stage3 = s3;
         }

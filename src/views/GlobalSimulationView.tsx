@@ -4,7 +4,7 @@ import { DialogManager, dialog } from "../components/DialogManager";
 import { PLAYOFFS_SLOTS } from "../data/teams";
 import { PlayoffsBracket } from "../components/PlayoffsBracket";
 import { GlobalSimulationResult } from "../utils/simulateGlobal";
-import { BracketMatch } from "../types";
+import { BracketMatch, TournamentEvent } from "../types";
 
 import { MatchDialog } from "../components/MatchDialog";
 import { TeamLogo } from "../components/TeamLogo";
@@ -14,12 +14,14 @@ interface GlobalSimulationViewProps {
   currentMatches: any;
   computedActuals: any;
   onMatchClick?: (m: BracketMatch) => void;
+  currentEvent?: TournamentEvent;
 }
 
 export function GlobalSimulationView({
   currentMatches,
   computedActuals,
   onMatchClick,
+  currentEvent,
 }: GlobalSimulationViewProps) {
   const [isSimulating, setIsSimulating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -32,13 +34,16 @@ export function GlobalSimulationView({
   >(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("globalSimResultCSGOE5");
+    const key = currentEvent ? `globalSimResultCSGOE5_${currentEvent.id}` : "globalSimResultCSGOE5";
+    const saved = localStorage.getItem(key);
     if (saved) {
       try {
         setResult(JSON.parse(saved));
       } catch (e) {}
+    } else {
+      setResult(null); // Reset when switching events
     }
-  }, []);
+  }, [currentEvent]);
 
   const handleRunSimulation = () => {
     setIsSimulating(true);
@@ -56,7 +61,8 @@ export function GlobalSimulationView({
         setIsSimulating(false);
         const res = e.data.result;
         setResult(res);
-        localStorage.setItem("globalSimResultCSGOE5", JSON.stringify(res));
+        const key = currentEvent ? `globalSimResultCSGOE5_${currentEvent.id}` : "globalSimResultCSGOE5";
+        localStorage.setItem(key, JSON.stringify(res));
         worker.terminate();
       }
     };
@@ -65,6 +71,8 @@ export function GlobalSimulationView({
       currentMatches,
       computedActuals,
       numSimulations: 1000000,
+      isSwissAllBo3: currentEvent?.isSwissAllBo3,
+      currentEventId: currentEvent?.id,
     });
   };
 
@@ -220,14 +228,14 @@ export function GlobalSimulationView({
       .filter((x) => x.team);
 
     return (
-      <div className="flex-1 p-5 bg-zinc-900/60 rounded-xl border border-white/5 shadow-xl relative overflow-hidden flex flex-col h-full transition-all duration-300">
+      <div className="flex-1 p-5 bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-black/5 dark:border-white/5 shadow-xl relative overflow-hidden flex flex-col h-full transition-all duration-300">
         <div className={`absolute top-0 left-0 w-full h-1 ${colorClass}`} />
         <h3 className="text-xl font-bold mb-6 mt-2 text-center">{title}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pb-4">
           {sorted.map((item, i) => (
             <div
               key={item.team?.id}
-              className="flex items-center gap-3 p-3 bg-black/40 rounded-lg border border-white/5 hover:border-white/10 transition-colors"
+              className="flex items-center gap-3 p-3 bg-zinc-200/40 dark:bg-black/40 rounded-lg border border-black/5 dark:border-white/5 hover:border-black/10 dark:border-white/10 transition-colors"
             >
               <div className="w-6 h-6 flex items-center justify-center shrink-0">
                 <TeamLogo team={item.team!} />
@@ -235,7 +243,7 @@ export function GlobalSimulationView({
               <span className="font-bold flex-1 truncate text-sm">
                 {item.team?.shortName}
               </span>
-              <span className="text-emerald-400 font-mono font-bold text-sm shrink-0">
+              <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold text-sm shrink-0">
                 {item.prob}%
               </span>
             </div>
@@ -294,18 +302,18 @@ export function GlobalSimulationView({
     <div className="w-full h-full flex flex-col p-4 overflow-y-auto relative">
       {modalData && selectedSlotForModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-200/60 dark:bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={() => setSelectedSlotForModal(null)}
         >
           <div
-            className="bg-zinc-900 border border-white/10 rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]"
+            className="bg-zinc-100 dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/20">
+            <div className="p-4 border-b border-black/10 dark:border-white/10 flex items-center justify-between bg-zinc-200/20 dark:bg-black/20">
               <h3 className="font-bold text-lg">{modalData.title}</h3>
               <button
                 onClick={() => setSelectedSlotForModal(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 transition-colors"
               >
                 ✕
               </button>
@@ -314,43 +322,43 @@ export function GlobalSimulationView({
               {modalData.data.map((item, i) => (
                 <div
                   key={item.team?.id}
-                  className="flex items-center gap-3 p-3 bg-black/40 rounded-lg border border-white/5"
+                  className="flex items-center gap-3 p-3 bg-zinc-200/40 dark:bg-black/40 rounded-lg border border-black/5 dark:border-white/5"
                 >
-                  <span className="text-zinc-500 font-black w-6 text-center">
+                  <span className="text-zinc-500 dark:text-zinc-500 font-black w-6 text-center">
                     {i + 1}
                   </span>
                   <div className="w-6 h-6 flex items-center justify-center shrink-0">
                     <TeamLogo team={item.team!} />
                   </div>
                   <span className="font-bold flex-1">{item.team?.name}</span>
-                  <span className="text-emerald-400 font-mono font-bold">
+                  <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">
                     {item.prob}%
                   </span>
                 </div>
               ))}
               {modalData.data.length === 0 && (
-                <div className="text-center text-zinc-500 py-8">无足够数据</div>
+                <div className="text-center text-zinc-500 dark:text-zinc-500 py-8">无足够数据</div>
               )}
             </div>
           </div>
         </div>
       )}
 
-      <div className="flex flex-col items-center justify-center p-8 bg-zinc-900/40 rounded-xl border border-white/5 mb-6">
+      <div className="flex flex-col items-center justify-center p-8 bg-zinc-100/40 dark:bg-zinc-900/40 rounded-xl border border-black/5 dark:border-white/5 mb-6">
         <h2 className="text-2xl font-bold mb-4">全局模拟</h2>
-        <p className="text-zinc-400 text-center mb-6 max-w-2xl text-sm leading-relaxed">
+        <p className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 text-center mb-6 max-w-2xl text-sm leading-relaxed">
           从当前的赛况开始，向后推演整个赛程。
         </p>
 
         {isSimulating ? (
           <div className="w-full max-w-md flex flex-col items-center gap-3">
-            <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden relative">
+            <div className="w-full bg-white dark:bg-zinc-800 rounded-full h-2 overflow-hidden relative">
               <div
                 className="bg-emerald-500 h-full transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <div className="text-sm font-mono text-zinc-500">
+            <div className="text-sm font-mono text-zinc-500 dark:text-zinc-500">
               模拟中... {progress}%
             </div>
           </div>
@@ -358,12 +366,12 @@ export function GlobalSimulationView({
           <div className="flex items-center gap-4">
             <button
               onClick={handleRunSimulation}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded shadow-lg transition-all active:scale-95"
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-black dark:text-white font-bold rounded shadow-lg transition-all active:scale-95"
             >
               {result ? "重新模拟赛程" : "开始进行全盘模拟"}
             </button>
             {result && (
-              <div className="text-sm text-zinc-500 font-mono">
+              <div className="text-sm text-zinc-500 dark:text-zinc-500 font-mono">
                 基于已完成 {result.totalSims} 次模拟
               </div>
             )}
@@ -375,28 +383,28 @@ export function GlobalSimulationView({
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-6 pb-12">
           {/* Navigation Tabs */}
           <div className="flex justify-center mb-2">
-            <div className="inline-flex bg-zinc-900/50 p-1 rounded-lg border border-white/5">
+            <div className="inline-flex bg-zinc-100/50 dark:bg-zinc-900/50 p-1 rounded-lg border border-black/5 dark:border-white/5">
               <button
                 onClick={() => setActiveTab("stage1")}
-                className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === "stage1" ? "bg-zinc-700 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"}`}
+                className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === "stage1" ? "bg-zinc-200 dark:bg-zinc-700 text-black dark:text-white shadow-sm" : "text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-200 hover:bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50"}`}
               >
                 Stage 1
               </button>
               <button
                 onClick={() => setActiveTab("stage2")}
-                className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === "stage2" ? "bg-zinc-700 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"}`}
+                className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === "stage2" ? "bg-zinc-200 dark:bg-zinc-700 text-black dark:text-white shadow-sm" : "text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-200 hover:bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50"}`}
               >
                 Stage 2
               </button>
               <button
                 onClick={() => setActiveTab("stage3")}
-                className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === "stage3" ? "bg-zinc-700 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"}`}
+                className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === "stage3" ? "bg-zinc-200 dark:bg-zinc-700 text-black dark:text-white shadow-sm" : "text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-200 hover:bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50"}`}
               >
                 Stage 3
               </button>
               <button
                 onClick={() => setActiveTab("playoffs")}
-                className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === "playoffs" ? "bg-emerald-600/20 text-emerald-400 shadow-sm" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"}`}
+                className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === "playoffs" ? "bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 shadow-sm" : "text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-200 hover:bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50"}`}
               >
                 决胜阶段
               </button>
@@ -435,7 +443,7 @@ export function GlobalSimulationView({
 
           {activeTab === "playoffs" && (
             <div className="flex flex-col xl:flex-row gap-6 w-full">
-              <div className="flex-1 p-4 bg-zinc-900/60 rounded-xl border border-white/5 shadow-xl relative overflow-hidden">
+              <div className="flex-1 p-4 bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-black/5 dark:border-white/5 shadow-xl relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-sky-500" />
                 <h3 className="text-xl font-bold mb-6 text-center mt-2">
                   最有可能的决胜路线
@@ -460,7 +468,7 @@ export function GlobalSimulationView({
               </div>
 
               <div className="w-full xl:w-80 flex shrink-0 flex-col gap-4">
-                <div className="p-5 bg-zinc-900/60 rounded-xl border border-white/5 shadow-xl relative overflow-hidden">
+                <div className="p-5 bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-black/5 dark:border-white/5 shadow-xl relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
                   <h3 className="text-lg font-bold mb-4 mt-1 flex items-center gap-2">
                     <span>🏆 夺冠概率 TOP 5</span>
@@ -469,18 +477,18 @@ export function GlobalSimulationView({
                     {topChampions.map((item, i) => (
                       <div
                         key={item.team?.id}
-                        className="flex items-center gap-3 p-3 bg-black/40 rounded-lg border border-white/5"
+                        className="flex items-center gap-3 p-3 bg-zinc-200/40 dark:bg-black/40 rounded-lg border border-black/5 dark:border-white/5"
                       >
-                        <span className="text-lg font-black text-zinc-600 w-4 text-center">
+                        <span className="text-lg font-black text-zinc-500 dark:text-zinc-600 w-4 text-center">
                           {i + 1}
                         </span>
-                        <div className="w-8 h-8 rounded bg-zinc-800/50 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 flex items-center justify-center">
                           <TeamLogo team={item.team!} />
                         </div>
                         <span className="font-bold flex-1">
                           {item.team?.shortName}
                         </span>
-                        <span className="text-emerald-400 font-mono font-bold">
+                        <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">
                           {item.prob}%
                         </span>
                       </div>

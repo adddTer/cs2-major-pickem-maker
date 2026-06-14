@@ -7,6 +7,7 @@ export interface CalcBestPickemConfig {
   numSimulations: number;
   activeStage: string;
   customMatrix?: Record<string, Record<string, number>>;
+  isSwissAllBo3?: boolean;
 }
 
 export interface PickemResult {
@@ -26,20 +27,11 @@ for (let i = 0; i < 65536; i++) {
   popcnt[i] = c;
 }
 
-function evaluate(sims: Uint16Array, numSims: number, p30: number, p03: number, pAdv: number): number {
+function evaluate(sim30: Uint16Array, sim03: Uint16Array, simAdv: Uint16Array, numSims: number, p30: number, p03: number, pAdv: number): number {
   let count5 = 0;
   for (let i = 0; i < numSims; i++) {
-    const offset = i * 3;
-    const sim30 = sims[offset];
-    const sim03 = sims[offset + 1];
-    const simAdv = sims[offset + 2];
-
-    const match30 = popcnt[p30 & sim30];
-    const match03 = popcnt[p03 & sim03];
     // Advance pick is correct ONLY if the team advanced 3-1 or 3-2. (3-0 does not count).
-    const matchAdv = popcnt[pAdv & simAdv];
-
-    if (match30 + match03 + matchAdv >= 5) {
+    if (popcnt[p30 & sim30[i]] + popcnt[p03 & sim03[i]] + popcnt[pAdv & simAdv[i]] >= 5) {
       count5++;
     }
   }
@@ -47,16 +39,18 @@ function evaluate(sims: Uint16Array, numSims: number, p30: number, p03: number, 
 }
 
 self.onmessage = async (e: MessageEvent) => {
-  const { allTeams, pastMatches, scheduledMatches, numSimulations, activeStage, customMatrix } = e.data as CalcBestPickemConfig;
+  const { allTeams, pastMatches, scheduledMatches, numSimulations, activeStage, customMatrix, isSwissAllBo3 } = e.data as CalcBestPickemConfig;
   
   self.postMessage({ type: 'progress', phase: 'simulating', progress: 0 });
 
   // 1. Run Simulations
   const chunkSize = 5000;
-  const sims = new Uint16Array(numSimulations * 3);
+  const sim30Arr = new Uint16Array(numSimulations);
+  const sim03Arr = new Uint16Array(numSimulations);
+  const simAdvArr = new Uint16Array(numSimulations);
   for (let simCount = 0; simCount < numSimulations; simCount += chunkSize) {
     const toSimulate = Math.min(chunkSize, numSimulations - simCount);
-    const chunkResults = simulateSwiss(allTeams, pastMatches, scheduledMatches, toSimulate, {}, activeStage, customMatrix);
+    const chunkResults = simulateSwiss(allTeams, pastMatches, scheduledMatches, toSimulate, {}, activeStage, customMatrix, isSwissAllBo3);
     
     for (let i = 0; i < chunkResults.length; i++) {
         const r = chunkResults[i];
@@ -66,10 +60,10 @@ self.onmessage = async (e: MessageEvent) => {
         for (const t of r.teams03) mask03 |= (1 << allTeams.indexOf(t));
         for (const t of r.teamsAdvance) maskAdv |= (1 << allTeams.indexOf(t));
         
-        const offset = (simCount + i) * 3;
-        sims[offset] = mask30;
-        sims[offset + 1] = mask03;
-        sims[offset + 2] = maskAdv;
+        const idx = simCount + i;
+        sim30Arr[idx] = mask30;
+        sim03Arr[idx] = mask03;
+        simAdvArr[idx] = maskAdv;
     }
     
     self.postMessage({ type: 'progress', phase: 'simulating', progress: Math.min(100, Math.round(((simCount + toSimulate) / numSimulations) * 100)) });
@@ -98,7 +92,7 @@ self.onmessage = async (e: MessageEvent) => {
   // Hill climbing
   for (let restart = 0; restart < 50; restart++) {
     let current = getRandomStart();
-    let currentScore = evaluate(sims, numSimulations, current.p30, current.p03, current.pAdv);
+    let currentScore = evaluate(sim30Arr, sim03Arr, simAdvArr, numSimulations, current.p30, current.p03, current.pAdv);
     
     let improved = true;
     while(improved) {
@@ -149,7 +143,7 @@ self.onmessage = async (e: MessageEvent) => {
       let bestN = current;
       let bestNScore = currentScore;
       for (let n of neighbors) {
-         n.score = evaluate(sims, numSimulations, n.p30, n.p03, n.pAdv);
+         n.score = evaluate(sim30Arr, sim03Arr, simAdvArr, numSimulations, n.p30, n.p03, n.pAdv);
          if (n.score > bestNScore) {
            bestNScore = n.score;
            bestN = { p30: n.p30, p03: n.p03, pAdv: n.pAdv };

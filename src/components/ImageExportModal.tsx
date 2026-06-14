@@ -11,6 +11,7 @@ import { SwissBracket } from "./SwissBracket";
 import { simulateSwiss } from "../utils/simulateSwiss";
 import { MATCHES } from "../data/matches";
 import { TEAMS } from "../data/teams";
+import { cn } from "../lib/utils";
 
 interface ImageExportModalProps {
   showImageExportModal: boolean;
@@ -48,6 +49,7 @@ interface ImageExportModalProps {
   isSimulatingProbability?: boolean;
   simulationProgress?: number;
   exportContainerRef: React.RefObject<HTMLDivElement>;
+  currentEvent?: import("../types").TournamentEvent;
 }
 
 export const ImageExportModal: React.FC<ImageExportModalProps> = ({
@@ -82,11 +84,23 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
   isSimulatingProbability,
   simulationProgress = 0,
   exportContainerRef,
+  currentEvent,
 }) => {
   const [exportSession, setExportSession] = React.useState<number>(1);
   const [animFrame, setAnimFrame] = React.useState<Record<string, any> | null>(null);
   const [localSimulating, setLocalSimulating] = React.useState(false);
   const isSimRef = React.useRef(isSimulatingProbability);
+
+  const hasActualPicks = ACTUAL_RESULTS[activeStage] && ACTUAL_RESULTS[activeStage].length > 0;
+  const actualResultsPickSet: PickSet = {
+    id: "actual_results",
+    name: "赛段真实赛果",
+    picks: ACTUAL_RESULTS,
+    createdAt: Date.now(),
+  };
+
+  const extendedCommunityPicks = hasActualPicks ? [actualResultsPickSet, ...communityPicks] : communityPicks;
+  const extendedSortedCommunityPicks = hasActualPicks ? [actualResultsPickSet, ...sortedCommunityPicks] : sortedCommunityPicks;
 
   React.useEffect(() => {
     isSimRef.current = isSimulatingProbability;
@@ -136,7 +150,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
 
       const runAnimationLoop = async () => {
         while (!cancel) {
-          const results = simulateSwiss(allTeams, pastMatches, scheduledMatches, 1, teamStrengths, activeStage);
+          const results = simulateSwiss(allTeams, pastMatches, scheduledMatches, 1, teamStrengths, activeStage, undefined, currentEvent?.isSwissAllBo3);
           if (results && results.length > 0 && results[0].simPredictionsByRound) {
             const rounds = results[0].simPredictionsByRound;
             for (let i = 0; i < rounds.length; i++) {
@@ -168,38 +182,37 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
     }
   }, [localSimulating, activeStage]);
 
-  if (localSimulating && activeStage !== "playoffs") {
-    return (
-      <div className="fixed inset-0 z-[100000] bg-[#0A0A0A]/95 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-300">
-        <div className="absolute top-12 flex flex-col items-center z-50 pointer-events-none w-full px-8">
-          <h2 className="text-[15px] font-medium text-zinc-100 mb-2 tracking-wide flex items-center gap-2">
-            <RefreshCw className="w-3.5 h-3.5 text-zinc-400 animate-spin" />
-            正在生成概率分布...
-          </h2>
-          <div className="flex items-center gap-3 w-[320px] max-w-[80vw] mt-1">
-             <span className="text-[10px] font-mono text-zinc-500 w-10 text-right">
-               {Math.floor((simulationProgress / 100) * imageExportSimCount).toLocaleString()}
-             </span>
-             <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden relative">
-               <div
-                  className="absolute left-0 top-0 h-full bg-zinc-300 transition-all duration-300 ease-out"
-                  style={{ width: `${Math.max(1, simulationProgress)}%` }}
-               />
-             </div>
-             <span className="text-[10px] font-mono text-zinc-500 w-10 text-left">
-               {imageExportSimCount.toLocaleString()}
-             </span>
-          </div>
-        </div>
-        <div className="w-full h-full opacity-75 pointer-events-none mt-4 flex-1 mix-blend-screen">
-          <SwissBracket activeStage={activeStage} externalPredictions={animFrame || undefined} isAnimating={true} />
+  const simulatingOverlay = (localSimulating && activeStage !== "playoffs") ? (
+    <div className="fixed inset-0 z-[100000] bg-[#0A0A0A]/95 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-300">
+      <div className="absolute top-12 flex flex-col items-center z-50 pointer-events-none w-full px-8">
+        <h2 className="text-[15px] font-medium text-zinc-900 dark:text-zinc-100 mb-2 tracking-wide flex items-center gap-2">
+          <RefreshCw className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 animate-spin" />
+          正在生成概率分布...
+        </h2>
+        <div className="flex items-center gap-3 w-[320px] max-w-[80vw] mt-1">
+           <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-500 w-10 text-right">
+             {Math.floor((simulationProgress / 100) * imageExportSimCount).toLocaleString()}
+           </span>
+           <div className="flex-1 h-1 bg-white dark:bg-zinc-800 rounded-full overflow-hidden relative">
+             <div
+                className="absolute left-0 top-0 h-full bg-zinc-300 transition-all duration-300 ease-out"
+                style={{ width: `${Math.max(1, simulationProgress)}%` }}
+             />
+           </div>
+           <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-500 w-10 text-left">
+             {imageExportSimCount.toLocaleString()}
+           </span>
         </div>
       </div>
-    );
-  }
+      <div className="w-full h-full opacity-75 pointer-events-none mt-4 flex-1 mix-blend-screen">
+        <SwissBracket activeStage={activeStage} externalPredictions={animFrame || undefined} isAnimating={true} currentEvent={currentEvent} />
+      </div>
+    </div>
+  ) : null;
 
   return (
     <>
+      {simulatingOverlay}
       <Modal
         isOpen={showImageExportModal}
         onClose={() => {
@@ -210,7 +223,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
       >
         {exportPreviewUrl ? (
           <div className="flex flex-col gap-4">
-            <div className="bg-black/40 rounded-lg overflow-auto max-h-[60vh] border border-white/10 p-2 relative custom-scrollbar">
+            <div className="bg-zinc-200/40 dark:bg-black/40 rounded-lg overflow-auto max-h-[60vh] border border-black/10 dark:border-white/10 p-2 relative custom-scrollbar">
               <img
                 src={exportPreviewUrl}
                 alt="Preview"
@@ -220,7 +233,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
             <div className="flex justify-end gap-3 mt-4">
               <button
                 onClick={() => setExportPreviewUrl(null)}
-                className="px-4 py-2 border border-white/10 hover:bg-white/5 text-zinc-300 font-bold text-sm transition-colors rounded-md"
+                className="px-4 py-2 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:bg-white/5 text-zinc-800 dark:text-zinc-300 font-bold text-sm transition-colors rounded-md"
               >
                 返回修改
               </button>
@@ -238,13 +251,13 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                     dialog.alert("复制失败，请尝试直接下载。");
                   }
                 }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20 flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20 flex items-center gap-2"
               >
                 <Copy className="w-4 h-4" /> 复制图片
               </button>
               <button
                 onClick={handleDownloadImage}
-                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-emerald-900/20 flex items-center gap-2"
+                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-emerald-900/20 flex items-center gap-2"
               >
                 <Download className="w-4 h-4" /> 下载图片
               </button>
@@ -253,11 +266,11 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
         ) : isSimulatingProbability || isExportingImage ? (
           <div className="flex flex-col items-center justify-center py-12 gap-5">
             <RefreshCw className="w-10 h-10 text-blue-500 animate-spin opacity-80" />
-            <div className="text-zinc-200 font-bold text-lg text-center whitespace-pre-line leading-relaxed">
+            <div className="text-zinc-900 dark:text-zinc-200 font-bold text-lg text-center whitespace-pre-line leading-relaxed">
               {isSimulatingProbability ? "模拟中……" : "渲染高清长图中..."}
             </div>
             {isSimulatingProbability && (
-              <div className="w-full max-w-xs bg-zinc-800/80 rounded-full h-1.5 mt-2 overflow-hidden shadow-inner border border-white/5 relative">
+              <div className="w-full max-w-xs bg-black/80 dark:bg-white/80 dark:bg-zinc-800/80 rounded-full h-1.5 mt-2 overflow-hidden shadow-inner border border-black/5 dark:border-white/5 relative">
                 <div
                   className="bg-blue-500 h-full transition-all duration-300 ease-out"
                   style={{ width: `${simulationProgress}%` }}
@@ -269,35 +282,35 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
           <div className="flex flex-col gap-4">
             {activeStage !== "stage1" && (
               <div
-                className="flex items-center justify-between p-3 bg-zinc-800/50 rounded cursor-pointer border border-white/5"
+                className="flex items-center justify-between p-3 bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 rounded cursor-pointer border border-black/5 dark:border-white/5"
                 onClick={() =>
                   setImageExportShowPrevStage(!imageExportShowPrevStage)
                 }
               >
-                <span className="text-sm font-bold text-zinc-200">
+                <span className="text-sm font-bold text-zinc-900 dark:text-zinc-200">
                   显示上阶段成绩
                 </span>
                 {imageExportShowPrevStage ? (
                   <CheckSquare className="w-5 h-5 text-blue-400" />
                 ) : (
-                  <Square className="w-5 h-5 text-zinc-500" />
+                  <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
                 )}
               </div>
             )}
-            <div className="flex flex-col bg-zinc-800/50 rounded border border-white/5 overflow-hidden">
+            <div className="flex flex-col bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 rounded border border-black/5 dark:border-white/5 overflow-hidden">
               <div
                 className="flex items-center justify-between p-3 cursor-pointer"
                 onClick={() =>
                   setImageExportShowProbabilities(!imageExportShowProbabilities)
                 }
               >
-                <span className="text-sm font-bold text-zinc-200">
+                <span className="text-sm font-bold text-zinc-900 dark:text-zinc-200">
                   显示概率而非对错
                 </span>
                 {imageExportShowProbabilities ? (
                   <CheckSquare className="w-5 h-5 text-blue-400" />
                 ) : (
-                  <Square className="w-5 h-5 text-zinc-500" />
+                  <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
                 )}
               </div>
               
@@ -308,10 +321,10 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                     : "grid-rows-[0fr] opacity-0"
                 }`}
               >
-                <div className="overflow-hidden bg-black/20">
-                  <div className="flex flex-col gap-3 p-4 border-t border-white/5">
+                <div className="overflow-hidden bg-zinc-200/20 dark:bg-black/20">
+                  <div className="flex flex-col gap-3 p-4 border-t border-black/5 dark:border-white/5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-zinc-400">模拟次数精度</span>
+                      <span className="text-xs font-bold text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">模拟次数精度</span>
                       <span className="text-xs font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded shadow-sm border border-blue-500/20">
                         {imageExportSimCount >= 1000000 
                           ? `${(imageExportSimCount / 1000000).toFixed(1)}M` 
@@ -328,7 +341,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                          onChange={(e) => setImageExportSimCount(Number(e.target.value))}
                          className="w-full h-1.5 bg-zinc-700/80 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                        />
-                       <div className="flex justify-between text-[10px] text-zinc-500 px-1 font-mono font-bold">
+                       <div className="flex justify-between text-[10px] text-zinc-500 dark:text-zinc-500 px-1 font-mono font-bold">
                          <span>10K (极速)</span>
                          <span>5M (精确)</span>
                        </div>
@@ -339,47 +352,47 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
             </div>
 
             <div
-              className="flex items-center justify-between p-3 bg-zinc-800/50 rounded cursor-pointer border border-white/5"
+              className="flex items-center justify-between p-3 bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 rounded cursor-pointer border border-black/5 dark:border-white/5"
               onClick={() =>
                 setImageExportShowTeamNames(!imageExportShowTeamNames)
               }
             >
-              <span className="text-sm font-bold text-zinc-200">
+              <span className="text-sm font-bold text-zinc-900 dark:text-zinc-200">
                 显示队伍名称
               </span>
               {imageExportShowTeamNames ? (
                 <CheckSquare className="w-5 h-5 text-blue-400" />
               ) : (
-                <Square className="w-5 h-5 text-zinc-500" />
+                <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
               )}
             </div>
             <div className="flex flex-col gap-2">
-              <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest px-1">
+              <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest px-1">
                 展示样式
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setImageExportStyle("standard")}
-                  className={`flex-1 py-2 text-sm font-bold rounded border transition-colors ${imageExportStyle === "standard" ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-zinc-800/50 text-zinc-400 border-white/5 hover:bg-zinc-800"}`}
+                  className={`flex-1 py-2 text-sm font-bold rounded border transition-colors ${imageExportStyle === "standard" ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:bg-zinc-800"}`}
                 >
                   标准
                 </button>
                 <button
                   onClick={() => setImageExportStyle("compact")}
-                  className={`flex-1 py-2 text-sm font-bold rounded border transition-colors ${imageExportStyle === "compact" ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-zinc-800/50 text-zinc-400 border-white/5 hover:bg-zinc-800"}`}
+                  className={`flex-1 py-2 text-sm font-bold rounded border transition-colors ${imageExportStyle === "compact" ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:bg-zinc-800"}`}
                 >
                   紧凑
                 </button>
               </div>
             </div>
-            <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-2 px-1">
+            <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest mt-2 px-1">
               选择包含的社区竞猜
             </div>
             <div className="flex flex-col gap-2">
               <div
-                className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded cursor-pointer hover:bg-zinc-800 transition-colors border border-white/5"
+                className="flex items-center gap-3 p-3 bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 rounded cursor-pointer hover:bg-white dark:bg-zinc-800 transition-colors border border-black/5 dark:border-white/5"
                 onClick={() => {
-                  const validIds = communityPicks
+                  const validIds = extendedCommunityPicks
                     .filter((p) => {
                       const stagePicks = p.picks[activeStage] || [];
                       if (activeStage === "playoffs") {
@@ -404,7 +417,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                 }}
               >
                 {(() => {
-                  const validIdsCount = communityPicks.filter((p) => {
+                  const validIdsCount = extendedCommunityPicks.filter((p) => {
                     const stagePicks = p.picks[activeStage] || [];
                     if (activeStage === "playoffs") {
                       const userPicks = stagePicks.filter(
@@ -427,9 +440,9 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                       validIdsCount > 0 ? (
                         <CheckSquare className="w-5 h-5 text-blue-400" />
                       ) : (
-                        <Square className="w-5 h-5 text-zinc-500" />
+                        <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
                       )}
-                      <span className="font-bold text-sm text-zinc-200">
+                      <span className="font-bold text-sm text-zinc-900 dark:text-zinc-200">
                         全选完整预测 ({imageExportIds.length}/{validIdsCount})
                       </span>
                     </>
@@ -437,12 +450,12 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                 })()}
               </div>
               <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[160px] custom-scrollbar">
-                {sortedCommunityPicks.map((item) => {
+                {extendedSortedCommunityPicks.map((item) => {
                   const isSelected = imageExportIds.includes(item.id);
                   return (
                     <div
                       key={item.id}
-                      className={`flex items-center gap-3 p-3 rounded cursor-pointer transition-colors border ${isSelected ? "bg-blue-500/10 border-blue-500/30" : "bg-black/20 border-white/5 hover:bg-black/40"}`}
+                      className={`flex items-center gap-3 p-3 rounded cursor-pointer transition-colors border ${isSelected ? "bg-blue-500/10 border-blue-500/30" : "bg-zinc-200/20 dark:bg-black/20 border-black/5 dark:border-white/5 hover:bg-zinc-200/40 dark:bg-black/40"}`}
                       onClick={() =>
                         setImageExportIds((prev) =>
                           prev.includes(item.id)
@@ -454,9 +467,9 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                       {isSelected ? (
                         <CheckSquare className="w-5 h-5 text-blue-400" />
                       ) : (
-                        <Square className="w-5 h-5 text-zinc-500" />
+                        <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
                       )}
-                      <span className="font-bold text-sm text-zinc-200 truncate">
+                      <span className="font-bold text-sm text-zinc-900 dark:text-zinc-200 truncate">
                         {item.name}
                       </span>
                     </div>
@@ -468,7 +481,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
               <button
                 onClick={handleGeneratePreview}
                 disabled={isExportingImage || imageExportIds.length === 0}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isExportingImage ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />
@@ -489,13 +502,13 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
             <div className="absolute left-[-9999px] top-[-9999px]">
               <div
                 ref={exportContainerRef}
-                className="bg-[#070b09] p-8 w-max min-w-[500px] max-w-[1200px] flex flex-col gap-6"
+                className="bg-zinc-50 dark:bg-[#070b09] p-8 w-max min-w-[500px] max-w-[1200px] flex flex-col gap-6"
                 style={{
                   fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
                 }}
               >
-                <div className="flex flex-col items-center justify-center border-b border-white/10 pb-6 mb-2">
-                  <h1 className="text-2xl font-black text-white tracking-widest flex items-center gap-2">
+                <div className="flex flex-col items-center justify-center border-b border-black/10 dark:border-white/10 pb-6 mb-2">
+                  <h1 className="text-2xl font-black text-black dark:text-white tracking-widest flex items-center gap-2">
                     IEM Cologne 2026 -{" "}
                     {activeStage === "stage1"
                       ? "第一阶段"
@@ -507,9 +520,9 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                   </h1>
                 </div>
                 <div
-                  className={`grid ${imageExportStyle === "compact" ? "grid-cols-1 gap-0 bg-zinc-900/80 border border-white/5 rounded-lg shadow-sm overflow-hidden" : "grid-cols-1 gap-6"}`}
+                  className={`grid ${imageExportStyle === "compact" ? "grid-cols-1 gap-0 bg-zinc-100/80 dark:bg-zinc-900/80 border border-black/5 dark:border-white/5 rounded-lg shadow-sm overflow-hidden" : "grid-cols-1 gap-6"}`}
                 >
-                  {sortedCommunityPicks
+                  {extendedSortedCommunityPicks
                     .filter((p) => imageExportIds.includes(p.id))
                     .map((participant, index) => {
                       const theirPicks = participant.picks[activeStage] || [];
@@ -520,24 +533,25 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                             key={participant.id}
                             className={
                               imageExportStyle === "compact"
-                                ? `flex items-center gap-4 py-3 px-5 ${index !== 0 ? "border-t border-white/5" : ""}`
-                                : "bg-zinc-900/80 border border-white/5 p-5 rounded-lg shadow-sm flex flex-col gap-4"
+                                ? `flex gap-3 py-2 px-4 ${index !== 0 ? "border-t border-black/5 dark:border-white/5" : ""}`
+                                : "bg-white dark:bg-zinc-900 border rounded-2xl p-5 shadow-sm flex flex-col gap-4"
                             }
                           >
                             {imageExportStyle === "compact" ? (
-                              <div className="font-bold text-sm text-zinc-200 w-32 shrink-0 break-words line-clamp-2 leading-snug">
+                              <div className="font-bold text-sm text-zinc-900 dark:text-zinc-200 w-36 shrink-0 break-words line-clamp-2 leading-snug pt-3">
                                 {participant.name}
                               </div>
                             ) : (
-                              <div className="flex items-center gap-3 border-b border-white/5 pb-3">
-                                <div className="font-bold text-base text-zinc-200">
+                              <div className="flex items-center justify-between min-h-[32px]">
+                                <div className="font-black text-[15px] text-zinc-900 dark:text-zinc-100 flex items-center gap-2.5">
+                                  <div className={cn("w-2 h-2 rounded-full", "bg-zinc-300 dark:bg-zinc-600")}></div>
                                   {participant.name}
                                 </div>
                               </div>
                             )}
                             <div
                               className={
-                                imageExportStyle === "compact" ? "flex-1" : ""
+                                imageExportStyle === "compact" ? "flex-1" : "bg-zinc-50/80 dark:bg-zinc-950/50 rounded-xl p-4 border border-black/5 dark:border-white/5"
                               }
                             >
                               <MiniPlayoffsBracket
@@ -678,26 +692,32 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                         return (
                           <div
                             key={participant.id}
-                            className={`flex items-center gap-4 py-3 px-5 ${index !== 0 ? "border-t" : ""} ${statusStyles.border} ${statusStyles.bg}`}
+                            className={`flex items-center gap-3 py-2 px-4 ${index !== 0 ? "border-t" : ""} ${statusStyles.border} ${statusStyles.bg}`}
                           >
-                            <div className="font-bold text-sm text-zinc-200 w-32 shrink-0 break-words line-clamp-2 leading-snug flex flex-col gap-1.5">
-                              {participant.name}
+                            <div className="flex flex-col gap-1.5 w-36 shrink-0 justify-center">
+                              <div className="font-bold text-sm text-zinc-900 dark:text-zinc-200 break-words line-clamp-2 leading-snug">
+                                {participant.name}
+                              </div>
                               {imageExportShowPrevStage &&
                               activeStage !== "stage1" ? (
-                                <div className="flex items-center w-[120px] overflow-hidden whitespace-nowrap">
-                                  <span className="text-[10px] text-zinc-400 font-bold bg-zinc-800/80 px-1 py-0.5 rounded leading-none shrink-0 border border-zinc-700 mr-1 shadow-sm">
+                                <div className="flex flex-col gap-1 items-start">
+                                  <span className="text-[10px] text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 font-bold bg-black/80 dark:bg-white/80 dark:bg-zinc-800/80 px-1 py-0.5 rounded leading-none shrink-0 border border-zinc-300 dark:border-zinc-700 shadow-sm w-max">
                                     上阶段
                                   </span>
-                                  <PickSetStatusText
-                                    statusData={prevStageStatusData}
-                                    showProbability={false}
-                                  />
+                                  <div className="transform origin-top-left scale-90">
+                                    <PickSetStatusText
+                                      statusData={prevStageStatusData}
+                                      showProbability={false}
+                                    />
+                                  </div>
                                 </div>
                               ) : (
-                                <PickSetStatusText
-                                  statusData={statusData}
-                                  showProbability={imageExportShowProbabilities}
-                                />
+                                <div className="transform origin-top-left scale-90">
+                                  <PickSetStatusText
+                                    statusData={statusData}
+                                    showProbability={imageExportShowProbabilities}
+                                  />
+                                </div>
                               )}
                             </div>
                             <div className="flex-1">
@@ -720,18 +740,19 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                       return (
                         <div
                           key={participant.id}
-                          className={`border p-5 rounded-lg flex flex-col gap-4 ${statusStyles.bg} ${statusStyles.border}`}
+                          className={cn("bg-white dark:bg-zinc-900 border rounded-2xl p-5 shadow-sm flex flex-col gap-4", statusStyles.border)}
                         >
                           <div
-                            className={`flex items-center justify-between border-b pb-3 ${statusStyles.border}`}
+                            className="flex items-center justify-between min-h-[32px]"
                           >
-                            <div className="font-bold text-base text-zinc-200">
+                            <div className="font-black text-[15px] text-zinc-900 dark:text-zinc-100 flex items-center gap-2.5">
+                              <div className={cn("w-2 h-2 rounded-full", statusStyles.bg)}></div>
                               {participant.name}
                             </div>
                             {imageExportShowPrevStage &&
                             activeStage !== "stage1" ? (
                               <div className="flex items-center max-w-[200px] overflow-hidden whitespace-nowrap">
-                                <span className="text-[10px] text-zinc-400 font-bold bg-zinc-800/80 px-1 py-0.5 rounded leading-none shrink-0 border border-zinc-700 mr-1 shadow-sm opacity-90">
+                                <span className="text-[10px] text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 font-bold bg-black/80 dark:bg-white/80 dark:bg-zinc-800/80 px-1 py-0.5 rounded leading-none shrink-0 border border-zinc-300 dark:border-zinc-700 mr-1 shadow-sm opacity-90">
                                   上阶段
                                 </span>
                                 <PickSetStatusText
@@ -746,16 +767,18 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                               />
                             )}
                           </div>
-                          <MiniPicksDisplay
-                            title30="3:0 晋级"
-                            slots30={sorted30Picks}
-                            titleAdvance="3:1 3:2 晋级"
-                            slotsAdvance={sortedAdvancePicks}
-                            title03="0:3 淘汰"
-                            slots03={sortedElimPicks}
-                            showTeamNames={imageExportShowTeamNames}
-                            isExport={true}
-                          />
+                          <div className="bg-zinc-50/80 dark:bg-zinc-950/50 rounded-xl p-3 border border-black/5 dark:border-white/5">
+                            <MiniPicksDisplay
+                              title30="3:0 晋级"
+                              slots30={sorted30Picks}
+                              titleAdvance="3:1 3:2 晋级"
+                              slotsAdvance={sortedAdvancePicks}
+                              title03="0:3 淘汰"
+                              slots03={sortedElimPicks}
+                              showTeamNames={imageExportShowTeamNames}
+                              isExport={true}
+                            />
+                          </div>
                         </div>
                       );
                     })}

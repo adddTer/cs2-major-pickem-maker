@@ -1,13 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { PickSlot, StageKey, SlotType, PickSet } from "../types";
 import { cn } from "../lib/utils";
+import { motion, AnimatePresence } from "motion/react";
 import { MiniPlayoffsBracket } from "../components/MiniPlayoffsBracket";
 import { MiniPicksDisplay } from "../components/MiniPicksDisplay";
 import {
   PickSetStatusText,
   getStatusStyles,
 } from "../components/PickSetStatus";
-import { MatchScheduleBanner } from "../components/MatchScheduleBanner";
 
 interface SummaryViewProps {
   communityPicks: PickSet[];
@@ -33,7 +33,8 @@ interface SummaryViewProps {
   setViewMode?: (mode: "home" | "edit" | "summary") => void;
 }
 
-import { RefreshCw, ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Download, Image as ImageIcon, FileText } from "lucide-react";
+
 export const SummaryView: React.FC<SummaryViewProps> = React.memo(
   ({
     communityPicks,
@@ -54,107 +55,129 @@ export const SummaryView: React.FC<SummaryViewProps> = React.memo(
     isRefreshing,
     setViewMode,
   }) => {
+    const [isMobileResultsOpen, setIsMobileResultsOpen] = useState(true);
+
     return (
-      <div className="flex-1 flex flex-col bg-zinc-900/60 border border-white/5 rounded-lg shadow-xl relative backdrop-blur-md overflow-hidden">
-        <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6 shrink-0">
-            <div className="flex items-center gap-3">
-              {setViewMode && (
-                <button
-                  onClick={() => setViewMode("home")}
-                  className="sm:hidden p-1.5 -ml-1.5 text-zinc-400 hover:text-white"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-              )}
-              <h2 className="text-sm font-bold text-zinc-100">
-                社区竞猜详情汇总 ({communityPicks.length})
-              </h2>
+      <div className="flex-1 flex flex-col xl:flex-row bg-white/40 dark:bg-black/20 border border-black/5 dark:border-white/5 rounded-2xl shadow-xl relative backdrop-blur-2xl overflow-hidden">
+        {/* Left Panel: Context & Controls */}
+        <div className="w-full xl:w-[380px] shrink-0 flex flex-col border-b xl:border-b-0 xl:border-r border-black/5 dark:border-white/5 bg-zinc-50/80 dark:bg-zinc-900/80 z-10 transition-all">
+          <div className="p-4 sm:p-5 flex flex-col gap-4 sm:gap-5">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                {setViewMode && (
+                  <button
+                    onClick={() => setViewMode("home")}
+                    className="p-1.5 -ml-1.5 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full text-zinc-600 dark:text-zinc-300 transition-colors"
+                  >
+                    <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                )}
+                <div>
+                  <h2 className="text-base sm:text-lg font-black tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    社区预测
+                    <span className="px-2 py-0.5 bg-black/5 dark:bg-white/10 rounded-full text-[11px] sm:text-xs font-bold text-zinc-600 dark:text-zinc-300">
+                      {communityPicks.length} 份
+                    </span>
+                  </h2>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+
+            {/* Stage Selector */}
+            <div className="flex bg-black/5 dark:bg-black/40 p-1 rounded-xl overflow-x-auto custom-scrollbar">
+              {["stage1", "stage2", "stage3", "playoffs"].map((tabId) => {
+                const stageLabel =
+                  tabId === "stage1"
+                    ? "第一阶段"
+                    : tabId === "stage2"
+                      ? "第二阶段"
+                      : tabId === "stage3"
+                        ? "第三阶段"
+                        : "决胜阶段";
+                const isActive = activeStage === tabId;
+                return (
+                  <button
+                    key={`sum-${tabId}`}
+                    onClick={() => setActiveStage(tabId as StageKey)}
+                    className={cn(
+                      "flex-1 px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-lg transition-all whitespace-nowrap",
+                      isActive
+                        ? "bg-white dark:bg-zinc-700 text-black dark:text-white shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200",
+                    )}
+                  >
+                    {stageLabel}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Actions */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
               <button
                 onClick={() =>
                   setShowProbabilityInSummary(!showProbabilityInSummary)
                 }
-                className="px-3 py-1.5 bg-zinc-600/20 hover:bg-zinc-600/40 text-zinc-300 border border-zinc-500/30 text-xs font-bold rounded flex items-center gap-1.5 transition-colors"
+                className="col-span-2 py-2 bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 border border-black/5 dark:border-white/5 text-zinc-700 dark:text-zinc-300 font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm"
               >
-                {showProbabilityInSummary ? "显示对错数量" : "显示通过概率"}
+                {showProbabilityInSummary ? "当前：显示对错数量" : "当前：显示通过概率"}
               </button>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    const validIds = communityPicks
-                      .filter((p) => {
-                        const stagePicks = p.picks[activeStage] || [];
-                        if (activeStage === "playoffs") {
-                          const userPicks = stagePicks.filter(
-                            (s) => !s.id.startsWith("qf-"),
-                          );
-                          return (
-                            userPicks.length === 7 &&
-                            userPicks.every((s) => !!s.teamId)
-                          );
-                        } else {
-                          return (
-                            stagePicks.length === 10 &&
-                            stagePicks.every((s) => !!s.teamId)
-                          );
-                        }
-                      })
-                      .map((p) => p.id);
-                    setImageExportIds(validIds);
-                    setShowImageExportModal(true);
-                  }}
-                  className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 text-xs font-bold rounded flex items-center gap-1.5 transition-colors"
-                >
-                  导出图片
-                </button>
-                <button
-                  onClick={() => {
-                    setShowTextExportModal(true);
-                  }}
-                  className="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 border border-emerald-500/30 text-xs font-bold rounded flex items-center gap-1.5 transition-colors"
-                >
-                  导出文本
-                </button>
-              </div>
-              <div className="flex bg-black/40 p-1 rounded-md border border-white/5 overflow-x-auto custom-scrollbar shrink-0 max-w-full">
-                {["stage1", "stage2", "stage3", "playoffs"].map((tabId) => {
-                  const stageLabel =
-                    tabId === "stage1"
-                      ? "第一阶段"
-                      : tabId === "stage2"
-                        ? "第二阶段"
-                        : tabId === "stage3"
-                          ? "第三阶段"
-                          : "决胜阶段";
-                  return (
-                    <div
-                      key={`sum-${tabId}`}
-                      onClick={() => setActiveStage(tabId as StageKey)}
-                      className={cn(
-                        "px-3 py-1 text-[11px] font-bold rounded-[2px] cursor-pointer transition-colors whitespace-nowrap shrink-0",
-                        activeStage === tabId
-                          ? "bg-white/10 text-white"
-                          : "text-zinc-500 hover:text-zinc-300",
-                      )}
-                    >
-                      {stageLabel}
-                    </div>
-                  );
-                })}
-              </div>
+              <button
+                onClick={() => {
+                  const validIds = communityPicks
+                    .filter((p) => {
+                      const stagePicks = p.picks[activeStage] || [];
+                      if (activeStage === "playoffs") {
+                        const userPicks = stagePicks.filter(
+                          (s) => !s.id.startsWith("qf-"),
+                        );
+                        return (
+                          userPicks.length === 7 &&
+                          userPicks.every((s) => !!s.teamId)
+                        );
+                      } else {
+                        return (
+                          stagePicks.length === 10 &&
+                          stagePicks.every((s) => !!s.teamId)
+                        );
+                      }
+                    })
+                    .map((p) => p.id);
+                  setImageExportIds(validIds);
+                  setShowImageExportModal(true);
+                }}
+                className="p-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-sm"
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                导出长图
+              </button>
+              <button
+                onClick={() => {
+                  setShowTextExportModal(true);
+                }}
+                className="p-2 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-sm"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                导出文本
+              </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2 flex flex-col gap-4 content-start">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 content-start">
-              <div className="bg-zinc-900/80 border border-emerald-500/20 p-4 rounded-lg shadow-sm flex flex-col gap-4 xl:col-span-2">
-                <div className="flex items-center gap-2 border-b border-emerald-500/20 pb-3">
-                  <h3 className="text-sm font-bold text-emerald-400 tracking-wider">
-                    实际比赛结果
-                  </h3>
-                </div>
+          <div className="h-px bg-black/5 dark:bg-white/5 w-full shrink-0 xl:hidden"></div>
+        </div>
+
+        {/* Right Panel: Community Picks */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-zinc-100/40 dark:bg-black/10 relative custom-scrollbar">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-4 lg:gap-6 max-w-[1600px] mx-auto content-start mb-6">
+            <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-500/20 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-[0_0_15px_rgba(16,185,129,0.15)] justify-between">
+              <div className="flex items-center min-h-[32px]">
+                <h3 className="text-[15px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5" />
+                  赛段真实赛果
+                </h3>
+              </div>
+              <div className="bg-zinc-50/80 dark:bg-zinc-950/50 rounded-xl p-3 border border-emerald-500/10 overflow-x-auto custom-scrollbar">
                 {activeStage === "playoffs" ? (
                   <MiniPlayoffsBracket
                     slots={PLAYOFFS_SLOTS.map((s) => {
@@ -212,60 +235,87 @@ export const SummaryView: React.FC<SummaryViewProps> = React.memo(
                   />
                 )}
               </div>
+            </div>
 
-              {communityPicks.length === 0 && (
-                <div className="col-span-full py-12 text-center text-zinc-500 text-sm">
-                  暂无社区竞猜数据
-                </div>
-              )}
-
-              {sortedCommunityPicks.map((participant) => {
+            {communityPicks.length === 0 ? (
+              <div className="col-span-full py-12 text-center text-zinc-500 dark:text-zinc-500 text-sm font-bold opacity-80 flex flex-col items-center justify-center gap-2">
+                <FileText className="w-8 h-8 opacity-40" />
+                暂无社区预测数据
+              </div>
+            ) : (
+              sortedCommunityPicks.map((participant) => {
                 const theirPicks = participant.picks[activeStage] || [];
+                const statusData = getSetStatus(theirPicks, activeStage);
+                const statusStyles = getStatusStyles(statusData);
+                const isInitialSimulating = isRefreshing && statusData?.passingProbability === undefined;
 
                 if (activeStage === "playoffs") {
                   return (
                     <div
                       key={participant.id}
-                      className="bg-zinc-900/80 border border-white/5 p-4 rounded-lg shadow-sm flex flex-col gap-4"
+                      className={cn(
+                        "bg-white dark:bg-zinc-900 border rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-sm hover:shadow-md duration-500 transition-all",
+                        statusStyles.border
+                      )}
                     >
-                      <div className="flex items-center gap-3 border-b border-white/5 pb-3">
-                        <div className="font-bold text-sm text-zinc-200">
+                      <div className="flex items-center justify-between min-h-[32px]">
+                        <div className="font-black text-[15px] text-zinc-900 dark:text-zinc-100 flex items-center gap-2.5">
+                          <div className={cn("w-2 h-2 rounded-full duration-500 transition-colors", statusStyles.bg)}></div>
                           {participant.name}
                         </div>
+                        <motion.div
+                          layout
+                          animate={{
+                            opacity: isRefreshing ? (isInitialSimulating ? 0 : 0.4) : 1,
+                            scale: isRefreshing && !isInitialSimulating ? 0.95 : 1,
+                            filter: isRefreshing && !isInitialSimulating ? "blur(2px) grayscale(50%)" : "blur(0px) grayscale(0%)",
+                            x: isRefreshing && isInitialSimulating ? 15 : 0
+                          }}
+                          transition={{ 
+                            type: "spring", 
+                            stiffness: 300, 
+                            damping: 20,
+                            mass: 0.8
+                          }}
+                        >
+                          <PickSetStatusText
+                            statusData={statusData}
+                            showProbability={showProbabilityInSummary}
+                          />
+                        </motion.div>
                       </div>
-                      <MiniPlayoffsBracket
-                        slots={PLAYOFFS_SLOTS.map((s) => {
-                          const pick = theirPicks.find(
-                            (p) => p.id === s.id || p.id === `playoffs-${s.id}`,
-                          );
-                          let teamId = pick?.teamId || null;
+                      <div className="bg-zinc-50/80 dark:bg-zinc-950/50 rounded-xl p-4 border border-black/5 dark:border-white/5 overflow-x-auto custom-scrollbar">
+                        <MiniPlayoffsBracket
+                          slots={PLAYOFFS_SLOTS.map((s) => {
+                            const pick = theirPicks.find(
+                              (p) => p.id === s.id || p.id === `playoffs-${s.id}`,
+                            );
+                            let teamId = pick?.teamId || null;
 
-                          // Auto-fill QF slots from ACTUAL_RESULTS since users don't pick them
-                          if (s.type === "qf" && !teamId) {
-                            const qfActuals =
-                              ACTUAL_RESULTS[activeStage]?.filter(
-                                (x: any) => x.type === "qf",
-                              ) || [];
-                            const sTypeIdx = PLAYOFFS_SLOTS.filter(
-                              (x) => x.type === "qf",
-                            ).findIndex((x) => x.id === s.id);
-                            teamId = qfActuals[sTypeIdx]?.teamId || null;
-                          }
+                            if (s.type === "qf" && !teamId) {
+                              const qfActuals =
+                                ACTUAL_RESULTS[activeStage]?.filter(
+                                  (x: any) => x.type === "qf",
+                                ) || [];
+                              const sTypeIdx = PLAYOFFS_SLOTS.filter(
+                                (x) => x.type === "qf",
+                              ).findIndex((x) => x.id === s.id);
+                              teamId = qfActuals[sTypeIdx]?.teamId || null;
+                            }
 
-                          return {
-                            ...s,
-                            teamId: teamId,
-                            resultStatus: "unknown",
-                          };
-                        })}
-                      />
+                            return {
+                              ...s,
+                              teamId: teamId,
+                              resultStatus: "unknown",
+                            };
+                          })}
+                        />
+                      </div>
                     </div>
                   );
                 }
 
-                const statusData = getSetStatus(theirPicks, activeStage);
-                const statusStyles = getStatusStyles(statusData);
-
+                // Swiss Stage Logic
                 const picks30 = theirPicks.filter((s) => s.type === "3-0");
                 const sorted30Picks = [...picks30]
                   .sort((a, b) => {
@@ -356,37 +406,50 @@ export const SummaryView: React.FC<SummaryViewProps> = React.memo(
                   <div
                     key={participant.id}
                     className={cn(
-                      "p-4 rounded-lg flex flex-col gap-4 border",
-                      statusStyles.bg,
-                      statusStyles.border,
+                      "bg-white dark:bg-zinc-900 border rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-sm hover:shadow-md duration-500 transition-all",
+                      statusStyles.border
                     )}
                   >
-                    <div
-                      className={cn(
-                        "flex items-center justify-between border-b pb-3",
-                        statusStyles.border,
-                      )}
-                    >
-                      <div className="font-bold text-sm text-zinc-200">
+                    <div className="flex items-center justify-between min-h-[32px]">
+                      <div className="font-black text-[15px] text-zinc-900 dark:text-zinc-100 flex items-center gap-2.5">
+                        <div className={cn("w-2 h-2 rounded-full duration-500 transition-colors", statusStyles.bg)}></div>
                         {participant.name}
                       </div>
-                      <PickSetStatusText
-                        statusData={statusData}
-                        showProbability={showProbabilityInSummary}
+                      <motion.div
+                        layout
+                        animate={{
+                          opacity: isRefreshing ? (isInitialSimulating ? 0 : 0.4) : 1,
+                          scale: isRefreshing && !isInitialSimulating ? 0.95 : 1,
+                          filter: isRefreshing && !isInitialSimulating ? "blur(2px) grayscale(50%)" : "blur(0px) grayscale(0%)",
+                          x: isRefreshing && isInitialSimulating ? 15 : 0
+                        }}
+                        transition={{ 
+                          type: "spring", 
+                          stiffness: 300, 
+                          damping: 20,
+                          mass: 0.8
+                        }}
+                      >
+                        <PickSetStatusText
+                          statusData={statusData}
+                          showProbability={showProbabilityInSummary}
+                        />
+                      </motion.div>
+                    </div>
+                    <div className="bg-zinc-50/80 dark:bg-zinc-950/50 rounded-xl p-3 border border-black/5 dark:border-white/5 overflow-x-auto custom-scrollbar">
+                      <MiniPicksDisplay
+                        title30="3:0 晋级"
+                        slots30={sorted30Picks}
+                        titleAdvance="3:1 3:2 晋级"
+                        slotsAdvance={sortedAdvancePicks}
+                        title03="0:3 淘汰"
+                        slots03={sortedElimPicks}
                       />
                     </div>
-                    <MiniPicksDisplay
-                      title30="3:0 晋级"
-                      slots30={sorted30Picks}
-                      titleAdvance="3:1 3:2 晋级"
-                      slotsAdvance={sortedAdvancePicks}
-                      title03="0:3 淘汰"
-                      slots03={sortedElimPicks}
-                    />
                   </div>
                 );
-              })}
-            </div>
+              })
+            )}
           </div>
         </div>
       </div>

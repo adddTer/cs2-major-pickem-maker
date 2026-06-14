@@ -138,13 +138,13 @@ export const MatchScheduleBanner: React.FC<{
         onClick={() => {
           if (onMatchClick) onMatchClick(m);
         }}
-        className="flex flex-col items-center justify-center p-4 rounded-xl border border-white/5 bg-gradient-to-br from-zinc-800/40 to-zinc-900/40 hover:from-zinc-800/60 hover:to-zinc-900/60 shadow-lg w-full shrink-0 relative transition-all duration-300 hover:-translate-y-0.5 cursor-pointer group"
+        className="flex flex-col items-center justify-center p-4 rounded-xl border border-black/5 dark:border-white/5 bg-gradient-to-br from-zinc-800/40 to-zinc-900/40 hover:from-zinc-800/60 hover:to-zinc-900/60 shadow-lg w-full shrink-0 relative transition-all duration-300 hover:-translate-y-0.5 cursor-pointer group"
       >
         <div className="flex flex-col w-full mb-4 gap-2.5">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-zinc-100 tracking-wide flex items-center gap-1.5">
-                <CalendarDays size={14} className="text-zinc-400" />
+              <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 tracking-wide flex items-center gap-1.5">
+                <CalendarDays size={14} className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400" />
                 {tLabel || "时间待定"}
               </span>
               {m.star > 0 && (
@@ -167,7 +167,7 @@ export const MatchScheduleBanner: React.FC<{
                 <span>{formatCountdown(targetTime)}</span>
               </div>
             ) : m.status === "past" ? (
-              <div className="flex items-center gap-1.5 text-zinc-400 bg-zinc-800/80 border border-zinc-700/50 px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wider">
+              <div className="flex items-center gap-1.5 text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 bg-black/80 dark:bg-white/80 dark:bg-zinc-800/80 border border-zinc-700/50 px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wider">
                 已结束
               </div>
             ) : null}
@@ -192,7 +192,7 @@ export const MatchScheduleBanner: React.FC<{
                 } else if (tagStr.includes("决赛") || tagStr.includes("冠军")) {
                   styleClass = "text-purple-300 border-purple-400/20 bg-purple-500/10";
                 } else if (tagStr.includes("BO5") || tagStr.includes("BO3")) {
-                   styleClass = "text-zinc-300 border-zinc-400/20 bg-zinc-500/10 font-mono";
+                   styleClass = "text-zinc-800 dark:text-zinc-300 border-zinc-400/20 bg-zinc-500/10 font-mono";
                 }
 
                 return (
@@ -208,10 +208,10 @@ export const MatchScheduleBanner: React.FC<{
           )}
         </div>
 
-        <div className="flex items-center justify-between w-full mt-auto px-1 bg-black/20 rounded-lg p-3">
+        <div className="flex items-center justify-between w-full mt-auto px-1 bg-zinc-200/20 dark:bg-black/20 rounded-lg p-3">
           <div className="flex flex-col items-center gap-2 w-[70px] shrink-0">
             <MatchParticipant teamId={m.team1Id} />
-            <span className="text-[11px] font-bold text-zinc-300 truncate w-full text-center">
+            <span className="text-[11px] font-bold text-zinc-800 dark:text-zinc-300 truncate w-full text-center">
               {getTeamShortName(m.team1Id)}
             </span>
           </div>
@@ -233,24 +233,24 @@ export const MatchScheduleBanner: React.FC<{
                     <span
                       className={`flex-1 text-right text-[26px] md:text-[32px] font-black tracking-tighter ${
                         isLive
-                          ? "text-white"
+                          ? "text-black dark:text-white"
                           : leftWon
                             ? "text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]"
-                            : "text-zinc-500"
+                            : "text-zinc-500 dark:text-zinc-500"
                       }`}
                     >
                       {displayLeft !== undefined ? displayLeft : "-"}
                     </span>
-                    <span className="text-center shrink-0 text-[18px] text-zinc-600 font-black -mt-1">
+                    <span className="text-center shrink-0 text-[18px] text-zinc-500 dark:text-zinc-600 font-black -mt-1">
                       :
                     </span>
                     <span
                       className={`flex-1 text-left text-[26px] md:text-[32px] font-black tracking-tighter ${
                         isLive
-                          ? "text-white"
+                          ? "text-black dark:text-white"
                           : rightWon
                             ? "text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]"
-                            : "text-zinc-500"
+                            : "text-zinc-500 dark:text-zinc-500"
                       }`}
                     >
                       {displayRight !== undefined ? displayRight : "-"}
@@ -259,13 +259,13 @@ export const MatchScheduleBanner: React.FC<{
                 );
               })()
             ) : (
-              <span className="text-[16px] md:text-[20px] text-zinc-600 font-black w-full text-center uppercase tracking-widest shrink-0">
+              <span className="text-[16px] md:text-[20px] text-zinc-500 dark:text-zinc-600 font-black w-full text-center uppercase tracking-widest shrink-0">
                 VS
               </span>
             )}
             
             {(m.status === "upcoming") && (m.format === "bo3" || m.format === "bo5") && (
-              <span className="absolute -bottom-5 text-[10px] text-zinc-500 font-bold uppercase font-mono tracking-widest bg-zinc-800/80 px-2 py-0.5 rounded-full border border-white/5">
+              <span className="absolute -bottom-5 text-[10px] text-zinc-500 dark:text-zinc-500 font-bold uppercase font-mono tracking-widest bg-black/80 dark:bg-white/80 dark:bg-zinc-800/80 px-2 py-0.5 rounded-full border border-black/5 dark:border-white/5">
                 {m.format.toUpperCase()}
               </span>
             )}
@@ -273,7 +273,7 @@ export const MatchScheduleBanner: React.FC<{
 
           <div className="flex flex-col items-center gap-2 w-[70px] shrink-0">
             <MatchParticipant teamId={m.team2Id} />
-            <span className="text-[11px] font-bold text-zinc-300 truncate w-full text-center">
+            <span className="text-[11px] font-bold text-zinc-800 dark:text-zinc-300 truncate w-full text-center">
               {getTeamShortName(m.team2Id)}
             </span>
           </div>
@@ -284,15 +284,15 @@ export const MatchScheduleBanner: React.FC<{
 
   return (
     <div className="flex flex-col gap-6 w-full h-full relative">
-      <div className="flex flex-col gap-3 p-4 bg-zinc-900/50 rounded-xl border border-white/5">
-        <h3 className="text-[12px] font-bold text-zinc-300 tracking-wider">
+      <div className="flex flex-col gap-3 p-4 bg-zinc-100/50 dark:bg-zinc-900/50 rounded-xl border border-black/5 dark:border-white/5">
+        <h3 className="text-[12px] font-bold text-zinc-800 dark:text-zinc-300 tracking-wider">
           推荐比赛
         </h3>
         <div className="flex flex-col gap-3">
           {recommendedMatches.length > 0 ? (
             recommendedMatches.map(renderMatchCard)
           ) : (
-            <div className="text-sm text-zinc-500 py-4">
+            <div className="text-sm text-zinc-500 dark:text-zinc-500 py-4">
               无即将开始的推荐比赛
             </div>
           )}
@@ -300,8 +300,8 @@ export const MatchScheduleBanner: React.FC<{
       </div>
 
       {otherMatches.length > 0 && (
-        <div className="flex flex-col gap-3 p-4 bg-zinc-900/50 rounded-xl border border-white/5">
-          <h3 className="text-[12px] font-bold text-zinc-300 tracking-wider">
+        <div className="flex flex-col gap-3 p-4 bg-zinc-100/50 dark:bg-zinc-900/50 rounded-xl border border-black/5 dark:border-white/5">
+          <h3 className="text-[12px] font-bold text-zinc-800 dark:text-zinc-300 tracking-wider">
             全部比赛
           </h3>
           <div className="flex flex-col gap-3">

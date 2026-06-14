@@ -84,6 +84,7 @@ function simulateOneStage(
   scheduledMatches: { t1: string; t2: string }[],
   teamStrengths: Record<string, number>,
   stageSeeds: Record<string, number>,
+  isSwissAllBo3: boolean = false
 ) {
   const records: Record<string, { w: number; l: number }> = {};
   const played: Record<string, Set<string>> = {};
@@ -125,6 +126,7 @@ function simulateOneStage(
     const playedUpdates: [string, string][] = [];
 
     const getFormat = (w: number, l: number) => {
+      if (isSwissAllBo3) return "bo3";
       if (activeStage === "stage3") return "bo3";
       return w === 2 || l === 2 ? "bo3" : "bo1";
     };
@@ -327,6 +329,8 @@ export function simulateGlobal(
   computedActuals: any,
   numSimulations: number,
   onProgress: (p: number) => void,
+  isSwissAllBo3: boolean = false,
+  currentEventId?: string
 ): GlobalSimulationResult {
   const teamStrengths: Record<string, number> = {};
   TEAMS.forEach((t) => {
@@ -393,9 +397,15 @@ export function simulateGlobal(
   const s3M = getPastAndScheduled("stage3");
   const playoffsM = getPastAndScheduled("playoffs");
 
-  const startT1 = TEAMS.filter((t) => t.startStage === 1).map((t) => t.id);
-  const startT2 = TEAMS.filter((t) => t.startStage === 2).map((t) => t.id);
-  const startT3 = TEAMS.filter((t) => t.startStage === 3).map((t) => t.id);
+  let startT1: string[] = [];
+  let startT2: string[] = [];
+  let startT3: string[] = [];
+  
+  if (!currentEventId || currentEventId === "iem_cologne_2026") {
+    startT1 = TEAMS.filter((t) => t.startStage === 1).map((t) => t.id);
+    startT2 = TEAMS.filter((t) => t.startStage === 2).map((t) => t.id);
+    startT3 = TEAMS.filter((t) => t.startStage === 3).map((t) => t.id);
+  }
 
   const s1Advanced =
     computedActuals["stage1"]
@@ -445,6 +455,7 @@ export function simulateGlobal(
         s1M.scheduledMatches,
         teamStrengths,
         s1Seeds,
+        isSwissAllBo3,
       );
       advance1 = s1res.advanced;
       s1SeedsResult = s1res.seeds;
@@ -466,6 +477,7 @@ export function simulateGlobal(
         s2M.scheduledMatches,
         teamStrengths,
         s2SeedsMap,
+        isSwissAllBo3,
       );
       advance2 = s2res.advanced;
       s2SeedsResult = s2res.seeds;
@@ -487,6 +499,7 @@ export function simulateGlobal(
         s3M.scheduledMatches,
         teamStrengths,
         s3SeedsMap,
+        isSwissAllBo3,
       );
       advance3 = s3res.advanced;
       seeds = s3res.seeds;

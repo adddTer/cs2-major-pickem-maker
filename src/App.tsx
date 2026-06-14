@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { TEAMS, INITIAL_SLOTS, PLAYOFFS_SLOTS } from "./data/teams";
 import { MATCHES, ACTUAL_RESULTS } from "./data/matches";
-import { PickSlot, PickSet, StageKey, SlotType } from "./types";
+import { PickSlot, PickSet, StageKey, SlotType, TournamentEvent } from "./types";
 import { cn } from "./lib/utils";
 import { TopNav } from "./components/TopNav";
 import { HomeView } from "./views/HomeView";
@@ -28,18 +28,45 @@ import { PlayoffsBracket } from "./components/PlayoffsBracket";
 import { MatchScheduleBanner } from "./components/MatchScheduleBanner";
 import { useMatchLogic } from "./hooks/useMatchLogic";
 
+export const EVENTS: TournamentEvent[] = [
+  {
+    id: "iem_cologne_2026",
+    name: "IEM Cologne Major 2026",
+    shortName: "Cologne 26",
+    logoUrl: "https://img-cdn.hltv.org/eventlogo/ZMmU3y7hAV248CmzgxsohP.png?ixlib=java-2.1.0&w=100&s=4678a6eb60daacfa1b58d33a5026075d",
+    isSwissAllBo3: false,
+    stages: {
+      stage1: { externalId: "csgo_tt_9028" },
+      stage2: { externalId: "csgo_tt_9029" },
+      stage3: { externalId: "csgo_tt_8301" }
+    }
+  },
+  {
+    id: "pgl_singapore_2026",
+    name: "PGL Singapore Major 2026",
+    shortName: "Singapore 26",
+    logoUrl: "https://img-cdn.hltv.org/eventlogo/u-4VdjFWGYz_GwBxLGrr11.png?ixlib=java-2.1.0&w=50&s=e78a8a6b716fa437cc3cfbb9f6b48ee6",
+    isSwissAllBo3: true,
+    stages: {
+      stage1: { externalId: "csgo_tt_8302" }
+    }
+  }
+];
+
 export default function App() {
+  const [currentEventId, setCurrentEventId] = useState<string>("pgl_singapore_2026");
+  const currentEvent = useMemo(() => EVENTS.find(e => e.id === currentEventId) || EVENTS[0], [currentEventId]);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [dataLoadError, setDataLoadError] = useState(false);
   const [rankingDegraded, setRankingDegraded] = useState(false);
   const [isRefreshingData, setIsRefreshingData] = useState(false);
 
-  const handleRefreshMatchData = async () => {
+  const handleRefreshMatchData = useCallback(async (isAutoRefresh: boolean = false) => {
     setIsRefreshingData(true);
     try {
       const res = await import("./utils/fetchE5Data").then((m) =>
-        m.fetchAndPatchCSGOData(),
+        m.fetchAndPatchCSGOData(currentEvent, isAutoRefresh),
       );
       setDataLoadError(!res.matchSuccess);
       setRankingDegraded(!res.rankingSuccess);
@@ -52,22 +79,10 @@ export default function App() {
     setTimeout(() => {
       setIsRefreshingData(false);
     }, 500);
-  };
+  }, [currentEvent]);
 
-  useEffect(() => {
-    import("./utils/fetchE5Data")
-      .then((m) => m.fetchAndPatchCSGOData())
-      .then((res) => {
-        setDataLoadError(!res.matchSuccess);
-        setRankingDegraded(!res.rankingSuccess);
-        setDataLoaded(true);
-      })
-      .catch(() => {
-        setDataLoadError(true);
-        setRankingDegraded(true);
-        setDataLoaded(true);
-      });
-  }, []);
+  // The event initialization and refresh logic is moved below getRecommendedStage
+
 
   useEffect(() => {
     const handler = () => {
@@ -89,7 +104,7 @@ export default function App() {
   const [mainView, setMainView] = useState<MainViewMode>("bracket");
   const [panelView, setPanelView] = useState<PanelViewMode>("home");
 
-  const lastAutoSwitchRef = useRef<string | null>(null);
+
 
   const setViewMode = useCallback(
     (
@@ -150,7 +165,7 @@ export default function App() {
   const [showProbabilityInSummary, setShowProbabilityInSummary] =
     useState(false);
 
-  const [isFloatingPanelExpanded, setIsFloatingPanelExpanded] = useState(true);
+  const [isFloatingPanelExpanded, setIsFloatingPanelExpanded] = useState(false);
   const [isSchedulePanelExpanded, setIsSchedulePanelExpanded] = useState(false);
   const [globalSelectedMatch, setGlobalSelectedMatch] =
     useState<BracketMatch | null>(null);
@@ -181,7 +196,9 @@ export default function App() {
         }
       }
       if (updatedMatch) {
-        setGlobalSelectedMatch({ ...updatedMatch });
+        if (JSON.stringify(globalSelectedMatch) !== JSON.stringify(updatedMatch)) {
+          setGlobalSelectedMatch({ ...updatedMatch });
+        }
       }
     }
   }, [refreshTrigger, globalSelectedMatch]);
@@ -197,17 +214,85 @@ export default function App() {
     activeStageActuals,
     checkPrediction,
     getSetStatus,
-  } = useMatchLogic(activeStage, refreshTrigger, mainView);
+    isSimulatingStage,
+  } = useMatchLogic(activeStage, refreshTrigger, mainView, currentEvent);
 
   const getRecommendedStage = useCallback(() => {
-    for (const stage of ["stage1", "stage2", "stage3"]) {
-      const actuals = getComputedActuals(stage) || [];
-      if (actuals.length < 16) {
-        return stage as StageKey;
+    const isStageFinished = (stage: string) => {
+      if (stage === "playoffs") {
+        const finalMatches = MATCHES.playoffs?.["final"] || [];
+        if (finalMatches.length === 0) return false;
+        const s = String(finalMatches[0].status).toLowerCase();
+        return s === "completed" || s === "past";
+      } else {
+        const actuals = getComputedActuals(stage) || [];
+        return actuals.length >= 16;
       }
+    };
+
+    const isStageStarted = (stage: string) => {
+      const stageGroup = MATCHES[stage] as Record<string, BracketMatch[]>;
+      if (!stageGroup) return false;
+      for (const roundMatches of Object.values(stageGroup)) {
+        if (roundMatches && roundMatches.some((m: any) => {
+          const s = String(m.status).toLowerCase();
+          return s === "live" || s === "completed" || s === "past";
+        })) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const stages: StageKey[] = ["stage1", "stage2", "stage3", "playoffs"];
+    let recommended: StageKey = "stage1";
+    
+    for (let i = 0; i < stages.length; i++) {
+        const stage = stages[i];
+        if (isStageFinished(stage)) {
+            const nextStage = stages[i + 1];
+            if (nextStage && isStageStarted(nextStage)) {
+                recommended = nextStage;
+            } else if (nextStage) {
+                // Next stage hasn't started, but current is finished, recommend the next upcoming stage to let them pick
+                recommended = nextStage;
+            } else {
+                recommended = stage;
+                break;
+            }
+        } else {
+            recommended = stage;
+            break;
+        }
     }
-    return "playoffs" as StageKey;
+    
+    return recommended;
   }, [getComputedActuals]);
+
+  const [hasAutoSelectedStage, setHasAutoSelectedStage] = useState(false);
+
+  useEffect(() => {
+    handleRefreshMatchData().then(() => {
+      // Data loaded is now set inside handleRefreshMatchData, but we can set it here too as fallback
+      setDataLoaded(true);
+    });
+    // Reset picks and view state when event changes
+    setPicks(defaultPicks);
+    setCurrentPickSetId(null);
+    setNewNickname("");
+    setMainView("bracket");
+    setPanelView("home");
+    setIsFloatingPanelExpanded(false);
+    setHasAutoSelectedStage(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentEventId]);
+
+  useEffect(() => {
+    if (dataLoaded && !hasAutoSelectedStage) {
+      setActiveStage(getRecommendedStage());
+      setHasAutoSelectedStage(true);
+    }
+  }, [dataLoaded, refreshTrigger, getRecommendedStage, hasAutoSelectedStage]);
 
   useEffect(() => {
     let shouldCheckPrev = false;
@@ -289,33 +374,13 @@ export default function App() {
     }
 
     const timerId = setInterval(() => {
-      handleRefreshMatchData();
+      handleRefreshMatchData(true);
     }, intervalDelay);
 
     return () => clearInterval(timerId);
   }, [dataLoaded, refreshTrigger, mainView, panelView, activeStage]);
 
-  useEffect(() => {
-    const currentViewKey =
-      mainView === "summary"
-        ? "summary"
-        : mainView === "history"
-          ? "history"
-          : mainView === "ranking"
-            ? "ranking"
-            : panelView;
-    if (
-      dataLoaded &&
-      (currentViewKey === "edit" || currentViewKey === "summary")
-    ) {
-      if (lastAutoSwitchRef.current !== currentViewKey) {
-        setActiveStage(getRecommendedStage());
-        lastAutoSwitchRef.current = currentViewKey;
-      }
-    } else if (currentViewKey === "home") {
-      lastAutoSwitchRef.current = null;
-    }
-  }, [dataLoaded, panelView, mainView, getRecommendedStage]);
+
 
   const [detailedFutures, setDetailedFutures] = useState<any>(null);
   const [isSimulatingProbability, setIsSimulatingProbability] = useState(false);
@@ -386,17 +451,21 @@ export default function App() {
     setExportPreviewUrl(null);
   };
 
-  const loadPicks = () => {
+  const loadPicks = useCallback(() => {
     import("./lib/db").then((db) => {
       db.getAllPickSets().then((sets) => {
-        setCommunityPicks(sets.sort((a, b) => b.createdAt - a.createdAt));
+        setCommunityPicks(
+          sets
+            .filter((s) => s.eventId === currentEventId || (!s.eventId && currentEventId === "iem_cologne_2026"))
+            .sort((a, b) => b.createdAt - a.createdAt)
+        );
       });
     });
-  };
+  }, [currentEventId]);
 
   useEffect(() => {
     loadPicks();
-  }, [mainView, panelView]);
+  }, [mainView, panelView, loadPicks]);
 
   const itemFreq = useMemo(() => {
     const freq: Record<string, number> = {};
@@ -421,6 +490,13 @@ export default function App() {
     });
 
     return [...communityPicks].sort((a, b) => {
+      const aPoints = getSetStatus(a.picks[activeStage] || [], activeStage)?.correctCount || 0;
+      const bPoints = getSetStatus(b.picks[activeStage] || [], activeStage)?.correctCount || 0;
+      
+      if (bPoints !== aPoints) {
+        return bPoints - aPoints;
+      }
+
       const getItems = (p: PickSet) => {
         const items = new Set<string>();
         (p.picks[activeStage] || []).forEach((slot) => {
@@ -444,7 +520,7 @@ export default function App() {
       }
       return b.createdAt - a.createdAt;
     });
-  }, [communityPicks, activeStage, itemFreq]);
+  }, [communityPicks, activeStage, itemFreq, getSetStatus]);
 
   const getStageStatus = (stage: string) => {
     const actualsForStage = getComputedActuals(stage) || [];
@@ -490,6 +566,8 @@ export default function App() {
   };
 
   const getAvailableTeams = (stage: string) => {
+    if (currentEvent?.id !== 'iem_cologne_2026') return [];
+    
     if (stage === "playoffs") {
       const s3Actuals = getComputedActuals("stage3");
       const s3Advanced = s3Actuals
@@ -673,6 +751,7 @@ export default function App() {
     const db = await import("./lib/db");
     const pickSet: PickSet = {
       id: currentPickSetId,
+      eventId: currentEventId,
       name: newNickname,
       createdAt: Date.now(),
       picks: JSON.parse(JSON.stringify(picks)),
@@ -680,7 +759,11 @@ export default function App() {
     await db.savePickSet(pickSet);
 
     const sets = await db.getAllPickSets();
-    setCommunityPicks(sets.sort((a, b) => b.createdAt - a.createdAt));
+    setCommunityPicks(
+      sets
+        .filter((s) => s.eventId === currentEventId || (!s.eventId && currentEventId === "iem_cologne_2026"))
+        .sort((a, b) => b.createdAt - a.createdAt)
+    );
 
     dialog.alert("竞猜已保存！");
     setViewMode("home");
@@ -749,24 +832,36 @@ export default function App() {
       <style>{`
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
+        .dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+        .dark ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
       `}</style>
 
-      <div className="h-[100dvh] w-full bg-[#070b09] text-zinc-200 font-sans flex flex-col relative overflow-hidden select-none">
+      <div className="h-[100dvh] w-full bg-zinc-50 dark:bg-[#070b09] text-zinc-900 dark:text-zinc-200 font-sans flex flex-col relative overflow-hidden select-none">
         {/* Ambient Glow Lights */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-sky-500/10 rounded-full blur-[150px] pointer-events-none z-0" />
 
         {/* Top Navbar */}
         <TopNav
           mainView={mainView}
-          setMainView={setMainView}
+          setMainView={(view) => {
+            setMainView(view);
+            if (view === 'bracket' && window.innerWidth < 1024) {
+              setIsFloatingPanelExpanded(false);
+              setIsSchedulePanelExpanded(false);
+            }
+          }}
           handleRefresh={handleRefreshMatchData}
           isRefreshing={isRefreshingData}
+          currentEventId={currentEventId}
+          setCurrentEventId={setCurrentEventId}
         />
 
         {dataLoadError && (
@@ -781,7 +876,7 @@ export default function App() {
             mainView !== "bracket" ? "hidden" : "",
           )}
         >
-          <div className="flex border-b border-white/5 items-center justify-center gap-2 pb-2 shrink-0 z-10 w-full bg-[#070b09]/80 backdrop-blur sticky top-0 mt-0">
+          <div className="flex border-b border-black/5 dark:border-white/5 items-center justify-center gap-2 pb-2 shrink-0 z-10 w-full bg-zinc-50/80 dark:bg-[#070b09]/80 backdrop-blur sticky top-0 mt-0">
             {[
               { id: "stage1", label: "第一阶段" },
               { id: "stage2", label: "第二阶段" },
@@ -796,8 +891,8 @@ export default function App() {
                   className={cn(
                     "px-4 py-2 rounded-[2px] text-[13px] font-bold cursor-pointer transition-colors flex items-center whitespace-nowrap",
                     isActive
-                      ? "bg-zinc-800 text-zinc-100 shadow-sm border-b-2 border-emerald-500"
-                      : "text-zinc-500 hover:text-zinc-300",
+                      ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm border-b-2 border-emerald-500"
+                      : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-300",
                   )}
                 >
                   {tab.label}
@@ -806,9 +901,9 @@ export default function App() {
             })}
           </div>
 
-          <div className="flex-1 overflow-auto bg-zinc-950/40 relative flex flex-col">
+          <div className="flex-1 overflow-auto bg-zinc-50/40 dark:bg-zinc-950/40 relative flex flex-col">
             {!dataLoaded ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 gap-3">
+              <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-500 gap-3">
                 <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
                 <div className="text-sm font-bold animate-pulse">
                   正在同步数据...
@@ -836,7 +931,7 @@ export default function App() {
                 />
               </div>
             ) : (
-              <SwissBracket activeStage={activeStage} />
+              <SwissBracket activeStage={activeStage} refreshTrigger={refreshTrigger} currentEvent={currentEvent} />
             )}
           </div>
         </div>
@@ -859,7 +954,7 @@ export default function App() {
               itemFreq={itemFreq}
               checkPrediction={checkPrediction}
               handleRefresh={handleRefreshMatchData}
-              isRefreshing={isRefreshingData}
+              isRefreshing={isRefreshingData || isSimulatingStage}
               setViewMode={setViewMode}
             />
           </div>
@@ -872,6 +967,7 @@ export default function App() {
               setActiveStage={setActiveStage}
               isDegraded={rankingDegraded}
               getComputedActuals={getComputedActuals}
+              currentEvent={currentEvent}
             />
           </div>
         )}
@@ -883,7 +979,7 @@ export default function App() {
         )}
 
         {mainView === "globalSim" && (
-          <div className="w-full flex-1 relative z-10 flex flex-col p-0 overflow-hidden bg-[#070b09]">
+          <div className="w-full flex-1 relative z-10 flex flex-col p-0 overflow-hidden bg-zinc-50 dark:bg-[#070b09]">
             <GlobalSimulationView
               currentMatches={MATCHES}
               computedActuals={{
@@ -893,16 +989,18 @@ export default function App() {
                 playoffs: getComputedActuals("playoffs"),
               }}
               onMatchClick={(m) => setGlobalSelectedMatch(m)}
+              currentEvent={currentEvent}
             />
           </div>
         )}
 
         {mainView === "simulator" && (
-          <div className="w-full flex-1 relative z-10 flex flex-col p-0 overflow-hidden bg-[#070b09]">
+          <div className="w-full flex-1 relative z-10 flex flex-col p-0 overflow-hidden bg-zinc-50 dark:bg-[#070b09]">
             <SimulatorView
               activeStage={activeStage}
               setActiveStage={setActiveStage}
               currentMatches={MATCHES}
+              currentEvent={currentEvent}
             />
           </div>
         )}
@@ -1002,7 +1100,12 @@ export default function App() {
         handleDownloadImage={handleDownloadImage}
         activeStage={activeStage}
         PLAYOFFS_SLOTS={PLAYOFFS_SLOTS}
-        ACTUAL_RESULTS={ACTUAL_RESULTS}
+        ACTUAL_RESULTS={{
+          stage1: getComputedActuals("stage1"),
+          stage2: getComputedActuals("stage2"),
+          stage3: getComputedActuals("stage3"),
+          playoffs: getComputedActuals("playoffs")
+        }}
         getSetStatus={getSetStatus}
         itemFreq={itemFreq}
         checkPrediction={checkPrediction}
@@ -1010,6 +1113,7 @@ export default function App() {
         isSimulatingProbability={isSimulatingProbability}
         simulationProgress={simulationProgress}
         exportContainerRef={exportContainerRef}
+        currentEvent={currentEvent}
       />
       <TextExportModal
         showModal={showTextExportModal}

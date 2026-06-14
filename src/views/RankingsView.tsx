@@ -1,6 +1,6 @@
 import React from "react";
 import { AlertCircle } from "lucide-react";
-import { StageKey } from "../types";
+import { StageKey, TournamentEvent } from "../types";
 import { cn } from "../lib/utils";
 import { TEAMS } from "../data/teams";
 import { MATCHES, ACTUAL_RESULTS } from "../data/matches";
@@ -13,9 +13,10 @@ interface RankingsViewProps {
   setActiveStage: (val: StageKey) => void;
   isDegraded?: boolean;
   getComputedActuals?: (stage: string) => any[];
+  currentEvent?: TournamentEvent;
 }
 
-export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActiveStage, isDegraded, getComputedActuals }) => {
+export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActiveStage, isDegraded, getComputedActuals, currentEvent }) => {
     // Get teams participating in the active stage
     const getTeamsForStage = (stage: StageKey) => {
       let stageTeams = new Set<string>();
@@ -41,44 +42,46 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
 
       // As to not lose teams that definitely belong in this stage but haven't played yet
       // we combine with teams that natively start in this stage
-      if (stage === "stage1") {
-        const nativeTeams = TEAMS.filter(t => t.startStage === 1);
-        nativeTeams.forEach(t => { if (!stageTeams.has(t.id)) foundTeams.push(t); });
-      }
-      
-      if (stage === "stage2") {
-        const nativeTeams = TEAMS.filter(t => t.startStage === 2);
-        nativeTeams.forEach(t => { if (!stageTeams.has(t.id)) foundTeams.push(t); });
+      if (!currentEvent || currentEvent.id === "iem_cologne_2026") {
+        if (stage === "stage1") {
+          const nativeTeams = TEAMS.filter(t => t.startStage === 1);
+          nativeTeams.forEach(t => { if (!stageTeams.has(t.id)) foundTeams.push(t); });
+        }
         
-        // Add anyone who officially advanced from stage 1
-        const advStage1 = getComputedActuals ? getComputedActuals("stage1") : ACTUAL_RESULTS.stage1 || [];
-        advStage1.forEach((slot: any) => {
-          if (slot.teamId && !stageTeams.has(slot.teamId)) {
-            const team = TEAMS.find(t => t.id === slot.teamId);
-            if (team) foundTeams.push(team);
-          }
-        });
-      }
-      
-      if (stage === "stage3") {
-        const nativeTeams = TEAMS.filter(t => t.startStage === 3);
-        nativeTeams.forEach(t => { if (!stageTeams.has(t.id)) foundTeams.push(t); });
+        if (stage === "stage2") {
+          const nativeTeams = TEAMS.filter(t => t.startStage === 2);
+          nativeTeams.forEach(t => { if (!stageTeams.has(t.id)) foundTeams.push(t); });
+          
+          // Add anyone who officially advanced from stage 1
+          const advStage1 = getComputedActuals ? getComputedActuals("stage1") : ACTUAL_RESULTS.stage1 || [];
+          advStage1.forEach((slot: any) => {
+            if (slot.teamId && (slot.type === "advance" || slot.type === "3-0") && !stageTeams.has(slot.teamId)) {
+              const team = TEAMS.find(t => t.id === slot.teamId);
+              if (team) foundTeams.push(team);
+            }
+          });
+        }
         
-        // Add anyone who officially advanced from stage 2
-        const advStage2 = getComputedActuals ? getComputedActuals("stage2") : ACTUAL_RESULTS.stage2 || [];
-        advStage2.forEach((slot: any) => {
-          if (slot.teamId && !stageTeams.has(slot.teamId)) {
-            const team = TEAMS.find(t => t.id === slot.teamId);
-            if (team) foundTeams.push(team);
-          }
-        });
+        if (stage === "stage3") {
+          const nativeTeams = TEAMS.filter(t => t.startStage === 3);
+          nativeTeams.forEach(t => { if (!stageTeams.has(t.id)) foundTeams.push(t); });
+          
+          // Add anyone who officially advanced from stage 2
+          const advStage2 = getComputedActuals ? getComputedActuals("stage2") : ACTUAL_RESULTS.stage2 || [];
+          advStage2.forEach((slot: any) => {
+            if (slot.teamId && (slot.type === "advance" || slot.type === "3-0") && !stageTeams.has(slot.teamId)) {
+              const team = TEAMS.find(t => t.id === slot.teamId);
+              if (team) foundTeams.push(team);
+            }
+          });
+        }
       }
       
       if (stage === "playoffs") {
         // Add anyone who officially advanced from stage 3
         const advStage3 = getComputedActuals ? getComputedActuals("stage3") : ACTUAL_RESULTS.stage3 || [];
         advStage3.forEach((slot: any) => {
-          if (slot.teamId && !stageTeams.has(slot.teamId)) {
+          if (slot.teamId && (slot.type === "advance" || slot.type === "3-0") && !stageTeams.has(slot.teamId)) {
             const team = TEAMS.find(t => t.id === slot.teamId);
             if (team) foundTeams.push(team);
           }
@@ -104,18 +107,18 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
     });
 
     return (
-      <div className="flex-1 flex flex-col bg-zinc-900/60 border border-white/5 rounded-lg shadow-xl relative backdrop-blur-md overflow-hidden p-4 sm:p-6">
+      <div className="flex-1 flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 border border-black/5 dark:border-white/5 rounded-lg shadow-xl relative backdrop-blur-md overflow-hidden p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6 shrink-0">
           <div className="flex flex-col gap-2">
-            <h2 className="text-sm font-bold text-zinc-100">参赛队伍排名</h2>
+            <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">参赛队伍排名</h2>
             {isDegraded && (
-              <div className="flex items-center gap-1.5 text-yellow-500/90 text-[11px] bg-yellow-500/10 px-2 py-1 rounded-md border border-yellow-500/20 w-fit">
+              <div className="flex items-center gap-1.5 text-amber-600 dark:text-yellow-500/90 text-[11px] bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20 w-fit">
                 <AlertCircle className="w-3 h-3" />
                 <span>无法获取实时数据，已降级为本地预设排名</span>
               </div>
             )}
           </div>
-          <div className="flex bg-black/40 p-1 rounded-md border border-white/5 overflow-x-auto custom-scrollbar shrink-0 max-w-full">
+          <div className="flex bg-zinc-200/40 dark:bg-black/40 p-1 rounded-md border border-black/5 dark:border-white/5 overflow-x-auto custom-scrollbar shrink-0 max-w-full">
             {["stage1", "stage2", "stage3", "playoffs"].map((tabId) => {
               const stageLabel =
                 tabId === "stage1"
@@ -132,8 +135,8 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
                   className={cn(
                     "px-3 py-1 text-[11px] font-bold rounded-[2px] cursor-pointer transition-colors whitespace-nowrap shrink-0",
                     activeStage === tabId
-                      ? "bg-white/10 text-white"
-                      : "text-zinc-500 hover:text-zinc-300",
+                      ? "bg-black/10 dark:bg-white/10 text-black dark:text-white"
+                      : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-300",
                   )}
                 >
                   {stageLabel}
@@ -143,17 +146,17 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto bg-black/20 rounded-md border border-white/5">
-          <table className="w-full text-left text-[13px] text-zinc-300 relative border-collapse">
-            <thead className="text-[11px] uppercase tracking-wider text-zinc-500 bg-zinc-800/80 sticky top-0 z-10 backdrop-blur-md">
+        <div className="flex-1 overflow-auto bg-zinc-200/20 dark:bg-black/20 rounded-md border border-black/5 dark:border-white/5">
+          <table className="w-full text-left text-[13px] text-zinc-800 dark:text-zinc-300 relative border-collapse">
+            <thead className="text-[11px] uppercase tracking-wider text-zinc-600 dark:text-zinc-400 bg-zinc-200/80 dark:bg-zinc-800/80 sticky top-0 z-10 backdrop-blur-md">
               <tr>
-                <th className="px-4 py-3 border-b border-white/5 font-medium w-16 text-center">综合排序</th>
-                <th className="px-4 py-3 border-b border-white/5 text-left font-medium">队伍</th>
-                <th className="px-4 py-3 border-b border-white/5 font-medium text-right">综合实力</th>
-                <th className="px-4 py-3 border-b border-white/5 font-medium text-right">V社排名</th>
-                <th className="px-4 py-3 border-b border-white/5 font-medium text-right">V社积分</th>
-                <th className="px-4 py-3 border-b border-white/5 font-medium text-right">HLTV排名</th>
-                <th className="px-4 py-3 border-b border-white/5 font-medium text-right">HLTV积分</th>
+                <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 font-medium w-16 text-center">综合排序</th>
+                <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 text-left font-medium">队伍</th>
+                <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 font-medium text-right">综合实力</th>
+                <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 font-medium text-right">V社排名</th>
+                <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 font-medium text-right">V社积分</th>
+                <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 font-medium text-right">HLTV排名</th>
+                <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 font-medium text-right">HLTV积分</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -164,9 +167,9 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
                 return (
                   <tr
                     key={team.id}
-                    className="hover:bg-white/[0.02] transition-colors group"
+                    className="hover:bg-black/[0.02] dark:bg-white/[0.02] transition-colors group"
                   >
-                    <td className="px-4 py-3 text-center text-zinc-500 font-mono">
+                    <td className="px-4 py-3 text-center text-zinc-500 dark:text-zinc-400 font-mono">
                       {idx + 1}
                     </td>
                     <td className="px-4 py-3">
@@ -174,54 +177,54 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
                         <div className="w-6 h-6 flex-shrink-0">
                           <TeamLogo team={team} fallbackClasses="text-[9px] rounded-sm" />
                         </div>
-                        <span className="font-bold text-zinc-200 group-hover:text-emerald-400 transition-colors">
+                        <span className="font-bold text-zinc-900 dark:text-zinc-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                           {team.name}
                         </span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">
                       {hasData && team.strength ? (
-                        <span className="font-mono text-zinc-300">
+                        <span className="font-mono text-zinc-800 dark:text-zinc-300">
                           {team.strength.toFixed(1)}
                         </span>
                       ) : (
-                        <span className="text-zinc-600">暂无</span>
+                        <span className="text-zinc-500 dark:text-zinc-600">暂无</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {team.valveRank !== undefined && team.valveRank <= 1000 ? (
-                        <span className="font-mono text-zinc-300">
+                        <span className="font-mono text-zinc-800 dark:text-zinc-300">
                           #{team.valveRank}
                         </span>
                       ) : (
-                        <span className="text-zinc-600">暂无</span>
+                        <span className="text-zinc-500 dark:text-zinc-600">暂无</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {team.valvePoints !== undefined ? (
-                        <span className="font-mono text-emerald-400/80">
+                        <span className="font-mono text-emerald-600 dark:text-emerald-400/80">
                           {team.valvePoints}
                         </span>
                       ) : (
-                        <span className="text-zinc-600">暂无</span>
+                        <span className="text-zinc-500 dark:text-zinc-600">暂无</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {team.hltvRank !== undefined && team.hltvRank <= 1000 ? (
-                        <span className="font-mono text-zinc-300">
+                        <span className="font-mono text-zinc-800 dark:text-zinc-300">
                           #{team.hltvRank}
                         </span>
                       ) : (
-                        <span className="text-zinc-600">暂无</span>
+                        <span className="text-zinc-500 dark:text-zinc-600">暂无</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {team.hltvPoints !== undefined ? (
-                        <span className="font-mono text-blue-400/80">
+                        <span className="font-mono text-blue-600 dark:text-blue-400/80">
                           {team.hltvPoints}
                         </span>
                       ) : (
-                        <span className="text-zinc-600">暂无</span>
+                        <span className="text-zinc-500 dark:text-zinc-600">暂无</span>
                       )}
                     </td>
                   </tr>
@@ -229,7 +232,7 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
               })}
               {sortedTeams.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-zinc-500">
+                  <td colSpan={7} className="text-center py-12 text-zinc-500 dark:text-zinc-500">
                     此阶段暂无参赛队伍
                   </td>
                 </tr>
