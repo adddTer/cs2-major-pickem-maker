@@ -7,6 +7,7 @@ import { BracketMatch } from "../types";
 import { MatchDialog } from "./MatchDialog";
 import { TeamLogo } from "./TeamLogo";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 
 const W = 180;
 const H = 40;
@@ -206,6 +207,7 @@ export const PlayoffsBracket: React.FC<{
   disableAutoFill?: boolean;
   onDrop?: (e: React.DragEvent, slotId: string) => void;
   onClick?: (slotId: string, teamId: string | null) => void;
+  onMatchClick?: (m: BracketMatch) => void;
 }> = ({
   slots,
   readOnly = false,
@@ -214,6 +216,7 @@ export const PlayoffsBracket: React.FC<{
   disableAutoFill = false,
   onDrop,
   onClick,
+  onMatchClick,
 }) => {
   const [selectedMatch, setSelectedMatch] = React.useState<BracketMatch | null>(
     null,
@@ -307,6 +310,22 @@ export const PlayoffsBracket: React.FC<{
     return { ...baseSlot, resultStatus, score, isLive };
   };
 
+  const getMatchForSlotId = (slotId: string) => {
+    const type = slotId.split("-")[0];
+    const idxStr = slotId.split("-")[1];
+    if (type === "champion") {
+      return MATCHES["playoffs"]?.["final"]?.[0];
+    }
+    if (!idxStr) return undefined;
+    const idx = parseInt(idxStr, 10);
+    let matchIndex = 0;
+    if (type === "qf" || type === "sf" || type === "final") {
+      matchIndex = Math.floor((idx - 1) / 2);
+      return MATCHES["playoffs"]?.[type]?.[matchIndex];
+    }
+    return undefined;
+  };
+
   return (
     <div className="w-full h-full overflow-hidden z-10 relative">
       <TransformWrapper
@@ -314,93 +333,139 @@ export const PlayoffsBracket: React.FC<{
         minScale={0.1}
         maxScale={2}
         centerOnInit={true}
-        limitToBounds={true}
+        limitToBounds={false}
         wheel={{ step: 0.001 }}
         panning={{ velocityDisabled: false }}
       >
-        <TransformComponent
-          wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}
-        >
-          <div className="w-[1800px] h-[1400px] relative pointer-events-none flex-shrink-0 flex items-center justify-center">
-            <div className="w-[1100px] h-[800px] relative pointer-events-none">
-              <svg
-                className="absolute inset-0 w-full h-full z-0 pointer-events-none"
-                style={{ left: 0, top: 0 }}
+        {({ zoomIn, zoomOut, resetTransform, centerView }) => (
+          <>
+            <div className="absolute bottom-16 lg:bottom-[100px] left-4 lg:left-6 z-[100] flex items-center gap-1.5 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md shadow-lg border border-zinc-200/55 dark:border-zinc-800/55 flex-shrink-0 pointer-events-auto">
+              <button
+                onClick={() => zoomIn(0.15)}
+                title="放大"
+                className="w-6 h-6 lg:w-8 lg:h-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center cursor-pointer transition-colors active:scale-95"
               >
-                {edges.map(([from, to], i) => (
-                  <DrawPath key={i} fromId={from} toId={to} />
-                ))}
-              </svg>
-
-              {[
-                { type: "qf", matchIndex: 0, nodeTop: "qf-1", title: "1/4决赛" },
-                { type: "qf", matchIndex: 1, nodeTop: "qf-3", title: "1/4决赛" },
-                { type: "qf", matchIndex: 2, nodeTop: "qf-5", title: "1/4决赛" },
-                { type: "qf", matchIndex: 3, nodeTop: "qf-7", title: "1/4决赛" },
-                { type: "sf", matchIndex: 0, nodeTop: "sf-1", title: "半决赛" },
-                { type: "sf", matchIndex: 1, nodeTop: "sf-3", title: "半决赛" },
-                {
-                  type: "final",
-                  matchIndex: 0,
-                  nodeTop: "final-1",
-                  title: "决 赛",
-                },
-              ].map((header, i) => {
-                const pos = nodes[header.nodeTop];
-                if (!pos) return null;
-
-                const match: BracketMatch | undefined =
-                  MATCHES["playoffs"]?.[header.type]?.[header.matchIndex];
-
-                return (
-                  <div
-                    key={`header-${i}`}
-                    className="absolute text-[12px] text-zinc-900 dark:text-zinc-200 bg-zinc-200/60 dark:bg-black/60 rounded-sm px-1 py-0.5 font-bold tracking-wider flex items-center justify-center pointer-events-auto cursor-pointer hover:bg-zinc-200/80 dark:bg-black/80 w-[180px] z-50 shadow-md transition-colors hover:text-black dark:text-white"
-                    style={{ left: pos.x, top: pos.y - 24 }}
-                    onClick={() => {
-                      if (match) setSelectedMatch(match);
-                    }}
-                    title="点击查看赛况"
-                  >
-                    {header.title}
-                  </div>
-                );
-              })}
-
-              {Object.entries(nodes).map(([id, pos]) => {
-                const isCol1 = id.startsWith("qf-");
-                const emptyTitle = readOnly
-                  ? "待定"
-                  : isCol1
-                    ? "待定"
-                    : "作出您的选择";
-
-                return (
-                  <div
-                    key={id}
-                    style={{ left: pos.x, top: pos.y }}
-                    className="absolute pointer-events-auto shadow-sm"
-                  >
-                    <BracketSlot
-                      slot={
-                        getSlot(id) || {
-                          id,
-                          type: id.split("-")[0] as any,
-                          teamId: null,
-                        }
-                      }
-                      readOnly={readOnly}
-                      disableDragDrop={isCol1}
-                      onDrop={onDrop}
-                      onClick={onClick}
-                      emptyTitle={emptyTitle}
-                    />
-                  </div>
-                );
-              })}
+                <ZoomIn className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+              </button>
+              <div className="w-[1px] h-3 lg:h-4 bg-zinc-200/60 dark:bg-zinc-800" />
+              <button
+                onClick={() => zoomOut(0.15)}
+                title="缩小"
+                className="w-6 h-6 lg:w-8 lg:h-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center cursor-pointer transition-colors active:scale-95"
+              >
+                <ZoomOut className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+              </button>
+              <div className="w-[1px] h-3 lg:h-4 bg-zinc-200/60 dark:bg-zinc-800" />
+              <button
+                onClick={() => {
+                  resetTransform();
+                  setTimeout(() => {
+                    centerView(1);
+                  }, 50);
+                }}
+                title="复位并居中"
+                className="px-2 lg:px-3.5 h-6 lg:h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white flex items-center justify-center gap-1.5 cursor-pointer transition-all text-[10px] lg:text-xs font-semibold active:scale-95 shadow-sm"
+              >
+                <RotateCcw className="w-3 h-3 lg:w-3.5 lg:h-3.5" />
+                <span>复位居中</span>
+              </button>
             </div>
-          </div>
-        </TransformComponent>
+            <TransformComponent
+              wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}
+            >
+              <div className="w-[1100px] h-[800px] relative pointer-events-none flex-shrink-0">
+                  <svg
+                    className="absolute inset-0 w-full h-full z-0 pointer-events-none"
+                    style={{ left: 0, top: 0 }}
+                  >
+                    {edges.map(([from, to], i) => (
+                      <DrawPath key={i} fromId={from} toId={to} />
+                    ))}
+                  </svg>
+
+                  {[
+                    { type: "qf", matchIndex: 0, nodeTop: "qf-1", title: "1/4决赛" },
+                    { type: "qf", matchIndex: 1, nodeTop: "qf-3", title: "1/4决赛" },
+                    { type: "qf", matchIndex: 2, nodeTop: "qf-5", title: "1/4决赛" },
+                    { type: "qf", matchIndex: 3, nodeTop: "qf-7", title: "1/4决赛" },
+                    { type: "sf", matchIndex: 0, nodeTop: "sf-1", title: "半决赛" },
+                    { type: "sf", matchIndex: 1, nodeTop: "sf-3", title: "半决赛" },
+                    {
+                      type: "final",
+                      matchIndex: 0,
+                      nodeTop: "final-1",
+                      title: "决 赛",
+                    },
+                  ].map((header, i) => {
+                    const pos = nodes[header.nodeTop];
+                    if (!pos) return null;
+
+                    const match: BracketMatch | undefined =
+                      MATCHES["playoffs"]?.[header.type]?.[header.matchIndex];
+
+                    return (
+                      <div
+                        key={`header-${i}`}
+                        className="absolute text-[12px] text-zinc-900 dark:text-zinc-200 bg-zinc-200/60 dark:bg-black/60 rounded-sm px-1 py-0.5 font-bold tracking-wider flex items-center justify-center pointer-events-auto cursor-pointer hover:bg-zinc-200/80 dark:bg-black/80 w-[180px] z-50 shadow-md transition-colors hover:text-black dark:text-white"
+                        style={{ left: pos.x, top: pos.y - 24 }}
+                        onClick={() => {
+                          if (match) {
+                            if (onMatchClick) onMatchClick(match);
+                            else setSelectedMatch(match);
+                          }
+                        }}
+                        title="点击查看赛况"
+                      >
+                        {header.title}
+                      </div>
+                    );
+                  })}
+
+                  {Object.entries(nodes).map(([id, pos]) => {
+                    const isCol1 = id.startsWith("qf-");
+                    const emptyTitle = readOnly
+                      ? "待定"
+                      : isCol1
+                        ? "待定"
+                        : "作出您的选择";
+
+                    return (
+                      <div
+                        key={id}
+                        style={{ left: pos.x, top: pos.y }}
+                        className="absolute pointer-events-auto shadow-sm"
+                      >
+                        <BracketSlot
+                          slot={
+                            getSlot(id) || {
+                              id,
+                              type: id.split("-")[0] as any,
+                              teamId: null,
+                            }
+                          }
+                          readOnly={readOnly}
+                          disableDragDrop={isCol1}
+                          onDrop={onDrop}
+                          onClick={readOnly ? (slotId: string) => {
+                            if (onClick) {
+                              onClick(slotId, getSlot(slotId)?.teamId || null);
+                              return;
+                            }
+                            const match = getMatchForSlotId(slotId);
+                            if (match) {
+                              if (onMatchClick) onMatchClick(match);
+                              else setSelectedMatch(match);
+                            }
+                          } : onClick}
+                          emptyTitle={emptyTitle}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </TransformComponent>
+            </>
+          )}
       </TransformWrapper>
 
       <MatchDialog

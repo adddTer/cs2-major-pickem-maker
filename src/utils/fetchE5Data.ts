@@ -456,7 +456,7 @@ export async function fetchAndPatchCSGOData(currentEvent?: TournamentEvent, isAu
       if (s2) MATCHES.stage2 = s2;
     }
 
-    if (r8301?.success) {
+      if (r8301?.success) {
       if (r8301.data?.[0]) {
         const s3 = parseSwissGraph(r8301.data[0], m8301, MATCHES.stage3, true, currentEvent?.isSwissAllBo3);
         if (s3) {
@@ -469,7 +469,7 @@ export async function fetchAndPatchCSGOData(currentEvent?: TournamentEvent, isAu
         try {
           const g = JSON.parse(r8301.data[1].groups[0].graph);
           const eb = g?.sEB?.EB;
-          if (eb && eb.matches && eb.rounds) {
+          if (eb && eb.rounds) {
             const playoffs: Record<string, any[]> = {
               qf: [],
               sf: [],
@@ -568,6 +568,93 @@ export async function fetchAndPatchCSGOData(currentEvent?: TournamentEvent, isAu
                 playoffs[roundDesc[idx]].push(matchObj);
               });
             });
+            // Pre-process playoffs.qf to match structural seeds if stage3 has 8 advanced teams
+            const records: Record<string, {w: number, l: number}> = {};
+            const played: Record<string, Set<string>> = {};
+            
+            if (MATCHES.stage3) {
+              Object.values(MATCHES.stage3).forEach((arr: any) => {
+                arr.forEach((m: any) => {
+                  const t1 = m.team1Id;
+                  const t2 = m.team2Id;
+                  if (t1 && t2 && t1 !== "tbd" && t2 !== "tbd") {
+                    if (!records[t1]) records[t1] = {w:0, l:0};
+                    if (!records[t2]) records[t2] = {w:0, l:0};
+                    if (!played[t1]) played[t1] = new Set();
+                    if (!played[t2]) played[t2] = new Set();
+                    played[t1].add(t2);
+                    played[t2].add(t1);
+                    if (m.score1 !== undefined && m.score2 !== undefined && m.score1 !== m.score2) {
+                      if (m.score1 > m.score2) { records[t1].w++; records[t2].l++; }
+                      else { records[t2].w++; records[t1].l++; }
+                    }
+                  }
+                });
+              });
+            }
+
+            const getBuchholz = (t: string) => {
+              let score = 0;
+              for (const opp of (played[t] || [])) {
+                if (records[opp]) score += (records[opp].w - records[opp].l);
+              }
+              return score;
+            };
+
+            const advanced = Object.keys(records).filter(t => records[t].w === 3);
+            if (advanced.length === 8) {
+              const seeds = advanced.sort((a, b) => {
+                if (records[a].l !== records[b].l) return records[a].l - records[b].l;
+                const bA = getBuchholz(a);
+                const bB = getBuchholz(b);
+                if (bA !== bB) return bB - bA; // Higher Buchholz is better
+                const sA = GLOBAL_SEEDING[a] || 99;
+                const sB = GLOBAL_SEEDING[b] || 99;
+                return sA - sB; // Lower initial seed is better
+              });
+
+              // qfMatchups: 1v8, 4v5, 2v7, 3v6
+              const stQf = [
+                new Set([seeds[0], seeds[7]]),
+                new Set([seeds[3], seeds[4]]),
+                new Set([seeds[1], seeds[6]]),
+                new Set([seeds[2], seeds[5]])
+              ];
+              
+              let hasTbds = false;
+              if (!playoffs.qf || playoffs.qf.length < 4) {
+                 hasTbds = true;
+              } else {
+                 hasTbds = playoffs.qf.some(m => !m.team1Id || !m.team2Id || m.team1Id === "tbd" || m.team2Id === "tbd");
+              }
+              
+              const newQf = Array(4).fill(null);
+              if (hasTbds) {
+                stQf.forEach((set, idx) => {
+                  const arr = Array.from(set);
+                  let time = "0";
+                  if (playoffs.qf && playoffs.qf[idx]) time = playoffs.qf[idx].time || "0";
+                  newQf[idx] = { team1Id: arr[0], team2Id: arr[1], format: "bo3", status: "upcoming", time };
+                });
+                playoffs.qf = newQf;
+              } else if (playoffs.qf && playoffs.qf.length === 4) {
+                playoffs.qf.forEach(m => {
+                   const mSet = new Set([m.team1Id, m.team2Id]);
+                   const idx = stQf.findIndex(s => {
+                       const arr = Array.from(s);
+                       return mSet.has(arr[0]) && mSet.has(arr[1]);
+                   });
+                   if (idx !== -1) newQf[idx] = m;
+                });
+                for (let i = 0; i < 4; i++) {
+                   if (!newQf[i]) {
+                      newQf[i] = playoffs.qf.find(m => !newQf.includes(m));
+                   }
+                }
+                playoffs.qf = newQf;
+              }
+            }
+
             MATCHES.playoffs = playoffs;
 
             // Derive ACTUAL_RESULTS.playoffs

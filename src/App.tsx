@@ -54,7 +54,7 @@ export const EVENTS: TournamentEvent[] = [
 ];
 
 export default function App() {
-  const [currentEventId, setCurrentEventId] = useState<string>("pgl_singapore_2026");
+  const [currentEventId, setCurrentEventId] = useState<string>("iem_cologne_2026");
   const currentEvent = useMemo(() => EVENTS.find(e => e.id === currentEventId) || EVENTS[0], [currentEventId]);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -910,7 +910,7 @@ export default function App() {
                 </div>
               </div>
             ) : activeStage === "playoffs" ? (
-              <div className="w-full h-full relative p-4 lg:p-8">
+              <div className="w-full h-full relative">
                 <PlayoffsBracket
                   refreshTrigger={refreshTrigger}
                   slots={PLAYOFFS_SLOTS.map((s) => {
@@ -928,6 +928,7 @@ export default function App() {
                   })}
                   readOnly={true}
                   showResults={false}
+                  onMatchClick={(m) => setGlobalSelectedMatch(m)}
                 />
               </div>
             ) : (

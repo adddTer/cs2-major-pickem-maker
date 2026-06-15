@@ -8,6 +8,7 @@ import { cn } from "../lib/utils";
 import { useFitScale } from "../utils/hooks";
 import { TeamLogo } from "./TeamLogo";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { MatchDialog } from "./MatchDialog";
 
 export const MatchParticipant = ({ teamId }: { teamId?: string }) => {
@@ -863,21 +864,53 @@ export const SwissBracket = ({
         ))}
       </div>
 
-      <div className="w-full flex-1 relative">
+      <div className="w-full flex-1 relative overflow-hidden">
         <TransformWrapper
           initialScale={calculatedScale}
           minScale={0.1}
           maxScale={2}
           centerOnInit={true}
-          limitToBounds={true}
+          limitToBounds={false}
           wheel={{ step: 0.001 }}
           panning={{ velocityDisabled: false }}
         >
-          <TransformComponent
-            wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}
-          >
-            <div className="w-[1800px] h-[1400px] relative pointer-events-none flex-shrink-0 flex items-center justify-center">
-              <div className="w-[1200px] h-[840px] relative pointer-events-none px-4">
+          {({ zoomIn, zoomOut, resetTransform, centerView }) => (
+            <>
+              <div className="absolute bottom-16 lg:bottom-[100px] left-4 lg:left-6 z-[100] flex items-center gap-1.5 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md shadow-lg border border-zinc-200/55 dark:border-zinc-800/55 flex-shrink-0 pointer-events-auto">
+                <button
+                  onClick={() => zoomIn(0.15)}
+                  title="放大"
+                  className="w-6 h-6 lg:w-8 lg:h-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center cursor-pointer transition-colors active:scale-95"
+                >
+                  <ZoomIn className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                </button>
+                <div className="w-[1px] h-3 lg:h-4 bg-zinc-200/60 dark:bg-zinc-800" />
+                <button
+                  onClick={() => zoomOut(0.15)}
+                  title="缩小"
+                  className="w-6 h-6 lg:w-8 lg:h-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center cursor-pointer transition-colors active:scale-95"
+                >
+                  <ZoomOut className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                </button>
+                <div className="w-[1px] h-3 lg:h-4 bg-zinc-200/60 dark:bg-zinc-800" />
+                <button
+                  onClick={() => {
+                    resetTransform();
+                    setTimeout(() => {
+                      centerView(calculatedScale || 1);
+                    }, 50);
+                  }}
+                  title="复位并居中"
+                  className="px-2 lg:px-3.5 h-6 lg:h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white flex items-center justify-center gap-1.5 cursor-pointer transition-all text-[10px] lg:text-xs font-semibold active:scale-95 shadow-sm"
+                >
+                  <RotateCcw className="w-3 h-3 lg:w-3.5 lg:h-3.5" />
+                  <span>复位居中</span>
+                </button>
+              </div>
+              <TransformComponent
+                wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}
+              >
+                <div className="w-[1200px] h-[840px] relative pointer-events-none px-4 flex-shrink-0">
                 {/* SVG Connections */}
                 <svg
                   className="absolute inset-0 w-full h-full z-0 opacity-45 pointer-events-none"
@@ -1050,9 +1083,10 @@ export const SwissBracket = ({
                 />
               </AbsoluteBox>
             </div>
-            </div>
           </TransformComponent>
-        </TransformWrapper>
+          </>
+        )}
+      </TransformWrapper>
       </div>
       <MatchDialog
         match={selectedMatch}
