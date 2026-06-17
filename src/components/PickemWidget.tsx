@@ -1,14 +1,24 @@
-import React from "react";
+import React, { useState } from "react";
 import { PickSlot, StageKey, SlotType } from "../types";
 import { cn } from "../lib/utils";
-import { CheckCircle2, Clock, Trash2 } from "lucide-react";
+import { CheckCircle2, Clock, DownloadCloud, AlertTriangle, ArrowRight } from "lucide-react";
 import { PickEmDock } from "./PickEmDock";
 import { TeamLogo } from "./TeamLogo";
 import { MiniPlayoffsBracket } from "./MiniPlayoffsBracket";
+import { dialog } from "./DialogManager";
+import { Modal } from "./Modal";
 
 interface PickemWidgetProps {
   newNickname: string;
   setNewNickname: (val: string) => void;
+  steamId?: string;
+  setSteamId?: (val: string) => void;
+  steamAuthCode?: string;
+  setSteamAuthCode?: (val: string) => void;
+  setPicks?: React.Dispatch<React.SetStateAction<Record<string, PickSlot[]>>>;
+  currentEventId?: string;
+  currentEventExternalId?: string;
+  steamEventId?: number;
   handleSavePick: () => void;
   activeStage: StageKey;
   currentPoolTeams: any[];
@@ -30,9 +40,19 @@ interface PickemWidgetProps {
   getStageStatus: (s: string) => string;
 }
 
+import { TEAMS } from "../data/teams";
+
 export const PickemWidget: React.FC<PickemWidgetProps> = ({
   newNickname,
   setNewNickname,
+  steamId,
+  setSteamId,
+  steamAuthCode,
+  setSteamAuthCode,
+  setPicks,
+  currentEventId,
+  currentEventExternalId,
+  steamEventId,
   handleSavePick,
   activeStage,
   currentPoolTeams,
@@ -49,35 +69,214 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
   setShowResults,
   getStageStatus,
 }) => {
+  const [isImportingSteam, setIsImportingSteam] = useState(false);
+  const [developerApiKey, setDeveloperApiKey] = useState(() => localStorage.getItem("steam_developer_api_key") || "");
+  const [showDeveloperKeyInput, setShowDeveloperKeyInput] = useState(false);
+  const [diffModalData, setDiffModalData] = useState<{
+    local: PickSlot[];
+    steam: PickSlot[];
+  } | null>(null);
+
+  const applySteamPicks = (importedSlots: PickSlot[]) => {
+    if (setPicks) {
+      setPicks((prev) => ({
+        ...prev,
+        [activeStage]: importedSlots,
+      }));
+    }
+    setDiffModalData(null);
+  };
+
+  const handleSteamImport = async () => {
+    if (!steamAuthCode) {
+      dialog.alert("请先填写 Auth Code。");
+      return;
+    }
+
+    setIsImportingSteam(true);
+    try {
+      const actualEventId = steamEventId?.toString() || "22"; // Dynamic or fallback to Shanghai
+      let url = `/api/steam-predictions?event=${actualEventId}&key=${encodeURIComponent(steamAuthCode)}${steamId ? `&steamid=${steamId}` : ''}`;
+      if (developerApiKey) {
+        url += `&developerkey=${encodeURIComponent(developerApiKey)}`;
+      }
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.needsDeveloperKey) {
+        setShowDeveloperKeyInput(true);
+        throw new Error("服务端缺少 STEAM_API_KEY。由于不在开发环境，请您配置个人的开发者 API Key 以获取数据。");
+      }
+
+      if (data.error || (!data.success && !data.result)) {
+        throw new Error(data.error || "无法获取数据，请检查 Auth Code 和 SteamID 是否正确");
+      }
+
+      const predictions = (data.groupedPicks && data.groupedPicks[activeStage]) ? data.groupedPicks[activeStage] : (data.rawPicks || []);
+      const STEAM_PICKID_MAP: Record<number, string> = {
+        1: 'nip', 6: 'fnatic', 12: 'navi', 28: '3dm', 48: 'liquid',
+        59: 'g2', 60: 'astralis', 61: 'faze', 69: 'big', 74: 'tyloo', 80: 'mibr',
+        81: 'spirit', 85: 'furia', 87: 'nrg', 89: 'vitality', 95: 'heroic', 102: 'pain',
+        104: 'sharks', 106: 'mouz', 112: '9z', 113: 'imperial', 115: 'gamerlegion', 119: 'monte', 121: 'fluxo',
+        122: 'mongolz', 126: 'legacy', 127: 'lynn', 131: 'rareatom',
+        132: 'flyquest', 133: 'passionua', 134: 'aurora', 135: 'b8',
+        137: 'betboom', 139: 'falcons', 140: 'm80', 142: 'parivision', 143: 'thehuns',
+        144: 'redcanids', 145: 'fut', 146: 'gaimin', 147: 'sinners', 148: 'thunder'
+      };
+
+      const importedSlots: PickSlot[] = currentSlots.map((s, idx) => {
+        let steamPick;
+        if (activeStage === "playoffs") {
+           // predictions has 7 picks for playoffs: 4 QF winners, 2 SF winners, 1 Final winner.
+           // They are in groupid order.
+           // local currentSlots has 15 slots: qf-1..8 (0..7), sf-1..4 (8..11), final-1..2 (12..13), champion (14).
+           if (idx >= 8 && idx <= 11) {
+             steamPick = predictions[idx - 8]; // map sf-1..4 to predictions[0..3]
+           } else if (idx >= 12 && idx <= 13) {
+             steamPick = predictions[idx - 12 + 4]; // map final-1..2 to predictions[4..5]
+           } else if (idx === 14) {
+             steamPick = predictions[6]; // map champion to predictions[6]
+           }
+        } else {
+           steamPick = predictions.find((p: any) => p.index === idx);
+        }
+        
+        const mappedTeamId = steamPick ? STEAM_PICKID_MAP[steamPick.pick] || null : null;
+        return {
+          ...s,
+          teamId: mappedTeamId,
+          _steamPickData: steamPick
+        } as any;
+      });
+
+      const isCurrentEmpty = currentSlots.every((s) => !s.teamId);
+      const isDifferent = currentSlots.some((s, idx) => s.teamId !== importedSlots[idx].teamId);
+
+      if (isCurrentEmpty || !isDifferent) {
+        // Direct apply
+        applySteamPicks(importedSlots);
+        if (!isDifferent && !isCurrentEmpty) {
+          dialog.alert("您的网站竞猜与游戏内竞猜完全一致。");
+        } else {
+          dialog.alert("成功导入游戏内竞猜！");
+        }
+      } else {
+        // Show diff modal
+        setDiffModalData({ local: currentSlots, steam: importedSlots });
+      }
+    } catch (e: any) {
+      dialog.alert("导入失败：" + e.message);
+    } finally {
+      setIsImportingSteam(false);
+    }
+  };
+
   const statusData =
     activeStage !== "playoffs" ? getSetStatus(currentSlots, activeStage) : null;
 
   return (
     <div className="flex flex-col gap-6 w-full h-full relative">
       {/* 1. Predict ID & Save */}
-      <div className="flex flex-col gap-3 p-4 bg-zinc-200/40 dark:bg-black/40 rounded-xl border border-black/5 dark:border-white/5">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest">
-            预测昵称 / ID
-          </span>
-          <span className="text-[10px] text-zinc-500 dark:text-zinc-500 flex items-center gap-1">
-            <Clock className="w-3 h-3" /> {getStageStatus(activeStage)}
-          </span>
+      <div className="flex flex-col gap-4 p-4 bg-zinc-200/40 dark:bg-black/40 rounded-xl border border-black/5 dark:border-white/5">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest">
+              预测昵称
+            </span>
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-500 flex items-center gap-1">
+              <Clock className="w-3 h-3" /> {getStageStatus(activeStage)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newNickname}
+              onChange={(e) => setNewNickname(e.target.value)}
+              className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:border-blue-500 transition-colors shadow-inner w-full"
+              placeholder="输入昵称..."
+            />
+            <button
+              onClick={handleSavePick}
+              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-black dark:text-white font-bold text-sm transition-colors rounded-lg flex items-center justify-center gap-1.5 shrink-0 shadow-lg shadow-blue-900/20"
+            >
+              <CheckCircle2 className="w-4 h-4" /> 保存
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={newNickname}
-            onChange={(e) => setNewNickname(e.target.value)}
-            className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:border-blue-500 transition-colors shadow-inner w-full"
-            placeholder="输入昵称..."
-          />
-          <button
-            onClick={handleSavePick}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-black dark:text-white font-bold text-sm transition-colors rounded-lg flex items-center justify-center gap-1.5 shrink-0 shadow-lg shadow-blue-900/20"
-          >
-            <CheckCircle2 className="w-4 h-4" /> 保存
-          </button>
+
+        <div className="h-px w-full bg-black/5 dark:bg-white/5" />
+
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+              Steam 游戏数据绑定
+            </span>
+            {(!steamId || !steamAuthCode) && (
+              <a
+                href="https://help.steampowered.com/en/wizard/HelpWithGameIssue/?appid=730&issueid=128"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[10px] text-blue-500 hover:text-blue-400 font-bold underline"
+              >
+                如何获取?
+              </a>
+            )}
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              value={steamId || ""}
+              onChange={(e) => setSteamId?.(e.target.value)}
+              className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-blue-500 transition-colors shadow-inner w-full"
+              placeholder="Steam ID (SteamID64)..."
+            />
+            <input
+              type="text"
+              value={steamAuthCode || ""}
+              onChange={(e) => setSteamAuthCode?.(e.target.value)}
+              className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-blue-500 transition-colors shadow-inner w-full"
+              placeholder="Auth Code 或 完整鉴权链接..."
+            />
+            <button
+              onClick={handleSteamImport}
+              disabled={isImportingSteam}
+              className="px-3 py-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 text-zinc-800 dark:text-zinc-200 font-bold text-xs transition-colors rounded-lg flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50"
+            >
+              <DownloadCloud className="w-3.5 h-3.5" /> 导入游戏竞猜
+            </button>
+          </div>
+
+          {showDeveloperKeyInput && (
+            <div className="flex flex-col gap-2 mt-2 p-3 bg-red-50/50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-red-600 dark:text-red-400">
+                  由于服务器未配置 STEAM_API_KEY，需要您自己提供开发者 API Key。
+                </span>
+                <a
+                  href="https://steamcommunity.com/dev/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[10px] text-blue-500 hover:text-blue-400 font-bold underline"
+                >
+                  前往申请 Key
+                </a>
+              </div>
+              <input
+                type="text"
+                value={developerApiKey}
+                onChange={(e) => {
+                  setDeveloperApiKey(e.target.value);
+                  localStorage.setItem("steam_developer_api_key", e.target.value);
+                }}
+                className="w-full bg-white dark:bg-black border border-red-200 dark:border-red-500/30 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-red-400 transition-colors shadow-inner"
+                placeholder="Steam Web API Key (32位字符)..."
+              />
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                申请域名可随意填写（如 localhost）。Key 将只保存在您的浏览器本地，用于向服务器发起请求以拉取数据。填入后请重新点击"导入游戏竞猜"。
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -193,6 +392,82 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
           </div>
         )}
       </div>
+
+      <Modal
+        isOpen={!!diffModalData}
+        onClose={() => setDiffModalData(null)}
+        title="发现差异"
+        maxWidthClass="max-w-2xl"
+      >
+        {diffModalData && (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-500 text-sm rounded-lg">
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              <span>检测到您当前网页填写的槽位与游戏内数据不一致。确认要使用游戏内的数据覆盖当前槽位吗？</span>
+            </div>
+            
+            <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+              {diffModalData.local.map((localSlot, idx) => {
+                const steamSlot = diffModalData.steam[idx];
+                if (localSlot.teamId === steamSlot.teamId) return null;
+                
+                const getTeam = (id: string | null) => currentPoolTeams.find((t) => t.id === id) || TEAMS.find((t) => t.id === id);
+                const lTeam = getTeam(localSlot.teamId);
+                const sTeam = getTeam(steamSlot.teamId);
+
+                return (
+                  <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded border border-black/5 dark:border-white/5">
+                    <div className="text-xs font-bold text-zinc-500 w-16 text-center shrink-0 uppercase">
+                      {localSlot.type} {localSlot.bottomText || idx + 1}
+                    </div>
+                    
+                    <div className="flex-1 flex items-center justify-between pl-4">
+                      {/* Local Team */}
+                      <div className="flex flex-col items-center gap-1 w-16">
+                        <span className="text-[10px] text-zinc-400">当前网页</span>
+                        {lTeam ? (
+                          <TeamLogo team={lTeam} className="w-8 h-8" />
+                        ) : (
+                          <div className="w-8 h-8 rounded border border-dashed border-zinc-400 flex items-center justify-center text-[10px] text-zinc-400">空</div>
+                        )}
+                      </div>
+
+                      <ArrowRight className="w-4 h-4 text-zinc-300 dark:text-zinc-600" />
+
+                      {/* Steam Team */}
+                      <div className="flex flex-col items-center gap-1 w-16">
+                        <span className="text-[10px] text-blue-500">Steam</span>
+                        {sTeam ? (
+                          <TeamLogo team={sTeam} className="w-8 h-8" />
+                        ) : (
+                          <div className="w-16 h-8 rounded border border-dashed border-zinc-400 flex items-center justify-center text-[9px] text-zinc-400 overflow-hidden text-center break-all">
+                            ID: {(steamSlot as any)._steamPickData?.pick || '空'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-black/10 dark:border-white/10 mt-2">
+              <button
+                onClick={() => setDiffModalData(null)}
+                className="px-4 py-2 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:bg-white/5 text-zinc-800 dark:text-zinc-300 font-bold text-sm transition-colors rounded-lg"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => applySteamPicks(diffModalData.steam)}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors rounded-lg shadow-lg shadow-blue-900/20"
+              >
+                确认覆盖
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

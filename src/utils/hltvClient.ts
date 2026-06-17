@@ -15,7 +15,7 @@ export async function fetchHltv(path: string) {
       }
     };
     
-    const { status, headers, data } = await new Promise((resolve, reject) => {
+    const { status, headers, data } = await new Promise<{status: number | undefined, headers: any, data: string}>((resolve, reject) => {
         const hreq = https.request(options, (hres) => {
           let text = '';
           hres.on('data', (d) => { text += d; });

@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import https from "node:https";
 import { createServer as createViteServer } from "vite";
+import "dotenv/config";
 
 async function fetchHltv(pathUrl: string): Promise<string> {
   let currentPath = pathUrl;
@@ -82,6 +83,136 @@ async function startServer() {
       console.error(e);
       res.status(500).json({ success: false, valve: [], hltv: [], error: e.message });
     }
+  });
+
+  app.get("/api/steam-predictions", async (req, res) => {
+    try {
+      const { key } = req.query;
+      if (!key) {
+        res.status(400).json({ error: "Missing required parameter: key" });
+        return;
+      }
+      
+      let event = req.query.event || "22";
+      let steamid = "";
+      let steamidkey = "";
+      let developerkey = (req.query.developerkey as string) || process.env.STEAM_API_KEY || "";
+
+      const decodedKey = decodeURIComponent(key as string);
+      
+      // Parse steamid and steamidkey from URL if provided
+      if (decodedKey.includes("steamid=") && decodedKey.includes("steamidkey=")) {
+        const urlString = decodedKey.startsWith("http") ? decodedKey : `https://api.steampowered.com${decodedKey.startsWith("/") ? "" : "/"}${decodedKey}`;
+        try {
+          const url = new URL(urlString);
+          steamid = url.searchParams.get("steamid") || "";
+          steamidkey = url.searchParams.get("steamidkey") || "";
+          event = url.searchParams.get("event") || event;
+        } catch (e) {
+           // Fallback if URL parsing fails
+        }
+      } else {
+        steamidkey = decodedKey;
+      }
+      
+      if (!steamid && req.query.steamid) {
+        steamid = req.query.steamid as string;
+      }
+
+      if (!steamid || steamid === "0") {
+        return res.status(400).json({ error: "Steam官方API强制要求提供Steam ID。请在输入框中填入您的 Steam ID（例如 7656119...）。" });
+      }
+
+      if (!developerkey) {
+        return res.status(500).json({ 
+          error: "服务器缺少 STEAM_API_KEY。请在界面中配置您的 Steam 开发者 API Key。",
+          needsDeveloperKey: true
+        });
+      }
+
+      const apiUrl = `https://api.steampowered.com/ICSGOTournaments_730/GetTournamentPredictions/v1?event=${event}&steamid=${steamid}&steamidkey=${steamidkey}&key=${developerkey}`;
+      const layoutUrl = `https://api.steampowered.com/ICSGOTournaments_730/GetTournamentLayout/v1?event=${event}&key=${developerkey}`;
+      
+      const [response, layoutResponse] = await Promise.all([
+        fetch(apiUrl),
+        fetch(layoutUrl)
+      ]);
+
+      const text = await response.text();
+
+      if (!response.ok) {
+        res.status(response.status).json({ error: `无法获取数据 (${response.status})。请检查您的鉴权链接是否正确且有效。` });
+        return;
+      }
+
+      let steamData;
+      let layoutData;
+      try {
+        steamData = JSON.parse(text);
+        (global as any).lastSteamData = steamData; // Save for debugging
+      } catch (err) {
+        res.status(500).json({ error: "Steam返回了无效的数据格式（意外的网页内容）。请确认填写的鉴权链接正确无误。" });
+        return;
+      }
+
+      if (layoutResponse.ok) {
+        try {
+          layoutData = await layoutResponse.json();
+        } catch(e) {}
+      }
+
+      // Group predictions into our logical stages
+      let stage1GroupId = null;
+      let stage2GroupId = null;
+      let stage3GroupId = null;
+      let playoffsGroupIds = [] as number[];
+
+      if (layoutData && layoutData.result && layoutData.result.sections) {
+        const sections = layoutData.result.sections;
+        for (const sec of sections) {
+          const n = sec.name.toLowerCase();
+          if (n.includes("stage i ") || n.endsWith("| 1")) {
+             if (sec.groups[0]) stage1GroupId = sec.groups[0].groupid;
+          } else if (n.includes("stage ii ") || n.endsWith("| 2")) {
+             if (sec.groups[0]) stage2GroupId = sec.groups[0].groupid;
+          } else if (n.includes("stage iii") || n.endsWith("| 3")) {
+             if (sec.groups[0]) stage3GroupId = sec.groups[0].groupid;
+          } else if (n.includes("quarter") || n.includes("semi") || n.includes("final")) {
+             sec.groups.forEach((g: any) => playoffsGroupIds.push(g.groupid));
+          }
+        }
+      }
+
+      const allPicks = steamData.result?.picks || [];
+      const groupedPicks: any = {
+        stage1: [],
+        stage2: [],
+        stage3: [],
+        playoffs: []
+      };
+
+      allPicks.forEach((p: any) => {
+        if (stage1GroupId && p.groupid === stage1GroupId) groupedPicks.stage1.push(p);
+        else if (stage2GroupId && p.groupid === stage2GroupId) groupedPicks.stage2.push(p);
+        else if (stage3GroupId && p.groupid === stage3GroupId) groupedPicks.stage3.push(p);
+        else if (playoffsGroupIds.includes(p.groupid)) groupedPicks.playoffs.push(p);
+      });
+
+      res.json({
+         success: true,
+         rawPicks: allPicks,
+         groupedPicks,
+         event,
+         layout: layoutData?.result
+      });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/debug-steam", (req, res) => {
+    res.json((global as any).lastSteamData || { message: "No data yet" });
   });
 
   if (process.env.NODE_ENV !== "production") {

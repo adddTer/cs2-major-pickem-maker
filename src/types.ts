@@ -98,6 +98,7 @@ export interface TournamentEvent {
   shortName: string;
   logoUrl: string;
   isSwissAllBo3?: boolean;
+  steamEventId?: number;
   stages?: {
     stage1?: { externalId: string };
     stage2?: { externalId: string };
@@ -109,6 +110,8 @@ export interface PickSet {
   id: string;
   eventId?: string;
   name: string; // Used for display
+  steamId?: string;
+  steamKey?: string;
   createdAt: number;
   picks: Record<string, PickSlot[]>;
 }

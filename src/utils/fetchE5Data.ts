@@ -262,6 +262,10 @@ export async function fetchAndPatchCSGOData(currentEvent?: TournamentEvent, isAu
     MATCHES.stage2 = {};
     MATCHES.stage3 = {};
     MATCHES.playoffs = {};
+    ACTUAL_RESULTS.stage1 = [];
+    ACTUAL_RESULTS.stage2 = [];
+    ACTUAL_RESULTS.stage3 = [];
+    ACTUAL_RESULTS.playoffs = [];
     
     // Pre-populate matches natively using TEAMS data so the UI doesn't crash if 5E Play fails
     const initLocalStage = (stageStr: string, stageNum: number) => {
@@ -785,7 +789,8 @@ export async function fetchAndPatchCSGOData(currentEvent?: TournamentEvent, isAu
     }
 
     const hasAnySuccess = (r9028?.success) || (r9029?.success) || (r8301?.success);
-    const matchSuccess = !!hasAnySuccess || (r9028 !== null || r9029 !== null || r8301 !== null); // If null, it means Promise was rejected
+    const noEventIds = !s1Id && !s2Id && !s3Id;
+    const matchSuccess = noEventIds ? true : !!hasAnySuccess || (r9028 !== null || r9029 !== null || r8301 !== null);
     
     // We explicitly hardcoded fetchTeamRankings to return false for ranking degraded testing
     return { matchSuccess: matchSuccess, rankingSuccess: _rankData === true };

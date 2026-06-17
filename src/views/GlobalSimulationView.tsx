@@ -89,80 +89,88 @@ export function GlobalSimulationView({
   );
 
   const logicalBracket = React.useMemo(() => {
-    if (!result || !result.playoffsFreq) return {};
-
-    // 1. Get top 8 teams by playoffs frequency to act as the "average seeds"
-    const top8 = Object.entries(result.playoffsFreq || {})
-      .sort((a, b) => (b[1] as number) - (a[1] as number))
-      .slice(0, 8)
-      .map((entry) => entry[0]);
-
-    if (top8.length < 8) return {}; // Failsafe
-
-    // Seed assignments: 1vs8, 4vs5, 2vs7, 3vs6
-    const qfMatches = [
-      { id1: "qf-1", t1: top8[0], id2: "qf-2", t2: top8[7], sfId: "sf-1" },
-      { id1: "qf-3", t1: top8[3], id2: "qf-4", t2: top8[4], sfId: "sf-2" },
-      { id1: "qf-5", t1: top8[1], id2: "qf-6", t2: top8[6], sfId: "sf-3" },
-      { id1: "qf-7", t1: top8[2], id2: "qf-8", t2: top8[5], sfId: "sf-4" },
-    ];
+    if (!result || !result.playoffsFreq || !result.qfFreq) return {};
 
     const assignment: Record<string, string> = {};
+    const usedTeams = new Set<string>();
+
+    // Helper to get top team for a slot, avoiding duplicates if possible
+    const getTopTeamForSlot = (slotMap: Record<string, number> | undefined) => {
+      if (!slotMap) return undefined;
+      const sorted = Object.entries(slotMap).sort((a, b) => b[1] - a[1]);
+      for (const [teamId] of sorted) {
+        if (!usedTeams.has(teamId)) {
+          return teamId;
+        }
+      }
+      return sorted[0]?.[0]; // Fallback to literal highest if all are used
+    };
 
     // QF
-    qfMatches.forEach((m) => {
-      assignment[m.id1] = m.t1;
-      assignment[m.id2] = m.t2;
-    });
+    for (let i = 1; i <= 8; i++) {
+       const slotId = `qf-${i}`;
+       const team = getTopTeamForSlot(result.qfFreq?.[slotId]);
+       if (team) {
+         assignment[slotId] = team;
+         usedTeams.add(team);
+       }
+    }
 
     // SF
     const getWinner = (
-      t1: string,
-      t2: string,
+      t1: string | undefined,
+      t2: string | undefined,
       stageFreqMap: Record<string, Record<string, number>>,
     ) => {
+      if (!t1 && !t2) return undefined;
+      if (!t1) return t2;
+      if (!t2) return t1;
       const c1 = getOverallFreq(t1, stageFreqMap);
       const c2 = getOverallFreq(t2, stageFreqMap);
       return c1 >= c2 ? t1 : t2;
     };
 
     const sf1Winner = getWinner(
-      qfMatches[0].t1,
-      qfMatches[0].t2,
+      assignment["qf-1"],
+      assignment["qf-2"],
       result.sfFreq,
     );
     const sf2Winner = getWinner(
-      qfMatches[1].t1,
-      qfMatches[1].t2,
+      assignment["qf-3"],
+      assignment["qf-4"],
       result.sfFreq,
     );
     const sf3Winner = getWinner(
-      qfMatches[2].t1,
-      qfMatches[2].t2,
+      assignment["qf-5"],
+      assignment["qf-6"],
       result.sfFreq,
     );
     const sf4Winner = getWinner(
-      qfMatches[3].t1,
-      qfMatches[3].t2,
+      assignment["qf-7"],
+      assignment["qf-8"],
       result.sfFreq,
     );
 
-    assignment["sf-1"] = sf1Winner;
-    assignment["sf-2"] = sf2Winner;
-    assignment["sf-3"] = sf3Winner;
-    assignment["sf-4"] = sf4Winner;
+    if (sf1Winner) assignment["sf-1"] = sf1Winner;
+    if (sf2Winner) assignment["sf-2"] = sf2Winner;
+    if (sf3Winner) assignment["sf-3"] = sf3Winner;
+    if (sf4Winner) assignment["sf-4"] = sf4Winner;
 
     // Final
     const final1Winner = getWinner(sf1Winner, sf2Winner, result.finalFreq);
     const final2Winner = getWinner(sf3Winner, sf4Winner, result.finalFreq);
 
-    assignment["final-1"] = final1Winner;
-    assignment["final-2"] = final2Winner;
+    if (final1Winner) assignment["final-1"] = final1Winner;
+    if (final2Winner) assignment["final-2"] = final2Winner;
 
     // Champion
-    const c1 = result.championFreq?.[final1Winner] || 0;
-    const c2 = result.championFreq?.[final2Winner] || 0;
-    assignment["champion"] = c1 >= c2 ? final1Winner : final2Winner;
+    if (final1Winner && final2Winner) {
+      const c1 = result.championFreq?.[final1Winner] || 0;
+      const c2 = result.championFreq?.[final2Winner] || 0;
+      assignment["champion"] = c1 >= c2 ? final1Winner : final2Winner;
+    } else {
+      assignment["champion"] = final1Winner || final2Winner || "";
+    }
 
     return assignment;
   }, [result, getOverallFreq]);

@@ -35,6 +35,7 @@ export const EVENTS: TournamentEvent[] = [
     shortName: "Cologne 26",
     logoUrl: "https://img-cdn.hltv.org/eventlogo/ZMmU3y7hAV248CmzgxsohP.png?ixlib=java-2.1.0&w=100&s=4678a6eb60daacfa1b58d33a5026075d",
     isSwissAllBo3: false,
+    steamEventId: 26,
     stages: {
       stage1: { externalId: "csgo_tt_9028" },
       stage2: { externalId: "csgo_tt_9029" },
@@ -47,9 +48,8 @@ export const EVENTS: TournamentEvent[] = [
     shortName: "Singapore 26",
     logoUrl: "https://img-cdn.hltv.org/eventlogo/u-4VdjFWGYz_GwBxLGrr11.png?ixlib=java-2.1.0&w=50&s=e78a8a6b716fa437cc3cfbb9f6b48ee6",
     isSwissAllBo3: true,
-    stages: {
-      stage1: { externalId: "csgo_tt_8302" }
-    }
+    steamEventId: 27,
+    stages: {}
   }
 ];
 
@@ -129,6 +129,8 @@ export default function App() {
   );
 
   const [newNickname, setNewNickname] = useState("");
+  const [steamId, setSteamId] = useState("");
+  const [steamAuthCode, setSteamAuthCode] = useState("");
   const [activeStage, setActiveStage] = useState<StageKey>("stage1");
 
   const [showResults, setShowResults] = useState(false);
@@ -727,6 +729,8 @@ export default function App() {
     }
     const newId = `usr-${Date.now()}`;
     setCurrentPickSetId(newId);
+    setSteamId("");
+    setSteamAuthCode("");
     setPicks(defaultPicks);
     setViewMode("edit");
   };
@@ -734,6 +738,8 @@ export default function App() {
   const handleEditExisting = (pickSet: PickSet) => {
     setCurrentPickSetId(pickSet.id);
     setNewNickname(pickSet.name);
+    setSteamId(pickSet.steamId || "");
+    setSteamAuthCode(pickSet.steamKey || "");
     setPicks({
       ...defaultPicks,
       ...pickSet.picks,
@@ -755,6 +761,8 @@ export default function App() {
       name: newNickname,
       createdAt: Date.now(),
       picks: JSON.parse(JSON.stringify(picks)),
+      steamId,
+      steamKey: steamAuthCode,
     };
     await db.savePickSet(pickSet);
 
@@ -1033,6 +1041,10 @@ export default function App() {
                 <PickemWidget
                   newNickname={newNickname}
                   setNewNickname={setNewNickname}
+                  steamId={steamId}
+                  setSteamId={setSteamId}
+                  steamAuthCode={steamAuthCode}
+                  setSteamAuthCode={setSteamAuthCode}
                   handleSavePick={handleSavePick}
                   activeStage={activeStage}
                   currentPoolTeams={currentPoolTeams}
@@ -1048,6 +1060,10 @@ export default function App() {
                   showResults={showResults}
                   setShowResults={setShowResults}
                   getStageStatus={getStageStatus}
+                  currentEventId={currentEvent.id}
+                  currentEventExternalId={currentEvent.stages?.[activeStage]?.externalId}
+                  steamEventId={currentEvent.steamEventId}
+                  setPicks={setPicks}
                 />
               )}
             </FloatingPanel>

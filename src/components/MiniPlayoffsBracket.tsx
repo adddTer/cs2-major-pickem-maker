@@ -56,31 +56,25 @@ export const MiniPlayoffsBracket: React.FC<{
   const champSlot = slots.filter((s) => s.type === "champion");
 
   return (
-    <div className="w-full overflow-x-hidden pt-2 pr-2 pb-2">
+    <div className={`w-max min-w-full ${isExport ? "" : ""} pt-1 2xl:pt-3 pr-1 2xl:pr-3 pb-2`}>
       <div
-        className={cn(
-          "flex items-stretch justify-between w-full",
-          compact ? "gap-1 sm:gap-2" : "gap-2 sm:gap-3",
-        )}
+        className={`flex w-max ${compact ? (isExport ? "gap-2 items-start flex-nowrap" : "gap-3 sm:gap-4 lg:gap-6 items-start flex-nowrap") : isExport ? "gap-4 items-start flex-nowrap" : "gap-3 sm:gap-4 lg:gap-6 items-start flex-nowrap"}`}
       >
         {/* 1/4决赛胜者 (4 Slots) */}
         <div
-          className={`flex flex-col shrink-0 flex-[4] ${compact ? (isExport ? "gap-1" : "gap-0.5 sm:gap-1") : isExport ? "gap-2" : "gap-1.5 sm:gap-2"}`}
+          className={`flex flex-col shrink-0 ${compact ? (isExport ? "gap-1" : "gap-0.5 sm:gap-1") : isExport ? "gap-2" : "gap-1.5 sm:gap-2"}`}
         >
           {sfSlots.length > 0 ? (
             <>
               {!compact && (
                 <span
-                  className={`font-bold text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 whitespace-nowrap ${isExport ? "text-[10px] text-left" : "text-[9px] sm:text-[10px] text-center sm:text-left truncate"}`}
+                  className={`font-bold text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 whitespace-nowrap ${isExport ? "text-[10px] text-left" : "text-[9px] sm:text-[10px] text-center sm:text-left"}`}
                 >
                   1/4 决赛胜者
                 </span>
               )}
               <div
-                className={cn(
-                  "grid grid-cols-2",
-                  compact ? "gap-1" : "gap-1.5",
-                )}
+                className={`flex flex-nowrap ${isExport ? "justify-start" : "justify-center sm:justify-start"} ${compact ? (isExport ? "gap-0.5" : "gap-1") : isExport ? "gap-1.5" : "gap-1.5"}`}
               >
                 {sfSlots.map(renderSlot)}
               </div>
@@ -92,26 +86,25 @@ export const MiniPlayoffsBracket: React.FC<{
           )}
         </div>
 
-        <div className="hidden sm:block w-px self-stretch my-1 bg-black/5 dark:bg-white/5 opacity-50"></div>
+        <div
+          className={`${isExport ? "block" : "hidden sm:block"} w-px bg-black/5 dark:bg-white/5 self-stretch ${compact ? "my-1" : ""}`}
+        ></div>
 
         {/* 半决赛胜者 (2 Slots) */}
         <div
-          className={`flex flex-col shrink-0 flex-[2] ${compact ? (isExport ? "gap-1" : "gap-0.5 sm:gap-1") : isExport ? "gap-2" : "gap-1.5 sm:gap-2"}`}
+          className={`flex flex-col ${compact ? (isExport ? "gap-1" : "gap-0.5 sm:gap-1") : isExport ? "gap-2" : "gap-1.5 sm:gap-2"}`}
         >
           {finalSlots.length > 0 ? (
             <>
               {!compact && (
                 <span
-                  className={`font-bold text-blue-400 whitespace-nowrap ${isExport ? "text-[10px] text-left" : "text-[9px] sm:text-[10px] text-center sm:text-left truncate"}`}
+                  className={`font-bold text-blue-500 dark:text-blue-400 whitespace-nowrap ${isExport ? "text-[10px] text-left" : "text-[9px] sm:text-[10px] text-center sm:text-left"}`}
                 >
                   半决赛胜者
                 </span>
               )}
               <div
-                className={cn(
-                  "grid grid-cols-1",
-                  compact ? "gap-1" : "gap-1.5",
-                )}
+                className={`flex flex-nowrap ${isExport ? "justify-start" : "justify-center sm:justify-start"} ${compact ? (isExport ? "gap-0.5" : "gap-1") : isExport ? "gap-1.5" : "gap-1.5"}`}
               >
                 {finalSlots.map(renderSlot)}
               </div>
@@ -123,26 +116,25 @@ export const MiniPlayoffsBracket: React.FC<{
           )}
         </div>
 
-        <div className="hidden sm:block w-px self-stretch my-1 bg-black/5 dark:bg-white/5 opacity-50"></div>
+        <div
+          className={`${isExport ? "block" : "hidden sm:block"} w-px bg-black/5 dark:bg-white/5 self-stretch ${compact ? "my-1" : ""}`}
+        ></div>
 
         {/* 冠军 (1 Slot) */}
         <div
-          className={`flex shrink-0 flex-col flex-[1] ${compact ? (isExport ? "gap-1" : "gap-0.5 sm:gap-1") : isExport ? "gap-2" : "gap-1.5 sm:gap-2"}`}
+          className={`flex shrink-0 flex-col ${compact ? (isExport ? "gap-1" : "gap-0.5 sm:gap-1") : isExport ? "gap-2" : "gap-1.5 sm:gap-2"}`}
         >
           {champSlot.length > 0 ? (
             <>
               {!compact && (
                 <span
-                  className={`font-bold text-yellow-500 whitespace-nowrap ${isExport ? "text-[10px] text-left" : "text-[9px] sm:text-[10px] text-center sm:text-left truncate"}`}
+                  className={`font-bold text-yellow-500 whitespace-nowrap ${isExport ? "text-[10px] text-left" : "text-[9px] sm:text-[10px] text-center sm:text-left"}`}
                 >
                   冠军
                 </span>
               )}
               <div
-                className={cn(
-                  "grid grid-cols-1",
-                  compact ? "gap-1" : "gap-1.5",
-                )}
+                className={`flex flex-nowrap ${isExport ? "justify-start" : "justify-center sm:justify-start"} ${compact ? (isExport ? "gap-0.5" : "gap-1") : isExport ? "gap-1.5" : "gap-1.5"}`}
               >
                 {champSlot.map(renderSlot)}
               </div>
