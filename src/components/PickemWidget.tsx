@@ -111,7 +111,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
 
       if (data.needsDeveloperKey) {
         setShowDeveloperKeyInput(true);
-        throw new Error("服务端缺少 STEAM_API_KEY。由于不在开发环境，请您配置个人的开发者 API Key 以获取数据。");
+        throw new Error("服务端未配置 STEAM_API_KEY，需要您自己提供开发者 API Key。");
       }
 
       if (data.error || (!data.success && !data.result)) {
@@ -171,7 +171,6 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
         setDiffModalData({ local: currentSlots, steam: importedSlots });
       }
     } catch (e: any) {
-      setShowDeveloperKeyInput(true);
       dialog.alert("导入失败：" + e.message);
     } finally {
       setIsImportingSteam(false);
@@ -258,7 +257,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
             <div className="flex flex-col gap-2 mt-2 p-3 bg-red-50/50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-red-600 dark:text-red-400">
-                  由于服务器未配置 STEAM_API_KEY，需要您自己提供开发者 API Key。
+                  无内置 Steam API Key，需您自己提供。
                 </span>
                 <a
                   href="https://steamcommunity.com/dev/apikey"
@@ -266,7 +265,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
                   rel="noreferrer"
                   className="text-[10px] text-blue-500 hover:text-blue-400 font-bold underline"
                 >
-                  前往申请 Key
+                  去申请 (域名填 localhost)
                 </a>
               </div>
               <input
@@ -277,11 +276,8 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
                   localStorage.setItem("steam_developer_api_key", e.target.value);
                 }}
                 className="w-full bg-white dark:bg-black border border-red-200 dark:border-red-500/30 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-red-400 transition-colors shadow-inner"
-                placeholder="Steam Web API Key (32位字符)..."
+                placeholder="Steam Web API Key..."
               />
-              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                申请域名可随意填写（如 localhost）。Key 将只保存在您的浏览器本地，用于向服务器发起请求以拉取数据。填入后请重新点击"导入游戏竞猜"。
-              </span>
             </div>
           )}
         </div>

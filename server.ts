@@ -145,7 +145,7 @@ async function startServer() {
       const text = await response.text();
 
       if (!response.ok) {
-        res.json({ error: `无法获取数据 (${response.status})。请检查您的鉴权链接是否正确且有效。` });
+        res.json({ error: `Steam API 报错 (${response.status})。请检查 Steam ID、Auth Code/鉴权链接 或 API Key 是否填写正确。` });
         return;
       }
 
