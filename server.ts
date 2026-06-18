@@ -74,14 +74,14 @@ async function startServer() {
       }
       
       if (valveTeams.length < 20 || hltvTeams.length < 20) {
-        res.status(500).json({ success: false, valve: valveTeams, hltv: hltvTeams, error: "Failed to parse rankings" });
+        res.json({ success: false, valve: valveTeams, hltv: hltvTeams, error: "Failed to parse rankings" });
         return;
       }
 
       res.json({ success: true, valve: valveTeams, hltv: hltvTeams });
     } catch (e: any) {
       console.error(e);
-      res.status(500).json({ success: false, valve: [], hltv: [], error: e.message });
+      res.json({ success: false, valve: [], hltv: [], error: e.message });
     }
   });
 
@@ -89,7 +89,7 @@ async function startServer() {
     try {
       const { key } = req.query;
       if (!key) {
-        res.status(400).json({ error: "Missing required parameter: key" });
+        res.json({ error: "Missing required parameter: key" });
         return;
       }
       
@@ -120,11 +120,11 @@ async function startServer() {
       }
 
       if (!steamid || steamid === "0") {
-        return res.status(400).json({ error: "Steam官方API强制要求提供Steam ID。请在输入框中填入您的 Steam ID（例如 7656119...）。" });
+        return res.json({ error: "Steam官方API强制要求提供Steam ID。请在输入框中填入您的 Steam ID（例如 7656119...）。" });
       }
 
       if (!developerkey) {
-        return res.status(500).json({ 
+        return res.json({ 
           error: "服务器缺少 STEAM_API_KEY。请在界面中配置您的 Steam 开发者 API Key。",
           needsDeveloperKey: true
         });
@@ -141,7 +141,7 @@ async function startServer() {
       const text = await response.text();
 
       if (!response.ok) {
-        res.status(response.status).json({ error: `无法获取数据 (${response.status})。请检查您的鉴权链接是否正确且有效。` });
+        res.json({ error: `无法获取数据 (${response.status})。请检查您的鉴权链接是否正确且有效。` });
         return;
       }
 
@@ -151,7 +151,7 @@ async function startServer() {
         steamData = JSON.parse(text);
         (global as any).lastSteamData = steamData; // Save for debugging
       } catch (err) {
-        res.status(500).json({ error: "Steam返回了无效的数据格式（意外的网页内容）。请确认填写的鉴权链接正确无误。" });
+        res.json({ error: "Steam返回了无效的数据格式（意外的网页内容）。请确认填写的鉴权链接正确无误。" });
         return;
       }
 
@@ -207,7 +207,7 @@ async function startServer() {
       });
     } catch (e: any) {
       console.error(e);
-      res.status(500).json({ error: e.message });
+      res.json({ error: e.message });
     }
   });
 
