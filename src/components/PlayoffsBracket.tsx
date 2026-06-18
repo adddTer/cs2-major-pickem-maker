@@ -90,15 +90,13 @@ export const BracketSlot: React.FC<{
             {team.name}
           </span>
           {slot?.score !== undefined && slot?.score !== null ? (
-            <div className="flex flex-col items-center justify-center min-w-[24px] shrink-0 relative">
-              <div className="flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded bg-zinc-200/40 dark:bg-black/40 text-xs font-black text-black dark:text-white shadow-inner">
+            <div className="flex items-center justify-center min-w-[20px] shrink-0">
+              <span className={cn(
+                "font-black text-base sm:text-lg leading-none",
+                slot.isLive ? "text-rose-500 font-black" : "text-zinc-700 dark:text-zinc-300 font-extrabold"
+              )}>
                 {slot.score}
-              </div>
-              {slot.isLive && (
-                <span className="text-[8px] font-black text-rose-500 scale-[0.7] absolute -bottom-[7px] tracking-widest uppercase">
-                  LIVE
-                </span>
-              )}
+              </span>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center min-w-[24px] shrink-0 relative h-full">

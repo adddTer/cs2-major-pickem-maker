@@ -659,6 +659,124 @@ export async function fetchAndPatchCSGOData(currentEvent?: TournamentEvent, isAu
               }
             }
 
+            // Reorder sf based on qf participants if possible
+            if (playoffs.qf && playoffs.sf && playoffs.sf.length === 2 && playoffs.qf.length === 4) {
+              const topQfTeams = new Set([playoffs.qf[0].team1Id, playoffs.qf[0].team2Id, playoffs.qf[1].team1Id, playoffs.qf[1].team2Id]);
+              const bottomQfTeams = new Set([playoffs.qf[2].team1Id, playoffs.qf[2].team2Id, playoffs.qf[3].team1Id, playoffs.qf[3].team2Id]);
+              
+              const matchHasTeamInSet = (m: any, set: Set<string>) => {
+                  return (m.team1Id && m.team1Id !== "tbd" && set.has(m.team1Id)) || 
+                         (m.team2Id && m.team2Id !== "tbd" && set.has(m.team2Id));
+              };
+
+              let topSfMatch = playoffs.sf.find(m => matchHasTeamInSet(m, topQfTeams));
+              let bottomSfMatch = playoffs.sf.find(m => matchHasTeamInSet(m, bottomQfTeams));
+              
+              if (!topSfMatch && !bottomSfMatch) {
+                  topSfMatch = playoffs.sf[0];
+                  bottomSfMatch = playoffs.sf[1];
+              } else if (topSfMatch && !bottomSfMatch) {
+                  bottomSfMatch = playoffs.sf.find(m => m !== topSfMatch) || playoffs.sf[1];
+              } else if (!topSfMatch && bottomSfMatch) {
+                  topSfMatch = playoffs.sf.find(m => m !== bottomSfMatch) || playoffs.sf[0];
+              }
+              
+              const enforcedTopSf = { ...topSfMatch };
+              const enforcedBottomSf = { ...bottomSfMatch };
+              
+              const qf0Teams = new Set([playoffs.qf[0].team1Id, playoffs.qf[0].team2Id]);
+              const qf1Teams = new Set([playoffs.qf[1].team1Id, playoffs.qf[1].team2Id]);
+              const qf2Teams = new Set([playoffs.qf[2].team1Id, playoffs.qf[2].team2Id]);
+              const qf3Teams = new Set([playoffs.qf[3].team1Id, playoffs.qf[3].team2Id]);
+
+              const alignTeams = (m: any, team1Set: Set<string>, team2Set: Set<string>) => {
+                  let t1 = "tbd";
+                  let t2 = "tbd";
+                  let s1 = 0;
+                  let s2 = 0;
+                  
+                  if (m.team1Id && m.team1Id !== "tbd" && team1Set.has(m.team1Id)) {
+                      t1 = m.team1Id; s1 = m.score1;
+                  } else if (m.team2Id && m.team2Id !== "tbd" && team1Set.has(m.team2Id)) {
+                      t1 = m.team2Id; s1 = m.score2;
+                  } else if (m.team1Id && m.team1Id !== "tbd" && !team2Set.has(m.team1Id)) {
+                      t1 = m.team1Id; s1 = m.score1; 
+                  }
+                  
+                  if (m.team2Id && m.team2Id !== "tbd" && team2Set.has(m.team2Id)) {
+                      t2 = m.team2Id; s2 = m.score2;
+                  } else if (m.team1Id && m.team1Id !== "tbd" && team2Set.has(m.team1Id)) {
+                      t2 = m.team1Id; s2 = m.score1;
+                  } else if (m.team2Id && m.team2Id !== "tbd" && !team1Set.has(m.team2Id) && t2 === "tbd") {
+                      t2 = m.team2Id; s2 = m.score2;
+                  }
+                  
+                  const origT1 = m.team1Id;
+                  m.team1Id = t1;
+                  m.team2Id = t2;
+                  if (m.status === "live" || m.status === "past") {
+                     m.score1 = s1;
+                     m.score2 = s2;
+                     
+                     // Handle map scores swap if necessary
+                     if (origT1 !== t1 && m.maps) {
+                         m.maps = m.maps.map((map: any) => ({
+                             score1: map.score2,
+                             score2: map.score1
+                         }));
+                     }
+                  }
+              };
+              
+              alignTeams(enforcedTopSf, qf0Teams, qf1Teams);
+              alignTeams(enforcedBottomSf, qf2Teams, qf3Teams);
+
+              playoffs.sf = [enforcedTopSf, enforcedBottomSf];
+            }
+
+            if (playoffs.sf && playoffs.final && playoffs.final.length === 1 && playoffs.sf.length === 2) {
+              const sf0Teams = new Set([playoffs.sf[0].team1Id, playoffs.sf[0].team2Id]);
+              const sf1Teams = new Set([playoffs.sf[1].team1Id, playoffs.sf[1].team2Id]);
+              
+              const m = playoffs.final[0];
+              let t1 = "tbd";
+              let t2 = "tbd";
+              let s1 = 0;
+              let s2 = 0;
+              
+              if (m.team1Id && m.team1Id !== "tbd" && sf0Teams.has(m.team1Id)) {
+                  t1 = m.team1Id; s1 = m.score1;
+              } else if (m.team2Id && m.team2Id !== "tbd" && sf0Teams.has(m.team2Id)) {
+                  t1 = m.team2Id; s1 = m.score2;
+              } else if (m.team1Id && m.team1Id !== "tbd" && !sf1Teams.has(m.team1Id)) {
+                  t1 = m.team1Id; s1 = m.score1;
+              }
+              
+              if (m.team2Id && m.team2Id !== "tbd" && sf1Teams.has(m.team2Id)) {
+                  t2 = m.team2Id; s2 = m.score2;
+              } else if (m.team1Id && m.team1Id !== "tbd" && sf1Teams.has(m.team1Id)) {
+                  t2 = m.team1Id; s2 = m.score1;
+              } else if (m.team2Id && m.team2Id !== "tbd" && !sf0Teams.has(m.team2Id) && t2 === "tbd") {
+                  t2 = m.team2Id; s2 = m.score2;
+              }
+              
+              const origT1 = m.team1Id;
+              m.team1Id = t1;
+              m.team2Id = t2;
+              if (m.status === "live" || m.status === "past") {
+                  m.score1 = s1;
+                  m.score2 = s2;
+                  
+                  if (origT1 !== t1 && m.maps) {
+                      m.maps = m.maps.map((map: any) => ({
+                          score1: map.score2,
+                          score2: map.score1
+                      }));
+                  }
+              }
+              playoffs.final = [m];
+            }
+
             MATCHES.playoffs = playoffs;
 
             // Derive ACTUAL_RESULTS.playoffs

@@ -101,6 +101,12 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
         url += `&developerkey=${encodeURIComponent(developerApiKey)}`;
       }
       const response = await fetch(url);
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        throw new Error(`服务端返回了非 JSON 数据，可能服务器正在重启或网络异常 (HTTP ${response.status})。请稍后重试。`);
+      }
+      
       const data = await response.json();
 
       if (data.needsDeveloperKey) {
@@ -165,6 +171,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
         setDiffModalData({ local: currentSlots, steam: importedSlots });
       }
     } catch (e: any) {
+      setShowDeveloperKeyInput(true);
       dialog.alert("导入失败：" + e.message);
     } finally {
       setIsImportingSteam(false);

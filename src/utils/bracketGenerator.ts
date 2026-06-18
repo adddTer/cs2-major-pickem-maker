@@ -3,6 +3,7 @@ import { BracketConfig, BracketNode, BracketEdge, BracketNodeType, SWISS_CONFIG 
 export interface BracketGenerationParams {
   type: "single_elim" | "double_elim" | "swiss" | "gsl" | "gauntlet" | "round_robin" | "double_round_robin";
   teamsCount: number;
+  advanceCount: number;
   thirdPlaceMatch?: boolean;
 }
 
@@ -15,14 +16,18 @@ export function parseFormatString(formatStr: string): BracketGenerationParams {
   
   const typeStrLength = type.split("_").length;
   const teamsCount = parseInt(parts[typeStrLength]) || 4;
+  let advanceCount = 1;
+  if (!isNaN(parseInt(parts[typeStrLength + 1]))) {
+    advanceCount = parseInt(parts[typeStrLength + 1]);
+  }
   const thirdPlaceMatch = formatStr.includes("_3rd");
 
-  return { type: type as any, teamsCount, thirdPlaceMatch };
+  return { type: type as any, teamsCount, advanceCount, thirdPlaceMatch };
 }
 
 export function generateBracketConfig(formatStr: string): BracketConfig {
   const params = parseFormatString(formatStr);
-  const { type, teamsCount, thirdPlaceMatch } = params;
+  const { type, teamsCount, advanceCount, thirdPlaceMatch } = params;
 
   switch (type) {
     case "single_elim":
@@ -34,7 +39,7 @@ export function generateBracketConfig(formatStr: string): BracketConfig {
     case "swiss":
       return generateSwiss(teamsCount);
     case "double_elim":
-      return generateDoubleElim(teamsCount);
+      return generateDoubleElim(teamsCount, advanceCount);
     default:
       return generateSingleElim(teamsCount, thirdPlaceMatch);
   }
@@ -206,8 +211,268 @@ function generateSingleElim(teamsCount: number, thirdPlaceMatch: boolean = false
   return { width: offsetX + nodeWidth + 100, height: Math.max(800, P * (nodeHeight + gapY) + 300), nodes, edges };
 }
 
-function generateDoubleElim(teamsCount: number): BracketConfig {
-  return generateSingleElim(teamsCount, true); // Fallback to single elim with 3rd place 
+function generateDoubleElim(teamsCount: number, advanceCount: number = 1): BracketConfig {
+  if (teamsCount === 16 && advanceCount === 1) {
+    const nodes: BracketNode[] = [];
+    const edges: BracketEdge[] = [];
+    const w = 200;
+    const gapX = 80;
+    
+    const c1 = 100;
+    const c2 = c1 + w + gapX;
+    const c3 = c2 + w + gapX;
+    const c4 = c3 + w + gapX;
+    const c5 = c4 + w + gapX;
+
+    // ----- UPPER BRACKET -----
+    nodes.push(
+      { id: "ub-r1-1", x: c1, y: 100, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-2", x: c1, y: 160, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-3", x: c1, y: 250, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-4", x: c1, y: 310, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-5", x: c1, y: 400, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-6", x: c1, y: 460, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-7", x: c1, y: 550, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-8", x: c1, y: 610, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-9", x: c1, y: 700, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-10", x: c1, y: 760, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-11", x: c1, y: 850, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-12", x: c1, y: 910, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-13", x: c1, y: 1000, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-14", x: c1, y: 1060, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-15", x: c1, y: 1150, type: "playoffsSlot", disableDragDrop: false },
+      { id: "ub-r1-16", x: c1, y: 1210, type: "playoffsSlot", disableDragDrop: false },
+
+      { id: "ub-r2-1", x: c2, y: 175, type: "playoffsSlot", disableDragDrop: true },
+      { id: "ub-r2-2", x: c2, y: 235, type: "playoffsSlot", disableDragDrop: true },
+      { id: "ub-r2-3", x: c2, y: 475, type: "playoffsSlot", disableDragDrop: true },
+      { id: "ub-r2-4", x: c2, y: 535, type: "playoffsSlot", disableDragDrop: true },
+      { id: "ub-r2-5", x: c2, y: 775, type: "playoffsSlot", disableDragDrop: true },
+      { id: "ub-r2-6", x: c2, y: 835, type: "playoffsSlot", disableDragDrop: true },
+      { id: "ub-r2-7", x: c2, y: 1075, type: "playoffsSlot", disableDragDrop: true },
+      { id: "ub-r2-8", x: c2, y: 1135, type: "playoffsSlot", disableDragDrop: true },
+
+      { id: "ub-r3-1", x: c3, y: 325, type: "playoffsSlot", disableDragDrop: true },
+      { id: "ub-r3-2", x: c3, y: 385, type: "playoffsSlot", disableDragDrop: true },
+      { id: "ub-r3-3", x: c3, y: 925, type: "playoffsSlot", disableDragDrop: true },
+      { id: "ub-r3-4", x: c3, y: 985, type: "playoffsSlot", disableDragDrop: true },
+
+      { id: "ub-q-1", x: c4, y: 355, type: "playoffsSlot", disableDragDrop: true },
+      { id: "ub-q-2", x: c4, y: 955, type: "playoffsSlot", disableDragDrop: true }
+    );
+
+    for (let i = 1; i <= 8; i++) {
+      edges.push(
+        { from: `ub-r1-${i * 2 - 1}`, to: `ub-r2-${i}`, type: "playoffs" },
+        { from: `ub-r1-${i * 2}`, to: `ub-r2-${i}`, type: "playoffs" }
+      );
+    }
+    for (let i = 1; i <= 4; i++) {
+      edges.push(
+        { from: `ub-r2-${i * 2 - 1}`, to: `ub-r3-${i}`, type: "playoffs" },
+        { from: `ub-r2-${i * 2}`, to: `ub-r3-${i}`, type: "playoffs" }
+      );
+    }
+    edges.push(
+      { from: "ub-r3-1", to: "ub-q-1", type: "playoffs" },
+      { from: "ub-r3-2", to: "ub-q-1", type: "playoffs" },
+      { from: "ub-r3-3", to: "ub-q-2", type: "playoffs" },
+      { from: "ub-r3-4", to: "ub-q-2", type: "playoffs" }
+    );
+
+    // ----- LOWER BRACKET -----
+    const lbY = 1400;
+    nodes.push(
+      { id: "lb-r1-1", x: c1, y: lbY, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+      { id: "lb-r1-2", x: c1, y: lbY + 60, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+      { id: "lb-r1-3", x: c1, y: lbY + 150, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+      { id: "lb-r1-4", x: c1, y: lbY + 210, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+      { id: "lb-r1-5", x: c1, y: lbY + 300, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+      { id: "lb-r1-6", x: c1, y: lbY + 360, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+      { id: "lb-r1-7", x: c1, y: lbY + 450, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+      { id: "lb-r1-8", x: c1, y: lbY + 510, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+
+      { id: "lb-r2-1", x: c2, y: lbY, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+      { id: "lb-r2-2", x: c2, y: lbY + 60, type: "playoffsSlot", disableDragDrop: true },
+      { id: "lb-r2-3", x: c2, y: lbY + 150, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+      { id: "lb-r2-4", x: c2, y: lbY + 210, type: "playoffsSlot", disableDragDrop: true },
+      { id: "lb-r2-5", x: c2, y: lbY + 300, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+      { id: "lb-r2-6", x: c2, y: lbY + 360, type: "playoffsSlot", disableDragDrop: true },
+      { id: "lb-r2-7", x: c2, y: lbY + 450, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+      { id: "lb-r2-8", x: c2, y: lbY + 510, type: "playoffsSlot", disableDragDrop: true },
+
+      { id: "lb-r3-1", x: c3, y: lbY + 75, type: "playoffsSlot", disableDragDrop: true },
+      { id: "lb-r3-2", x: c3, y: lbY + 135, type: "playoffsSlot", disableDragDrop: true },
+      { id: "lb-r3-3", x: c3, y: lbY + 375, type: "playoffsSlot", disableDragDrop: true },
+      { id: "lb-r3-4", x: c3, y: lbY + 435, type: "playoffsSlot", disableDragDrop: true },
+
+      { id: "lb-r4-1", x: c4, y: lbY + 75, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+      { id: "lb-r4-2", x: c4, y: lbY + 135, type: "playoffsSlot", disableDragDrop: true },
+      { id: "lb-r4-3", x: c4, y: lbY + 375, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+      { id: "lb-r4-4", x: c4, y: lbY + 435, type: "playoffsSlot", disableDragDrop: true },
+
+      { id: "lb-q-1", x: c5, y: lbY + 105, type: "playoffsSlot", disableDragDrop: true },
+      { id: "lb-q-2", x: c5, y: lbY + 405, type: "playoffsSlot", disableDragDrop: true }
+    );
+
+    for (let i = 1; i <= 4; i++) {
+      edges.push(
+        { from: `lb-r1-${i * 2 - 1}`, to: `lb-r2-${i * 2}`, type: "playoffs" },
+        { from: `lb-r1-${i * 2}`, to: `lb-r2-${i * 2}`, type: "playoffs" }
+      );
+    }
+    for (let i = 1; i <= 4; i++) {
+      edges.push(
+        { from: `lb-r2-${i * 2 - 1}`, to: `lb-r3-${i}`, type: "playoffs" },
+        { from: `lb-r2-${i * 2}`, to: `lb-r3-${i}`, type: "playoffs" }
+      );
+    }
+    for (let i = 1; i <= 2; i++) {
+      edges.push(
+        { from: `lb-r3-${i * 2 - 1}`, to: `lb-r4-${i * 2}`, type: "playoffs" },
+        { from: `lb-r3-${i * 2}`, to: `lb-r4-${i * 2}`, type: "playoffs" },
+        { from: `lb-r4-${i * 2 - 1}`, to: `lb-q-${i}`, type: "playoffs" },
+        { from: `lb-r4-${i * 2}`, to: `lb-q-${i}`, type: "playoffs" }
+      );
+    }
+
+    nodes.push(
+      { id: "header-ub-r1", x: c1, y: 70, type: "playoffsHeader", title: "胜者组第一轮", matchIndex: 0 },
+      { id: "header-ub-r2", x: c2, y: 145, type: "playoffsHeader", title: "胜者组第二轮", matchIndex: 0 },
+      { id: "header-ub-r3", x: c3, y: 295, type: "playoffsHeader", title: "胜者组第三轮", matchIndex: 0 },
+      { id: "header-ub-q", x: c4, y: 325, type: "playoffsHeader", title: "晋级", matchIndex: 0 },
+      { id: "header-lb-r1", x: c1, y: lbY - 30, type: "playoffsHeader", title: "败者组第一轮", matchIndex: 0 },
+      { id: "header-lb-r2", x: c2, y: lbY - 30, type: "playoffsHeader", title: "败者组第二轮", matchIndex: 0 },
+      { id: "header-lb-r3", x: c3, y: lbY + 45, type: "playoffsHeader", title: "败者组第三轮", matchIndex: 0 },
+      { id: "header-lb-r4", x: c4, y: lbY + 45, type: "playoffsHeader", title: "败者组第四轮", matchIndex: 0 },
+      { id: "header-lb-q", x: c5, y: lbY + 75, type: "playoffsHeader", title: "晋级", matchIndex: 0 }
+    );
+
+    return { width: 1550, height: 2100, nodes, edges };
+  }
+  return generateProceduralDoubleElim(teamsCount, advanceCount);
+}
+
+function generateProceduralDoubleElim(teamsCount: number, advanceCount: number): BracketConfig {
+  const nodes: BracketNode[] = [];
+  const edges: BracketEdge[] = [];
+  const w = 200;
+  const gapX = 80;
+  const gapY = 60;
+  const cX = (col: number) => 100 + col * (w + gapX);
+
+  // ----- UPPER BRACKET -----
+  const ubAdvancers = advanceCount === 1 ? 1 : advanceCount / 2;
+  const ubRounds = Math.log2(teamsCount / ubAdvancers);
+  
+  const ubYs: number[][] = []; 
+  for (let r = 0; r < ubRounds; r++) {
+    ubYs.push([]);
+    const slotsCount = teamsCount / Math.pow(2, r); 
+    for (let i = 0; i < slotsCount; i++) {
+        let y = 0;
+        if (r === 0) {
+            y = 100 + i * gapY;
+        } else {
+            y = (ubYs[r-1][i * 2] + ubYs[r-1][i * 2 + 1]) / 2;
+        }
+        ubYs[r].push(y);
+        nodes.push({
+            id: `ub-r${r+1}-${i+1}`,
+            x: cX(r),
+            y,
+            type: "playoffsSlot",
+            disableDragDrop: r > 0,
+        });
+    }
+    nodes.push({ id: `header-ub-r${r+1}`, x: cX(r), y: ubYs[r][0] - 30, type: "playoffsHeader", title: `胜者组第${r+1}轮`, matchIndex: 0 });
+  }
+  
+  for (let r = 0; r < ubRounds - 1; r++) {
+    const matchCount = teamsCount / Math.pow(2, r+1);
+    for (let m = 0; m < matchCount; m++) {
+        edges.push({
+            from: `ub-r${r+1}-${m*2+1}`,
+            to: `ub-r${r+2}-${m+1}`,
+            type: "playoffs"
+        });
+        edges.push({
+            from: `ub-r${r+1}-${m*2+2}`,
+            to: `ub-r${r+2}-${m+1}`,
+            type: "playoffs"
+        });
+    }
+  }
+
+  // ----- LOWER BRACKET -----
+  const lbRounds = ubRounds * 2 - 2;
+  let lbYOffset = 100 + teamsCount * gapY + 200;
+  let currentLbMatches = teamsCount / 4;
+  
+  for (let l = 1; l <= lbRounds; l++) {
+    const slotsCount = currentLbMatches * 2;
+    for (let i = 0; i < slotsCount; i++) {
+       let hasDropStub = false;
+       if (l === 1) hasDropStub = true;
+       else if (l % 2 === 0) {
+           if (i % 2 === 1) hasDropStub = true; // slot 2 is the drop from UB
+       }
+       
+       nodes.push({
+           id: `lb-r${l}-${i+1}`,
+           x: cX(l - 1),
+           y: lbYOffset + i * gapY + Math.floor(i/2) * (gapY * 0.5), // add gap between matches
+           type: "playoffsSlot",
+           disableDragDrop: true,
+           hasDropStub
+       });
+    }
+    
+    nodes.push({ id: `header-lb-r${l}`, x: cX(l - 1), y: lbYOffset - 30, type: "playoffsHeader", title: `败者组第${l}轮`, matchIndex: 0 });
+    
+    // Edges
+    if (l > 1) {
+        if (l % 2 === 0) {
+            // Drop round: same number of matches. 
+            // Previous round (l-1) was odd (normal). It has currentLbMatches * 2 matches?
+            // No, l-1 has the SAME number of matches.
+            for (let m = 0; m < currentLbMatches; m++) {
+                edges.push({
+                   from: `lb-r${l-1}-${m*2+1}`,
+                   to: `lb-r${l}-${m*2+1}`, // goes to slot 1
+                   type: "playoffs"
+                });
+                edges.push({
+                   from: `lb-r${l-1}-${m*2+2}`,
+                   to: `lb-r${l}-${m*2+1}`, // goes to slot 1
+                   type: "playoffs"
+                });
+            }
+        } else {
+            // Normal round: next round has HALF the matches.
+            // Previous round (l-1) had DOUBLE the number of matches as this round has?
+            // Wait, l-1 has same number of matches. L has half the matches of L-1.
+            const matchesInPrev = currentLbMatches * 2;
+            for (let m = 0; m < matchesInPrev; m++) {
+                // match m in l-1 puts winner in slot m+1 of l
+                edges.push({
+                   from: `lb-r${l-1}-${m*2+1}`,
+                   to: `lb-r${l}-${m+1}`,
+                   type: "playoffs"
+                });
+                edges.push({
+                   from: `lb-r${l-1}-${m*2+2}`,
+                   to: `lb-r${l}-${m+1}`,
+                   type: "playoffs"
+                });
+            }
+        }
+    }
+    
+    if (l % 2 === 0) currentLbMatches /= 2;
+  }
+  
+  return { width: cX(Math.max(ubRounds, lbRounds)) + 300, height: lbYOffset + (teamsCount / 2) * gapY + 500, nodes, edges };
 }
 
 function generateGauntlet(teamsCount: number): BracketConfig {
@@ -286,11 +551,11 @@ function generateGSL(teamsCount: number): BracketConfig {
     { id: "adv-1", x: c3x, y: 225, type: "playoffsSlot", disableDragDrop: true },
 
     // Losers Match
-    { id: "lm-1", x: c2x, y: 550, type: "playoffsSlot", disableDragDrop: true },
-    { id: "lm-2", x: c2x, y: 620, type: "playoffsSlot", disableDragDrop: true },
+    { id: "lm-1", x: c2x, y: 550, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+    { id: "lm-2", x: c2x, y: 620, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
 
     // Decider Match
-    { id: "dm-1", x: c3x, y: 460, type: "playoffsSlot", disableDragDrop: true },
+    { id: "dm-1", x: c3x, y: 460, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
     { id: "dm-2", x: c3x, y: 585, type: "playoffsSlot", disableDragDrop: true },
 
     // Second advancing team
@@ -305,15 +570,6 @@ function generateGSL(teamsCount: number): BracketConfig {
     
     { from: "wm-1", to: "adv-1", type: "playoffs" },
     { from: "wm-2", to: "adv-1", type: "playoffs" },
-    
-    // Line dropping down to Decider Match
-    { from: "wm-1", to: "dm-1", type: "playoffs" },
-    { from: "wm-2", to: "dm-1", type: "playoffs" },
-    
-    { from: "r1-1", to: "lm-1", type: "playoffs" },
-    { from: "r1-2", to: "lm-1", type: "playoffs" },
-    { from: "r1-3", to: "lm-2", type: "playoffs" },
-    { from: "r1-4", to: "lm-2", type: "playoffs" },
     
     { from: "lm-1", to: "dm-2", type: "playoffs" },
     { from: "lm-2", to: "dm-2", type: "playoffs" },

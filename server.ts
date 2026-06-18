@@ -108,6 +108,10 @@ async function startServer() {
           steamid = url.searchParams.get("steamid") || "";
           steamidkey = url.searchParams.get("steamidkey") || "";
           event = url.searchParams.get("event") || event;
+          const urlKey = url.searchParams.get("key");
+          if (urlKey && urlKey !== "undefined" && urlKey !== "null") {
+            developerkey = urlKey;
+          }
         } catch (e) {
            // Fallback if URL parsing fails
         }

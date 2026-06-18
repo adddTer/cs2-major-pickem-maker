@@ -106,6 +106,7 @@ export interface TournamentEvent {
     id: string;
     label: string;
     format: string;
+    groups?: number;
   }[];
 }
 

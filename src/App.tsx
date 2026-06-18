@@ -53,22 +53,20 @@ export const EVENTS: TournamentEvent[] = [
     stages: {}
   },
   {
-    id: "the_minor_test",
-    name: "The Minor (Test Event)",
+    id: "the_minor",
+    name: "The Minor",
     shortName: "The Minor",
     logoUrl: "https://img-cdn.hltv.org/eventlogo/u-4VdjFWGYz_GwBxLGrr11.png?ixlib=java-2.1.0&w=50&s=e78a8a6b716fa437cc3cfbb9f6b48ee6",
     isSwissAllBo3: false,
     stagesInfo: [
-      { id: "stage1", label: "单败淘汰赛：16进1", format: "single_elim_16" },
-      { id: "stage2", label: "单败淘汰赛：6进1", format: "single_elim_6" },
-      { id: "stage3", label: "单败淘汰赛：8进1 (含季军赛)", format: "single_elim_8_3rd" },
-      { id: "stage4", label: "双败淘汰赛：4进1", format: "double_elim_4" },
-      { id: "stage5", label: "GSL赛制：4进2", format: "gsl_4" },
-      { id: "stage6", label: "瑞士轮赛制：16进8", format: "swiss_16" },
-      { id: "stage7", label: "单循环赛：6进2", format: "round_robin_6" },
-      { id: "stage8", label: "双循环赛：4进2", format: "double_round_robin_4" },
-      { id: "stage9", label: "冒泡赛：4进1", format: "gauntlet_4" },
-      { id: "stage10", label: "冒泡赛：10进1", format: "gauntlet_10" },
+      { id: "stage0", label: "预选赛 (8192进1024)", format: "double_elim_8192_1024", groups: 1 },
+      { id: "stage1", label: "阶段一 (1024进256)", format: "single_elim_64", groups: 16 },
+      { id: "stage2", label: "阶段二 (256进128)", format: "round_robin_8", groups: 32 },
+      { id: "stage3", label: "阶段三 (128进32)", format: "double_elim_16", groups: 8 },
+      { id: "stage4", label: "阶段四 (32进16)", format: "swiss_16", groups: 2 },
+      { id: "stage5", label: "阶段五 (16进8)", format: "gsl_4", groups: 4 },
+      { id: "stage6", label: "阶段六 (8进4)", format: "double_round_robin_4", groups: 2 },
+      { id: "stage7", label: "阶段七 (4进1)", format: "gauntlet_4", groups: 1 },
     ]
   }
 ];
@@ -152,6 +150,11 @@ export default function App() {
   const [steamId, setSteamId] = useState("");
   const [steamAuthCode, setSteamAuthCode] = useState("");
   const [activeStage, setActiveStage] = useState<StageKey>("stage1");
+  const [activeGroupId, setActiveGroupId] = useState<number>(0);
+
+  useEffect(() => {
+    setActiveGroupId(0);
+  }, [activeStage]);
 
   const [showResults, setShowResults] = useState(false);
   const [communityPicks, setCommunityPicks] = useState<PickSet[]>([]);
@@ -266,7 +269,9 @@ export default function App() {
       return false;
     };
 
-    const stages: StageKey[] = ["stage1", "stage2", "stage3", "playoffs"];
+    const stages: StageKey[] = currentEvent.stagesInfo 
+      ? currentEvent.stagesInfo.map(s => s.id) 
+      : ["stage1", "stage2", "stage3", "playoffs"];
     let recommended: StageKey = "stage1";
     
     for (let i = 0; i < stages.length; i++) {
@@ -337,24 +342,16 @@ export default function App() {
         end: new Date("2026-06-21T15:00:00Z"),
       },
     };
-    if (
-      activeStage === "stage2" &&
-      now < dates.stage2.start &&
-      (getComputedActuals("stage1") || []).length >= 16
-    )
+
+    if (activeStage === "stage2" && dates.stage2 && now < dates.stage2.start && (getComputedActuals("stage1") || []).length >= 16) {
       shouldCheckPrev = true;
-    if (
-      activeStage === "stage3" &&
-      now < dates.stage3.start &&
-      (getComputedActuals("stage2") || []).length >= 16
-    )
+    }
+    if (activeStage === "stage3" && dates.stage3 && now < dates.stage3.start && (getComputedActuals("stage2") || []).length >= 16) {
       shouldCheckPrev = true;
-    if (
-      activeStage === "playoffs" &&
-      now < dates.playoffs.start &&
-      (getComputedActuals("stage3") || []).length >= 16
-    )
+    }
+    if (activeStage === "playoffs" && dates.playoffs && now < dates.playoffs.start && (getComputedActuals("stage3") || []).length >= 16) {
       shouldCheckPrev = true;
+    }
 
     setImageExportShowPrevStage(shouldCheckPrev);
   }, [activeStage, getComputedActuals, refreshTrigger]);
@@ -363,7 +360,9 @@ export default function App() {
     if (!dataLoaded) return;
 
     let hasLiveMatch = false;
-    const stages = ["stage1", "stage2", "stage3", "playoffs"];
+    const stages = currentEvent.stagesInfo 
+      ? currentEvent.stagesInfo.map((s) => s.id)
+      : ["stage1", "stage2", "stage3", "playoffs"];
     for (const stage of stages) {
       const stageGroup = MATCHES[stage] as any;
       if (stageGroup) {
@@ -547,7 +546,7 @@ export default function App() {
   const getStageStatus = (stage: string) => {
     const actualsForStage = getComputedActuals(stage) || [];
     const isComplete =
-      (stage === "playoffs" && actualsForStage.length >= 15) ||
+      (stage === "playoffs" && actualsForStage.filter((a: any) => a.teamId).length >= 15) ||
       (stage !== "playoffs" && actualsForStage.length >= 16);
 
     if (isComplete) return `比赛已结束`;
@@ -570,6 +569,10 @@ export default function App() {
         end: new Date("2026-06-21T15:00:00Z"),
       },
     };
+
+    if (!dates[stage]) {
+      return `测试赛程进行中`;
+    }
 
     const { start } = dates[stage];
     const now = new Date();
@@ -940,36 +943,63 @@ export default function App() {
             ) : (() => {
               const activeStageConfig = currentEvent.stagesInfo?.find(s => s.id === activeStage);
               const format = activeStageConfig?.format || (activeStage === "playoffs" ? "playoffs" : "swiss");
-              
-              if (format.startsWith("swiss")) {
-                return <SwissBracket activeStage={activeStage} refreshTrigger={refreshTrigger} currentEvent={currentEvent} />;
-              } else if (format === "playoffs") {
-                return (
-                  <div className="w-full flex-1 relative flex flex-col">
-                    <PlayoffsBracket
-                      refreshTrigger={refreshTrigger}
-                      slots={PLAYOFFS_SLOTS.map((s) => {
-                        const sTypeIdx = PLAYOFFS_SLOTS.filter(
-                          (x) => x.type === s.type,
-                        ).findIndex((x) => x.id === s.id);
-                        const act = activeStageActuals.filter(
-                          (x) => x.type === s.type,
-                        )[sTypeIdx];
-                        return {
-                          ...s,
-                          id: `playoffs-${s.id}`,
-                          teamId: act?.teamId,
-                        };
-                      })}
-                      readOnly={true}
-                      showResults={false}
-                      onMatchClick={(m) => setGlobalSelectedMatch(m)}
-                    />
-                  </div>
-                );
-              } else {
-                return <TestBracket format={format} />;
-              }
+              const hasMultipleGroups = activeStageConfig?.groups && activeStageConfig.groups > 1;
+
+              return (
+                <>
+                  {hasMultipleGroups && (
+                    <div className="w-full border-b border-black/5 dark:border-white/5 bg-zinc-100/50 dark:bg-zinc-900/50 z-20 sticky top-0 backdrop-blur-sm flex justify-center">
+                      <div className="max-w-2xl mx-auto flex justify-center flex-wrap gap-1.5 p-2 max-h-[140px] overflow-y-auto px-8">
+                        {Array.from({ length: activeStageConfig.groups! }).map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setActiveGroupId(idx)}
+                            className={cn(
+                              "px-3 py-1 text-xs font-bold rounded-full transition-colors flex items-center justify-center whitespace-nowrap",
+                              activeGroupId === idx
+                                ? "bg-emerald-500 text-white shadow-sm"
+                                : "bg-zinc-200/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-200"
+                            )}
+                          >
+                            第 {idx + 1} 组
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {format.startsWith("swiss") ? (
+                    <div className="contents" key={activeGroupId}>
+                      <SwissBracket activeStage={activeStage} refreshTrigger={refreshTrigger} currentEvent={currentEvent} />
+                    </div>
+                  ) : format === "playoffs" ? (
+                    <div className="w-full flex-1 relative flex flex-col" key={activeGroupId}>
+                      <PlayoffsBracket
+                        refreshTrigger={refreshTrigger}
+                        slots={PLAYOFFS_SLOTS.map((s) => {
+                          const sTypeIdx = PLAYOFFS_SLOTS.filter(
+                            (x) => x.type === s.type,
+                          ).findIndex((x) => x.id === s.id);
+                          const act = activeStageActuals.filter(
+                            (x) => x.type === s.type,
+                          )[sTypeIdx];
+                          return {
+                            ...s,
+                            id: `playoffs-${s.id}`,
+                            teamId: act?.teamId,
+                          };
+                        })}
+                        readOnly={true}
+                        showResults={false}
+                        onMatchClick={(m) => setGlobalSelectedMatch(m)}
+                      />
+                    </div>
+                  ) : (
+                    <div className="contents" key={activeGroupId}>
+                      <TestBracket format={format} activeGroupId={activeGroupId} />
+                    </div>
+                  )}
+                </>
+              );
             })()}
           </div>
         </div>

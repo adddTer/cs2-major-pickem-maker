@@ -68,6 +68,20 @@ export const TournamentBracketRenderer: React.FC<{
                   style={{ left: 0, top: 0 }}
                 >
                   {svgDefs}
+                  {config.nodes
+                    .filter((node) => node.hasDropStub)
+                    .map((node) => (
+                      <path
+                        key={`stub-${node.id}`}
+                        d={`M ${node.x - 24} ${node.y + 20} L ${node.x} ${node.y + 20}`}
+                        stroke="currentColor"
+                        className="text-black/25 dark:text-white/25"
+                        strokeWidth="1.5"
+                        fill="none"
+                        strokeDasharray="3 3"
+                        strokeLinecap="round"
+                      />
+                    ))}
                   {config.edges.map((edge, i) => {
                     const p1 = nodeDict[edge.from];
                     const p2 = nodeDict[edge.to];

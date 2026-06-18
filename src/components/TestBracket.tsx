@@ -5,7 +5,7 @@ import { BracketSlot } from "./PlayoffsBracket";
 import { generateBracketConfig, parseFormatString } from "../utils/bracketGenerator";
 import { GroupBox, ResultGroup } from "./SwissBracket";
 
-export const TestBracket = ({ format, onMatchClick }: { format: string; onMatchClick?: (match: any) => void }) => {
+export const TestBracket = ({ format, onMatchClick, activeGroupId = 0 }: { format: string; onMatchClick?: (match: any) => void; activeGroupId?: number }) => {
   const parsedFormat = useMemo(() => parseFormatString(format), [format]);
   const isRoundRobin = parsedFormat.type === "round_robin" || parsedFormat.type === "double_round_robin";
 

@@ -13,6 +13,7 @@ export interface BracketNode {
   title?: string; // for header
   matchIndex?: number; // for playoffs header
   disableDragDrop?: boolean;
+  hasDropStub?: boolean;
 }
 
 export interface BracketEdge {
