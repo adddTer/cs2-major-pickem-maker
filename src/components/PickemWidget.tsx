@@ -77,6 +77,17 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
     steam: PickSlot[];
   } | null>(null);
 
+  React.useEffect(() => {
+    fetch("/api/config/steam")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.hasSteamApiKey === false) {
+          setShowDeveloperKeyInput(true);
+        }
+      })
+      .catch((err) => console.error(err));
+  }, []);
+
   const applySteamPicks = (importedSlots: PickSlot[]) => {
     if (setPicks) {
       setPicks((prev) => ({

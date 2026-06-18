@@ -43,6 +43,10 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  app.get("/api/config/steam", (req, res) => {
+    res.json({ hasSteamApiKey: !!process.env.STEAM_API_KEY });
+  });
+
   app.get("/api/hltv-rankings", async (req, res) => {
     try {
       const [valveHtml, hltvHtml] = await Promise.all([
