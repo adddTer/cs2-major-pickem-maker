@@ -10,6 +10,8 @@ import { TeamLogo } from "./TeamLogo";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { MatchDialog } from "./MatchDialog";
+import { TournamentBracketRenderer } from "./TournamentBracketRenderer";
+import { SWISS_CONFIG, BracketNode } from "../data/bracketConfigs";
 
 export const MatchParticipant = ({ teamId }: { teamId?: string }) => {
   const team = TEAMS.find((t) => t.id === teamId);
@@ -193,7 +195,7 @@ const MatchLine: React.FC<{
   );
 };
 
-const GroupBox = ({
+export const GroupBox = ({
   score,
   count,
   matches = [],
@@ -251,7 +253,7 @@ const DrawPath: React.FC<{ p1: any; p2: any; win: boolean }> = ({
   );
 };
 
-const ResultGroup = ({
+export const ResultGroup = ({
   score,
   count,
   win,
@@ -296,21 +298,6 @@ const ResultGroup = ({
     </div>
   );
 };
-
-const AbsoluteBox = ({
-  p,
-  children,
-}: {
-  p: any;
-  children: React.ReactNode;
-}) => (
-  <div
-    style={{ left: p.x, top: p.y }}
-    className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10 w-max"
-  >
-    {children}
-  </div>
-);
 
 export const SwissBracket = ({
   activeStage,
@@ -705,56 +692,6 @@ export const SwissBracket = ({
     }
   };
 
-  const pos = {
-    g00: { id: "g00", x: 90, y: 420, o1: 65, o2: 65 },
-
-    g10: { id: "g10", x: 280, y: 276, o1: 65, o2: 65 },
-    g01: { id: "g01", x: 280, y: 564, o1: 65, o2: 65 },
-
-    g20: { id: "g20", x: 470, y: 186, o1: 65, o2: 65 },
-    g11: { id: "g11", x: 470, y: 420, o1: 65, o2: 65 },
-    g02: { id: "g02", x: 470, y: 654, o1: 65, o2: 65 },
-
-    g30: { id: "g30", x: 660, y: 111, o1: 65, o2: 65 },
-    g21: { id: "g21", x: 660, y: 308, o1: 65, o2: 65 },
-    g12: { id: "g12", x: 660, y: 532, o1: 65, o2: 65 },
-    g03: { id: "g03", x: 660, y: 729, o1: 65, o2: 65 },
-
-    g31: { id: "g31", x: 850, y: 186, o1: 65, o2: 65 },
-    g22: { id: "g22", x: 850, y: 420, o1: 65, o2: 65 },
-    g13: { id: "g13", x: 850, y: 654, o1: 65, o2: 65 },
-
-    g32: { id: "g32", x: 1040, y: 303, o1: 65, o2: 65 },
-    g23: { id: "g23", x: 1040, y: 537, o1: 65, o2: 65 },
-  };
-
-  const pathLines = [
-    { p1: pos.g00, p2: pos.g10, win: true },
-    { p1: pos.g00, p2: pos.g01, win: false },
-    { p1: pos.g10, p2: pos.g20, win: true },
-    { p1: pos.g10, p2: pos.g11, win: false },
-    { p1: pos.g01, p2: pos.g11, win: true },
-    { p1: pos.g01, p2: pos.g02, win: false },
-
-    { p1: pos.g20, p2: pos.g30, win: true },
-    { p1: pos.g20, p2: pos.g21, win: false },
-
-    { p1: pos.g11, p2: pos.g21, win: true },
-    { p1: pos.g11, p2: pos.g12, win: false },
-
-    { p1: pos.g02, p2: pos.g12, win: true },
-    { p1: pos.g02, p2: pos.g03, win: false },
-
-    { p1: pos.g21, p2: pos.g31, win: true },
-    { p1: pos.g21, p2: pos.g22, win: false },
-
-    { p1: pos.g12, p2: pos.g22, win: true },
-    { p1: pos.g12, p2: pos.g13, win: false },
-
-    { p1: pos.g22, p2: pos.g32, win: true },
-    { p1: pos.g22, p2: pos.g23, win: false },
-  ];
-
   const getMatches = (score: string) => {
     return matchesMap[score] || [];
   };
@@ -808,8 +745,34 @@ export const SwissBracket = ({
         !m.team1Id || !m.team2Id || m.team1Id === "tbd" || m.team2Id === "tbd",
     );
 
+  const renderNode = (node: BracketNode) => {
+    if (node.type === "swissGroup") {
+      return (
+         <GroupBox
+           score={node.score!}
+           count={node.count!}
+           matches={getMatches(node.score!)}
+           onMatchClick={setSelectedMatch}
+           simulateWinner={simulationMode ? handleSimulateWinner : undefined}
+         />
+      );
+    } else if (node.type === "swissResult") {
+      const wins = parseInt(node.score!.split(":")[0]);
+      const losses = parseInt(node.score!.split(":")[1]);
+      return (
+         <ResultGroup
+           score={node.score!}
+           count={node.count!}
+           win={node.win!}
+           teams={getFinalTeams(wins, losses)}
+         />
+      );
+    }
+    return null;
+  };
+
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden z-10 relative">
+    <div className="w-full flex-1 flex flex-col overflow-hidden z-10 relative">
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
         {!isAnimating && !externalPredictions && (
           <div className="flex gap-2 isolate">
@@ -825,7 +788,7 @@ export const SwissBracket = ({
                   ? "opacity-50 cursor-not-allowed bg-zinc-200/50 dark:bg-black/50 text-zinc-500 dark:text-zinc-600 border-black/5 dark:border-white/5"
                   : simulationMode
                     ? "bg-blue-600/20 text-blue-400 border-blue-500/50"
-                    : "bg-zinc-200/50 dark:bg-black/50 text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 border-black/10 dark:border-white/10 hover:bg-black/5 dark:bg-white/5",
+                    : "bg-white/80 dark:bg-zinc-800/80 text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800",
               )}
             >
               {simulationMode ? (
@@ -864,230 +827,24 @@ export const SwissBracket = ({
         ))}
       </div>
 
-      <div className="w-full flex-1 relative overflow-hidden">
-        <TransformWrapper
-          initialScale={calculatedScale}
-          minScale={0.1}
-          maxScale={2}
-          centerOnInit={true}
-          limitToBounds={false}
-          wheel={{ step: 0.001 }}
-          panning={{ velocityDisabled: false }}
-        >
-          {({ zoomIn, zoomOut, resetTransform, centerView }) => (
-            <>
-              <div className="absolute bottom-16 lg:bottom-[100px] left-4 lg:left-6 z-[100] flex items-center gap-1.5 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md shadow-lg border border-zinc-200/55 dark:border-zinc-800/55 flex-shrink-0 pointer-events-auto">
-                <button
-                  onClick={() => zoomIn(0.15)}
-                  title="放大"
-                  className="w-6 h-6 lg:w-8 lg:h-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center cursor-pointer transition-colors active:scale-95"
-                >
-                  <ZoomIn className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-                </button>
-                <div className="w-[1px] h-3 lg:h-4 bg-zinc-200/60 dark:bg-zinc-800" />
-                <button
-                  onClick={() => zoomOut(0.15)}
-                  title="缩小"
-                  className="w-6 h-6 lg:w-8 lg:h-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center cursor-pointer transition-colors active:scale-95"
-                >
-                  <ZoomOut className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-                </button>
-                <div className="w-[1px] h-3 lg:h-4 bg-zinc-200/60 dark:bg-zinc-800" />
-                <button
-                  onClick={() => {
-                    resetTransform();
-                    setTimeout(() => {
-                      centerView(calculatedScale || 1);
-                    }, 50);
-                  }}
-                  title="复位并居中"
-                  className="px-2 lg:px-3.5 h-6 lg:h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white flex items-center justify-center gap-1.5 cursor-pointer transition-all text-[10px] lg:text-xs font-semibold active:scale-95 shadow-sm"
-                >
-                  <RotateCcw className="w-3 h-3 lg:w-3.5 lg:h-3.5" />
-                  <span>复位居中</span>
-                </button>
-              </div>
-              <TransformComponent
-                wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}
-              >
-                <div className="w-[1200px] h-[840px] relative pointer-events-none px-4 flex-shrink-0">
-                {/* SVG Connections */}
-                <svg
-                  className="absolute inset-0 w-full h-full z-0 opacity-45 pointer-events-none"
-                  style={{ left: 0, top: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="win-grad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity="0" />
-                      <stop offset="100%" stopColor="#10b981" stopOpacity="1" />
-                    </linearGradient>
-                    <linearGradient id="loss-grad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#f43f5e" stopOpacity="0" />
-                      <stop offset="100%" stopColor="#f43f5e" stopOpacity="1" />
-                    </linearGradient>
-                  </defs>
-                  {pathLines.map((l, i) => (
-                    <DrawPath key={i} p1={l.p1} p2={l.p2} win={l.win} />
-                  ))}
-                </svg>
-
-                {/* Swiss Bracket Boxes */}
-                <AbsoluteBox p={pos.g00}>
-                  <GroupBox
-                    score="0:0"
-                    count={8}
-                    matches={getMatches("0:0")}
-                    onMatchClick={setSelectedMatch}
-                    simulateWinner={
-                      simulationMode ? handleSimulateWinner : undefined
-                    }
-                  />
-                </AbsoluteBox>
-                <AbsoluteBox p={pos.g10}>
-                  <GroupBox
-                    score="1:0"
-                    count={4}
-                    matches={getMatches("1:0")}
-                    onMatchClick={setSelectedMatch}
-                    simulateWinner={
-                      simulationMode ? handleSimulateWinner : undefined
-                    }
-                  />
-                </AbsoluteBox>
-                <AbsoluteBox p={pos.g01}>
-                  <GroupBox
-                    score="0:1"
-                    count={4}
-                    matches={getMatches("0:1")}
-                    onMatchClick={setSelectedMatch}
-                    simulateWinner={
-                      simulationMode ? handleSimulateWinner : undefined
-                    }
-                  />
-                </AbsoluteBox>
-                <AbsoluteBox p={pos.g20}>
-                  <GroupBox
-                    score="2:0"
-                    count={2}
-                    matches={getMatches("2:0")}
-                    onMatchClick={setSelectedMatch}
-                    simulateWinner={
-                      simulationMode ? handleSimulateWinner : undefined
-                    }
-                  />
-                </AbsoluteBox>
-                <AbsoluteBox p={pos.g11}>
-                  <GroupBox
-                    score="1:1"
-                    count={4}
-                    matches={getMatches("1:1")}
-                    onMatchClick={setSelectedMatch}
-                    simulateWinner={
-                      simulationMode ? handleSimulateWinner : undefined
-                    }
-                  />
-                </AbsoluteBox>
-                <AbsoluteBox p={pos.g02}>
-                  <GroupBox
-                    score="0:2"
-                    count={2}
-                    matches={getMatches("0:2")}
-                    onMatchClick={setSelectedMatch}
-                    simulateWinner={
-                      simulationMode ? handleSimulateWinner : undefined
-                    }
-                  />
-                </AbsoluteBox>
-                <AbsoluteBox p={pos.g21}>
-                  <GroupBox
-                    score="2:1"
-                    count={3}
-                    matches={getMatches("2:1")}
-                    onMatchClick={setSelectedMatch}
-                    simulateWinner={
-                      simulationMode ? handleSimulateWinner : undefined
-                    }
-                  />
-                </AbsoluteBox>
-                <AbsoluteBox p={pos.g12}>
-                  <GroupBox
-                    score="1:2"
-                    count={3}
-                    matches={getMatches("1:2")}
-                    onMatchClick={setSelectedMatch}
-                    simulateWinner={
-                      simulationMode ? handleSimulateWinner : undefined
-                    }
-                  />
-                </AbsoluteBox>
-                <AbsoluteBox p={pos.g22}>
-                  <GroupBox
-                    score="2:2"
-                    count={3}
-                    matches={getMatches("2:2")}
-                    onMatchClick={setSelectedMatch}
-                    simulateWinner={
-                      simulationMode ? handleSimulateWinner : undefined
-                    }
-                  />
-                </AbsoluteBox>
-
-                {/* Advance / Eliminate Result Groups */}
-              <AbsoluteBox p={pos.g30}>
-                <ResultGroup
-                  score="3:0"
-                  count={2}
-                  win={true}
-                  teams={getFinalTeams(3, 0)}
-                />
-              </AbsoluteBox>
-              <AbsoluteBox p={pos.g31}>
-                <ResultGroup
-                  score="3:1"
-                  count={3}
-                  win={true}
-                  teams={getFinalTeams(3, 1)}
-                />
-              </AbsoluteBox>
-              <AbsoluteBox p={pos.g32}>
-                <ResultGroup
-                  score="3:2"
-                  count={3}
-                  win={true}
-                  teams={getFinalTeams(3, 2)}
-                />
-              </AbsoluteBox>
-
-              <AbsoluteBox p={pos.g03}>
-                <ResultGroup
-                  score="0:3"
-                  count={2}
-                  win={false}
-                  teams={getFinalTeams(0, 3)}
-                />
-              </AbsoluteBox>
-              <AbsoluteBox p={pos.g13}>
-                <ResultGroup
-                  score="1:3"
-                  count={3}
-                  win={false}
-                  teams={getFinalTeams(1, 3)}
-                />
-              </AbsoluteBox>
-              <AbsoluteBox p={pos.g23}>
-                <ResultGroup
-                  score="2:3"
-                  count={3}
-                  win={false}
-                  teams={getFinalTeams(2, 3)}
-                />
-              </AbsoluteBox>
-            </div>
-          </TransformComponent>
-          </>
+      <TournamentBracketRenderer 
+        config={SWISS_CONFIG} 
+        renderNode={renderNode} 
+        initialScale={calculatedScale}
+        svgDefs={(
+          <defs>
+            <linearGradient id="win-grad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0" />
+              <stop offset="100%" stopColor="#10b981" stopOpacity="1" />
+            </linearGradient>
+            <linearGradient id="loss-grad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#f43f5e" stopOpacity="0" />
+              <stop offset="100%" stopColor="#f43f5e" stopOpacity="1" />
+            </linearGradient>
+          </defs>
         )}
-      </TransformWrapper>
-      </div>
+      />
+
       <MatchDialog
         match={selectedMatch}
         onClose={() => setSelectedMatch(null)}

@@ -96,7 +96,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         
         {isEventMenuOpen && (
           <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-zinc-800 border border-black/10 dark:border-white/10 rounded-md shadow-lg py-1 z-50">
-            {EVENTS.map(event => (
+            {EVENTS.filter(e => !e.id.includes('test')).map(event => (
               <div 
                 key={event.id}
                 className={cn(

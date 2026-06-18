@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { PickSlot } from "../types";
 import { cn } from "../lib/utils";
 import { TEAMS } from "../data/teams";
@@ -6,97 +6,24 @@ import { ACTUAL_RESULTS, MATCHES } from "../data/matches";
 import { BracketMatch } from "../types";
 import { MatchDialog } from "./MatchDialog";
 import { TeamLogo } from "./TeamLogo";
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
-import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { TournamentBracketRenderer } from "./TournamentBracketRenderer";
+import { PLAYOFFS_CONFIG, BracketNode } from "../data/bracketConfigs";
+import { getLocalStrength } from "../data/localPoints";
+import { GLOBAL_SEEDING } from "../data/seedings";
 
-const W = 180;
-const H = 40;
-
-const nodes: Record<string, { x: number; y: number }> = {
-  "qf-1": { x: 60, y: 120 },
-  "qf-2": { x: 60, y: 170 },
-  "qf-3": { x: 60, y: 270 },
-  "qf-4": { x: 60, y: 320 },
-  "qf-5": { x: 60, y: 470 },
-  "qf-6": { x: 60, y: 520 },
-  "qf-7": { x: 60, y: 620 },
-  "qf-8": { x: 60, y: 670 },
-  "sf-1": { x: 320, y: 145 },
-  "sf-2": { x: 320, y: 295 },
-  "sf-3": { x: 320, y: 495 },
-  "sf-4": { x: 320, y: 645 },
-  "final-1": { x: 580, y: 220 },
-  "final-2": { x: 580, y: 570 },
-  champion: { x: 840, y: 395 },
-};
-
-const edges = [
-  ["qf-1", "sf-1"],
-  ["qf-2", "sf-1"],
-  ["qf-3", "sf-2"],
-  ["qf-4", "sf-2"],
-  ["qf-5", "sf-3"],
-  ["qf-6", "sf-3"],
-  ["qf-7", "sf-4"],
-  ["qf-8", "sf-4"],
-  ["sf-1", "final-1"],
-  ["sf-2", "final-1"],
-  ["sf-3", "final-2"],
-  ["sf-4", "final-2"],
-  ["final-1", "champion"],
-  ["final-2", "champion"],
-];
-
-const DrawPath: React.FC<{ fromId: string; toId: string }> = ({
-  fromId,
-  toId,
-}) => {
-  const p1 = nodes[fromId];
-  const p2 = nodes[toId];
-  if (!p1 || !p2) return null;
-
-  const sx = p1.x + W;
-  const sy = p1.y + H / 2;
-  const ex = p2.x;
-  const ey = p2.y + H / 2;
-  const midX = sx + (ex - sx) / 2;
-
-  const R = 16;
-  const dirY = Math.sign(ey - sy);
-  const r = Math.min(R, Math.abs(ey - sy) / 2);
-
-  let d = "";
-  if (Math.abs(ey - sy) < 1) {
-    d = `M ${sx} ${sy} L ${ex} ${ey}`;
-  } else {
-    d = `M ${sx} ${sy} L ${midX - r} ${sy} Q ${midX} ${sy} ${midX} ${sy + r * dirY} L ${midX} ${ey - r * dirY} Q ${midX} ${ey} ${midX + r} ${ey} L ${ex} ${ey}`;
-  }
-
-  return (
-    <path
-      d={d}
-      stroke="currentColor"
-      className="text-black/15 dark:text-white/15"
-      strokeWidth="1.5"
-      fill="none"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  );
-};
-
-const BracketSlot: React.FC<{
+export const BracketSlot: React.FC<{
   slot:
     | (PickSlot & {
         resultStatus?: "correct" | "incorrect" | "unknown";
         score?: number | null;
         isLive?: boolean;
+        isSimulated?: boolean;
       })
     | undefined;
   readOnly: boolean;
   disableDragDrop?: boolean;
-  onDrop: any;
-  onClick: any;
+  onDrop?: any;
+  onClick?: any;
   emptyTitle: string;
 }> = ({
   slot,
@@ -141,7 +68,7 @@ const BracketSlot: React.FC<{
               !readOnly && "hover:border-black/40 dark:border-white/40 hover:bg-zinc-700/80",
             )
           : cn(
-              "bg-black/40 dark:bg-white/40 dark:bg-zinc-800/40 border-black/20 dark:border-white/20 border-dashed shadow-inner text-zinc-500 dark:text-zinc-600 dark:text-zinc-400",
+              "bg-black/40 dark:bg-zinc-800/40 border-black/20 dark:border-white/20 border-dashed shadow-inner text-zinc-500 dark:text-zinc-600 dark:text-zinc-400",
               !readOnly && "hover:border-black/40 dark:border-white/40",
             ),
         readOnly && !team && "opacity-60 cursor-default",
@@ -151,6 +78,7 @@ const BracketSlot: React.FC<{
         slot?.resultStatus === "incorrect"
           ? "border-rose-500/40 bg-rose-500/10"
           : "",
+        slot?.isSimulated && "ring-1 ring-blue-500/50"
       )}
     >
       {team ? (
@@ -208,6 +136,7 @@ export const PlayoffsBracket: React.FC<{
   onDrop?: (e: React.DragEvent, slotId: string) => void;
   onClick?: (slotId: string, teamId: string | null) => void;
   onMatchClick?: (m: BracketMatch) => void;
+  hideControls?: boolean;
 }> = ({
   slots,
   readOnly = false,
@@ -217,10 +146,15 @@ export const PlayoffsBracket: React.FC<{
   onDrop,
   onClick,
   onMatchClick,
+  hideControls = false,
 }) => {
-  const [selectedMatch, setSelectedMatch] = React.useState<BracketMatch | null>(
-    null,
-  );
+  const [selectedMatch, setSelectedMatch] = React.useState<BracketMatch | null>(null);
+  const [simulationMode, setSimulationMode] = useState(false);
+  const [simulations, setSimulations] = useState<Record<string, string>>({}); // targetSlotId -> teamId
+
+  React.useEffect(() => {
+    if (!simulationMode) setSimulations({});
+  }, [simulationMode]);
 
   React.useEffect(() => {
     if (selectedMatch) {
@@ -267,9 +201,16 @@ export const PlayoffsBracket: React.FC<{
       }
     }
 
+    // Apply simulations over existing read-only team IDs
+    let isSimulated = false;
+    if (simulationMode && simulations[id]) {
+      baseSlot = { ...baseSlot, teamId: simulations[id] };
+      isSimulated = true;
+    }
+
     let score: number | null | undefined = null;
     let isLive = false;
-    if (baseSlot.teamId && baseSlot.type !== "champion" && !disableAutoFill) {
+    if (baseSlot.teamId && baseSlot.type !== "champion" && !disableAutoFill && !isSimulated) {
       const roundMatches = MATCHES["playoffs"]?.[baseSlot.type] || [];
       for (const m of roundMatches) {
         if (m.team1Id === baseSlot.teamId) {
@@ -285,29 +226,25 @@ export const PlayoffsBracket: React.FC<{
       }
     }
 
-    if (!showResults) return { ...baseSlot, score, isLive };
+    if (!showResults) return { ...baseSlot, score, isLive, isSimulated };
 
     // When showing results, evaluate correct/incorrect
     const actuals = ACTUAL_RESULTS["playoffs"] || [];
-
     let resultStatus: "correct" | "incorrect" | "unknown" = "unknown";
-    if (baseSlot.teamId && baseSlot.type !== "qf") {
+    if (baseSlot.teamId && baseSlot.type !== "qf" && !isSimulated) {
       const isCorrect = actuals.some(
         (a) => a.teamId === baseSlot?.teamId && a.type === baseSlot?.type,
       );
       if (isCorrect) {
         resultStatus = "correct";
       } else {
-        // If this slot type is fully filled in actuals, and this isn't correct, it's incorrect
-        const typeCount = actuals.filter(
-          (a) => a.type === baseSlot?.type,
-        ).length;
+        const typeCount = actuals.filter((a) => a.type === baseSlot?.type).length;
         const maxForType =
           baseSlot.type === "sf" ? 4 : baseSlot.type === "final" ? 2 : 1;
         if (typeCount >= maxForType) resultStatus = "incorrect";
       }
     }
-    return { ...baseSlot, resultStatus, score, isLive };
+    return { ...baseSlot, resultStatus, score, isLive, isSimulated };
   };
 
   const getMatchForSlotId = (slotId: string) => {
@@ -326,147 +263,152 @@ export const PlayoffsBracket: React.FC<{
     return undefined;
   };
 
+  const handleSlotClick = (id: string) => {
+    const s = getSlot(id);
+    if (simulationMode && s?.teamId) {
+       // Advance team to next target slot
+       let target = "";
+       if (id.startsWith("qf-")) {
+           const idx = parseInt(id.replace("qf-", ""));
+           target = `sf-${Math.ceil(idx / 2)}`;
+       } else if (id.startsWith("sf-")) {
+           const idx = parseInt(id.replace("sf-", ""));
+           target = `final-${Math.ceil(idx / 2)}`;
+       } else if (id.startsWith("final-")) {
+           target = "champion";
+       }
+       if (target) {
+           setSimulations(prev => ({ ...prev, [target]: s.teamId! }));
+       }
+       return;
+    }
+    
+    if (onClick) {
+      onClick(id, getSlot(id)?.teamId || null);
+      return;
+    }
+    const match = getMatchForSlotId(id);
+    if (match) {
+      if (onMatchClick) onMatchClick(match);
+      else setSelectedMatch(match);
+    }
+  };
+
+  const handleAutoSimulateNextRound = () => {
+    const newSims = { ...simulations };
+    const transitions = [
+      { fromPrefix: "qf-", toPrefix: "sf-", levels: 4 },
+      { fromPrefix: "sf-", toPrefix: "final-", levels: 2 },
+      { fromPrefix: "final-", toPrefix: "champion", levels: 1 }
+    ];
+
+    for (const trans of transitions) {
+      let madePicksThisLevel = false;
+      for (let i = 1; i <= trans.levels; i++) {
+         const t1Id = trans.fromPrefix + (i * 2 - 1);
+         const t2Id = trans.fromPrefix + (i * 2);
+         const destId = trans.toPrefix === "champion" ? "champion" : trans.toPrefix + i;
+         
+         const s1 = getSlot(t1Id);
+         const s2 = getSlot(t2Id);
+         const dest = getSlot(destId);
+
+         if (s1?.teamId && s2?.teamId && !dest?.teamId) {
+             // We have two contestants, no winner predicted yet
+             const s1Str = getLocalStrength(s1.teamId) || (2000 - (GLOBAL_SEEDING[s1.teamId] || 32) * 30);
+             const s2Str = getLocalStrength(s2.teamId) || (2000 - (GLOBAL_SEEDING[s2.teamId] || 32) * 30);
+             const t1Wins = s1Str >= s2Str;
+             newSims[destId] = t1Wins ? s1.teamId : s2.teamId;
+             madePicksThisLevel = true;
+         }
+      }
+      if (madePicksThisLevel) break; // Simulate one round strictly
+    }
+    setSimulations(newSims);
+  };
+
+  const renderNode = (node: BracketNode) => {
+    if (node.type === "playoffsHeader") {
+      const match: BracketMatch | undefined = node.matchIndex !== undefined
+        ? MATCHES["playoffs"]?.[node.id.split("-")[1] as any]?.[node.matchIndex]
+        : undefined;
+
+      return (
+        <div
+          className="absolute text-[12px] text-zinc-900 dark:text-zinc-200 bg-zinc-200/60 dark:bg-black/60 rounded-sm px-1 py-0.5 font-bold tracking-wider flex items-center justify-center pointer-events-auto cursor-pointer hover:bg-zinc-200/80 dark:bg-black/80 w-[180px] z-50 shadow-md transition-colors hover:text-black dark:text-white"
+          onClick={() => {
+            if (match) {
+              if (onMatchClick) onMatchClick(match);
+              else setSelectedMatch(match);
+            }
+          }}
+          title="点击查看赛况"
+        >
+          {node.title}
+        </div>
+      );
+    }
+    
+    // Default is playoffsSlot
+    const isCol1 = node.id.startsWith("qf-");
+    const emptyTitle = readOnly ? "待定" : isCol1 ? "待定" : "作出您的选择";
+    
+    return (
+      <BracketSlot
+        slot={getSlot(node.id)}
+        readOnly={readOnly && !simulationMode}
+        disableDragDrop={node.disableDragDrop || disableAutoFill}
+        onDrop={onDrop}
+        onClick={() => handleSlotClick(node.id)}
+        emptyTitle={emptyTitle}
+      />
+    );
+  };
+
   return (
-    <div className="w-full h-full overflow-hidden z-10 relative">
-      <TransformWrapper
-        initialScale={1}
-        minScale={0.1}
-        maxScale={2}
-        centerOnInit={true}
-        limitToBounds={false}
-        wheel={{ step: 0.001 }}
-        panning={{ velocityDisabled: false }}
-      >
-        {({ zoomIn, zoomOut, resetTransform, centerView }) => (
-          <>
-            <div className="absolute bottom-16 lg:bottom-[100px] left-4 lg:left-6 z-[100] flex items-center gap-1.5 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md shadow-lg border border-zinc-200/55 dark:border-zinc-800/55 flex-shrink-0 pointer-events-auto">
-              <button
-                onClick={() => zoomIn(0.15)}
-                title="放大"
-                className="w-6 h-6 lg:w-8 lg:h-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center cursor-pointer transition-colors active:scale-95"
-              >
-                <ZoomIn className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-              </button>
-              <div className="w-[1px] h-3 lg:h-4 bg-zinc-200/60 dark:bg-zinc-800" />
-              <button
-                onClick={() => zoomOut(0.15)}
-                title="缩小"
-                className="w-6 h-6 lg:w-8 lg:h-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center cursor-pointer transition-colors active:scale-95"
-              >
-                <ZoomOut className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-              </button>
-              <div className="w-[1px] h-3 lg:h-4 bg-zinc-200/60 dark:bg-zinc-800" />
-              <button
-                onClick={() => {
-                  resetTransform();
-                  setTimeout(() => {
-                    centerView(1);
-                  }, 50);
-                }}
-                title="复位并居中"
-                className="px-2 lg:px-3.5 h-6 lg:h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white flex items-center justify-center gap-1.5 cursor-pointer transition-all text-[10px] lg:text-xs font-semibold active:scale-95 shadow-sm"
-              >
-                <RotateCcw className="w-3 h-3 lg:w-3.5 lg:h-3.5" />
-                <span>复位居中</span>
-              </button>
-            </div>
-            <TransformComponent
-              wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}
+    <div className="w-full flex-1 overflow-hidden z-10 relative flex flex-col">
+      {!hideControls && readOnly && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center pointer-events-auto">
+          <div className="flex gap-2 isolate">
+            <button
+              onClick={() => setSimulationMode(!simulationMode)}
+              className={cn(
+                "px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2",
+                simulationMode
+                  ? "bg-blue-600/20 text-blue-400 border-blue-500/50"
+                  : "bg-white/80 dark:bg-zinc-800/80 text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800",
+              )}
             >
-              <div className="w-[1100px] h-[800px] relative pointer-events-none flex-shrink-0">
-                  <svg
-                    className="absolute inset-0 w-full h-full z-0 pointer-events-none"
-                    style={{ left: 0, top: 0 }}
-                  >
-                    {edges.map(([from, to], i) => (
-                      <DrawPath key={i} fromId={from} toId={to} />
-                    ))}
-                  </svg>
-
-                  {[
-                    { type: "qf", matchIndex: 0, nodeTop: "qf-1", title: "1/4决赛" },
-                    { type: "qf", matchIndex: 1, nodeTop: "qf-3", title: "1/4决赛" },
-                    { type: "qf", matchIndex: 2, nodeTop: "qf-5", title: "1/4决赛" },
-                    { type: "qf", matchIndex: 3, nodeTop: "qf-7", title: "1/4决赛" },
-                    { type: "sf", matchIndex: 0, nodeTop: "sf-1", title: "半决赛" },
-                    { type: "sf", matchIndex: 1, nodeTop: "sf-3", title: "半决赛" },
-                    {
-                      type: "final",
-                      matchIndex: 0,
-                      nodeTop: "final-1",
-                      title: "决 赛",
-                    },
-                  ].map((header, i) => {
-                    const pos = nodes[header.nodeTop];
-                    if (!pos) return null;
-
-                    const match: BracketMatch | undefined =
-                      MATCHES["playoffs"]?.[header.type]?.[header.matchIndex];
-
-                    return (
-                      <div
-                        key={`header-${i}`}
-                        className="absolute text-[12px] text-zinc-900 dark:text-zinc-200 bg-zinc-200/60 dark:bg-black/60 rounded-sm px-1 py-0.5 font-bold tracking-wider flex items-center justify-center pointer-events-auto cursor-pointer hover:bg-zinc-200/80 dark:bg-black/80 w-[180px] z-50 shadow-md transition-colors hover:text-black dark:text-white"
-                        style={{ left: pos.x, top: pos.y - 24 }}
-                        onClick={() => {
-                          if (match) {
-                            if (onMatchClick) onMatchClick(match);
-                            else setSelectedMatch(match);
-                          }
-                        }}
-                        title="点击查看赛况"
-                      >
-                        {header.title}
-                      </div>
-                    );
-                  })}
-
-                  {Object.entries(nodes).map(([id, pos]) => {
-                    const isCol1 = id.startsWith("qf-");
-                    const emptyTitle = readOnly
-                      ? "待定"
-                      : isCol1
-                        ? "待定"
-                        : "作出您的选择";
-
-                    return (
-                      <div
-                        key={id}
-                        style={{ left: pos.x, top: pos.y }}
-                        className="absolute pointer-events-auto shadow-sm"
-                      >
-                        <BracketSlot
-                          slot={
-                            getSlot(id) || {
-                              id,
-                              type: id.split("-")[0] as any,
-                              teamId: null,
-                            }
-                          }
-                          readOnly={readOnly}
-                          disableDragDrop={isCol1}
-                          onDrop={onDrop}
-                          onClick={readOnly ? (slotId: string) => {
-                            if (onClick) {
-                              onClick(slotId, getSlot(slotId)?.teamId || null);
-                              return;
-                            }
-                            const match = getMatchForSlotId(slotId);
-                            if (match) {
-                              if (onMatchClick) onMatchClick(match);
-                              else setSelectedMatch(match);
-                            }
-                          } : onClick}
-                          emptyTitle={emptyTitle}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </TransformComponent>
-            </>
+              {simulationMode ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                  模拟模式已开启
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-zinc-600" />
+                  开启预测模拟
+                </>
+              )}
+            </button>
+            {simulationMode && (
+               <button 
+                 onClick={handleAutoSimulateNextRound}
+                 className="px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2 bg-white/50 dark:bg-zinc-800/50 text-zinc-900 dark:text-zinc-200 border-zinc-300 dark:border-zinc-600/50 hover:bg-white dark:hover:bg-zinc-800/80"
+               >
+                 推演下一轮
+               </button>
+            )}
+          </div>
+          {simulationMode && (
+            <div className="mt-2 text-[10px] text-zinc-500 dark:text-zinc-600 bg-zinc-200/50 dark:bg-black/50 px-2 py-1 rounded w-max border border-black/5 dark:border-white/5">
+              点击队伍晋级下一轮
+            </div>
           )}
-      </TransformWrapper>
+        </div>
+      )}
+
+      <TournamentBracketRenderer config={PLAYOFFS_CONFIG} renderNode={renderNode} />
 
       <MatchDialog
         match={selectedMatch}
@@ -475,3 +417,4 @@ export const PlayoffsBracket: React.FC<{
     </div>
   );
 };
+

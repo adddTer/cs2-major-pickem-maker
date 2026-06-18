@@ -25,6 +25,7 @@ import { MatchDialog } from "./components/MatchDialog";
 import { BracketMatch } from "./types";
 import { SwissBracket } from "./components/SwissBracket";
 import { PlayoffsBracket } from "./components/PlayoffsBracket";
+import { TestBracket } from "./components/TestBracket";
 import { MatchScheduleBanner } from "./components/MatchScheduleBanner";
 import { useMatchLogic } from "./hooks/useMatchLogic";
 
@@ -50,6 +51,25 @@ export const EVENTS: TournamentEvent[] = [
     isSwissAllBo3: true,
     steamEventId: 27,
     stages: {}
+  },
+  {
+    id: "the_minor_test",
+    name: "The Minor (Test Event)",
+    shortName: "The Minor",
+    logoUrl: "https://img-cdn.hltv.org/eventlogo/u-4VdjFWGYz_GwBxLGrr11.png?ixlib=java-2.1.0&w=50&s=e78a8a6b716fa437cc3cfbb9f6b48ee6",
+    isSwissAllBo3: false,
+    stagesInfo: [
+      { id: "stage1", label: "单败淘汰赛：16进1", format: "single_elim_16" },
+      { id: "stage2", label: "单败淘汰赛：6进1", format: "single_elim_6" },
+      { id: "stage3", label: "单败淘汰赛：8进1 (含季军赛)", format: "single_elim_8_3rd" },
+      { id: "stage4", label: "双败淘汰赛：4进1", format: "double_elim_4" },
+      { id: "stage5", label: "GSL赛制：4进2", format: "gsl_4" },
+      { id: "stage6", label: "瑞士轮赛制：16进8", format: "swiss_16" },
+      { id: "stage7", label: "单循环赛：6进2", format: "round_robin_6" },
+      { id: "stage8", label: "双循环赛：4进2", format: "double_round_robin_4" },
+      { id: "stage9", label: "冒泡赛：4进1", format: "gauntlet_4" },
+      { id: "stage10", label: "冒泡赛：10进1", format: "gauntlet_10" },
+    ]
   }
 ];
 
@@ -884,13 +904,13 @@ export default function App() {
             mainView !== "bracket" ? "hidden" : "",
           )}
         >
-          <div className="flex border-b border-black/5 dark:border-white/5 items-center justify-center gap-2 pb-2 shrink-0 z-10 w-full bg-zinc-50/80 dark:bg-[#070b09]/80 backdrop-blur sticky top-0 mt-0">
-            {[
+          <div className="flex border-b border-black/5 dark:border-white/5 items-center justify-center gap-2 pb-2 shrink-0 z-10 w-full bg-zinc-50/80 dark:bg-[#070b09]/80 backdrop-blur sticky top-0 mt-0 overflow-x-auto no-scrollbar">
+            {(currentEvent.stagesInfo || [
               { id: "stage1", label: "第一阶段" },
               { id: "stage2", label: "第二阶段" },
               { id: "stage3", label: "第三阶段" },
               { id: "playoffs", label: "决胜阶段" },
-            ].map((tab) => {
+            ]).map((tab) => {
               const isActive = activeStage === tab.id;
               return (
                 <div
@@ -909,7 +929,7 @@ export default function App() {
             })}
           </div>
 
-          <div className="flex-1 overflow-auto bg-zinc-50/40 dark:bg-zinc-950/40 relative flex flex-col">
+          <div className="flex-1 overflow-hidden bg-zinc-50/40 dark:bg-zinc-950/40 relative flex flex-col">
             {!dataLoaded ? (
               <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-500 gap-3">
                 <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
@@ -917,31 +937,40 @@ export default function App() {
                   正在同步数据...
                 </div>
               </div>
-            ) : activeStage === "playoffs" ? (
-              <div className="w-full h-full relative">
-                <PlayoffsBracket
-                  refreshTrigger={refreshTrigger}
-                  slots={PLAYOFFS_SLOTS.map((s) => {
-                    const sTypeIdx = PLAYOFFS_SLOTS.filter(
-                      (x) => x.type === s.type,
-                    ).findIndex((x) => x.id === s.id);
-                    const act = activeStageActuals.filter(
-                      (x) => x.type === s.type,
-                    )[sTypeIdx];
-                    return {
-                      ...s,
-                      id: `playoffs-${s.id}`,
-                      teamId: act?.teamId,
-                    };
-                  })}
-                  readOnly={true}
-                  showResults={false}
-                  onMatchClick={(m) => setGlobalSelectedMatch(m)}
-                />
-              </div>
-            ) : (
-              <SwissBracket activeStage={activeStage} refreshTrigger={refreshTrigger} currentEvent={currentEvent} />
-            )}
+            ) : (() => {
+              const activeStageConfig = currentEvent.stagesInfo?.find(s => s.id === activeStage);
+              const format = activeStageConfig?.format || (activeStage === "playoffs" ? "playoffs" : "swiss");
+              
+              if (format.startsWith("swiss")) {
+                return <SwissBracket activeStage={activeStage} refreshTrigger={refreshTrigger} currentEvent={currentEvent} />;
+              } else if (format === "playoffs") {
+                return (
+                  <div className="w-full flex-1 relative flex flex-col">
+                    <PlayoffsBracket
+                      refreshTrigger={refreshTrigger}
+                      slots={PLAYOFFS_SLOTS.map((s) => {
+                        const sTypeIdx = PLAYOFFS_SLOTS.filter(
+                          (x) => x.type === s.type,
+                        ).findIndex((x) => x.id === s.id);
+                        const act = activeStageActuals.filter(
+                          (x) => x.type === s.type,
+                        )[sTypeIdx];
+                        return {
+                          ...s,
+                          id: `playoffs-${s.id}`,
+                          teamId: act?.teamId,
+                        };
+                      })}
+                      readOnly={true}
+                      showResults={false}
+                      onMatchClick={(m) => setGlobalSelectedMatch(m)}
+                    />
+                  </div>
+                );
+              } else {
+                return <TestBracket format={format} />;
+              }
+            })()}
           </div>
         </div>
 
@@ -974,7 +1003,7 @@ export default function App() {
             <RankingsView
               activeStage={activeStage}
               setActiveStage={setActiveStage}
-              isDegraded={rankingDegraded}
+              isDegraded={dataLoadError || rankingDegraded}
               getComputedActuals={getComputedActuals}
               currentEvent={currentEvent}
             />

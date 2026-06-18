@@ -30,7 +30,7 @@ export type SlotType =
   | "sf"
   | "final"
   | "champion";
-export type StageKey = "stage1" | "stage2" | "stage3" | "playoffs";
+export type StageKey = string;
 
 export type MatchFormat = "bo1" | "bo3" | "bo5";
 
@@ -100,10 +100,13 @@ export interface TournamentEvent {
   isSwissAllBo3?: boolean;
   steamEventId?: number;
   stages?: {
-    stage1?: { externalId: string };
-    stage2?: { externalId: string };
-    stage3?: { externalId: string };
+    [key: string]: { externalId: string };
   };
+  stagesInfo?: {
+    id: string;
+    label: string;
+    format: string;
+  }[];
 }
 
 export interface PickSet {
