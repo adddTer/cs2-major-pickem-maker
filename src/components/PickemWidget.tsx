@@ -205,6 +205,8 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
   const statusData =
     activeStage !== "playoffs" ? getSetStatus(currentSlots, activeStage) : null;
 
+  const cleanKeyLength = developerApiKey.replace(/[^A-Za-z0-9]/g, '').length;
+
   return (
     <div className="flex flex-col gap-6 w-full h-full relative">
       {/* 1. Predict ID & Save */}
