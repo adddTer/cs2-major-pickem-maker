@@ -122,37 +122,115 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
     setIsImportingSteam(true);
     try {
       const actualEventId = steamEventId?.toString() || "22"; // Dynamic or fallback to Shanghai
-      let url = `/api/steam-predictions?event=${actualEventId}&key=${encodeURIComponent(steamAuthCode)}${steamId ? `&steamid=${steamId}` : ''}`;
-      const cleanDevKey = developerApiKey.replace(/[^A-Za-z0-9]/g, '');
-      if (cleanDevKey) {
-        url += `&developerkey=${encodeURIComponent(cleanDevKey)}`;
+      let steamid = steamId?.trim() || "";
+      let steamidkey = steamAuthCode?.trim() || "";
+      let developerkey = developerApiKey?.replace(/[^A-Za-z0-9]/g, '');
+
+      // Parse decodedKey if it's a URL
+      if (steamidkey.includes("steamid=") && steamidkey.includes("steamidkey=")) {
+         const urlString = steamidkey.startsWith("http") ? steamidkey : `https://api.steampowered.com${steamidkey.startsWith("/") ? "" : "/"}${steamidkey}`;
+         try {
+           const urlObj = new URL(urlString);
+           steamid = urlObj.searchParams.get("steamid")?.trim() || steamid;
+           steamidkey = urlObj.searchParams.get("steamidkey")?.trim() || steamidkey;
+           const urlKey = urlObj.searchParams.get("key")?.trim();
+           if (urlKey && urlKey !== "undefined" && urlKey !== "null") {
+             developerkey = urlKey;
+           }
+         } catch (e) {
+           // fallback
+         }
       }
-      const response = await fetch(url).catch((err) => {
+
+      if (!steamid || steamid === "0") {
+         throw new Error("官方接口强制要求提供 Steam ID。请在输入框中填入您的 Steam ID（形如 7656119...）。");
+      }
+
+      if (!developerkey || developerkey.length !== 32) {
+         setShowDeveloperKeyInput(true);
+         throw new Error(`由于没有配置正确的 API Key，调用官方接口失败。当前收到的 Key 长度为 ${developerkey?.length || 0}。请配置正确的 32 位 Steam Developer API Key。`);
+      }
+
+      const steamApiUrl = `https://api.steampowered.com/ICSGOTournaments_730/GetTournamentPredictions/v1?event=${actualEventId}&steamid=${steamid}&steamidkey=${steamidkey}&key=${developerkey}`;
+      const layoutUrl = `https://api.steampowered.com/ICSGOTournaments_730/GetTournamentLayout/v1?event=${actualEventId}&key=${developerkey}`;
+
+      const proxyApiUrl = `https://corsproxy.io/?${encodeURIComponent(steamApiUrl)}`;
+      const proxyLayoutUrl = `https://corsproxy.io/?${encodeURIComponent(layoutUrl)}`;
+
+      const [response, layoutResponse] = await Promise.all([
+        fetch(proxyApiUrl),
+        fetch(proxyLayoutUrl)
+      ]).catch((err) => {
         throw new Error(`网络连接失败 (fetch failed)。如果您正在使用浏览器插件拦截请求，请关闭后重试。详情: ${err.message}`);
       });
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        
-        let preview = text.substring(0, 200).replace(/\s+/g, ' ');
-        if (response.status === 404 || response.status === 502 || response.status === 503) {
-           throw new Error(`抱歉，后端服务正在启动或重启中 (HTTP ${response.status})。这通常发生在我们刚修改完代码时，请您等待几秒钟，然后再点击一次“导入数据”。`);
+
+      const text = await response.text();
+
+      if (!response.ok) {
+        let rawResponse = text.trim();
+        if (rawResponse.length > 300) {
+          rawResponse = rawResponse.substring(0, 300) + '...';
         }
-        throw new Error(`服务异常 (HTTP ${response.status})。请确保后端正常运行。返回片段: ${preview}`);
-      }
-      
-      const data = await response.json();
-
-      if (data.needsDeveloperKey) {
-        setShowDeveloperKeyInput(true);
-        throw new Error(data.error || "服务端未配置全局 Steam API Key，需要提供您自己的 Developer API Key。");
+        if (response.status === 401 || response.status === 403) {
+          const isKeyMissing = !developerkey || developerkey.length !== 32;
+          if (isKeyMissing) setShowDeveloperKeyInput(true);
+          throw new Error(`Steam API 拒绝访问 (${response.status})。可能是 Auth Code 过期或 API Key 无效。官方服务器返回的原始错误信息: ${rawResponse}`);
+        }
+        throw new Error(`Steam API 报错 (${response.status})。官方服务器返回: ${rawResponse}`);
       }
 
-      if (data.error || (!data.success && !data.result)) {
-        throw new Error(data.error || "无法获取数据，请检查 Auth Code 和 SteamID 是否正确");
+      let steamData;
+      let layoutData;
+      try {
+        steamData = JSON.parse(text);
+      } catch (err) {
+        throw new Error("Steam返回了无效的数据格式（意外的网页内容）。请确认填写的鉴权链接正确无误。");
       }
 
-      const predictions = (data.groupedPicks && data.groupedPicks[activeStage]) ? data.groupedPicks[activeStage] : (data.rawPicks || []);
+      if (layoutResponse.ok) {
+        try {
+          layoutData = await layoutResponse.json();
+        } catch(e) {}
+      }
+
+      // Group predictions into our logical stages
+      let stage1GroupId = null;
+      let stage2GroupId = null;
+      let stage3GroupId = null;
+      let playoffsGroupIds: number[] = [];
+
+      if (layoutData?.result?.sections) {
+        const sections = layoutData.result.sections;
+        for (const sec of sections) {
+          const n = sec.name.toLowerCase();
+          if (n.includes("stage i ") || n.endsWith("| 1")) {
+             if (sec.groups[0]) stage1GroupId = sec.groups[0].groupid;
+          } else if (n.includes("stage ii ") || n.endsWith("| 2")) {
+             if (sec.groups[0]) stage2GroupId = sec.groups[0].groupid;
+          } else if (n.includes("stage iii") || n.endsWith("| 3")) {
+             if (sec.groups[0]) stage3GroupId = sec.groups[0].groupid;
+          } else if (n.includes("quarter") || n.includes("semi") || n.includes("final")) {
+             sec.groups.forEach((g: any) => playoffsGroupIds.push(g.groupid));
+          }
+        }
+      }
+
+      const allPicks = steamData.result?.picks || [];
+      const groupedPicks: any = {
+        stage1: [],
+        stage2: [],
+        stage3: [],
+        playoffs: []
+      };
+
+      allPicks.forEach((p: any) => {
+        if (stage1GroupId && p.groupid === stage1GroupId) groupedPicks.stage1.push(p);
+        else if (stage2GroupId && p.groupid === stage2GroupId) groupedPicks.stage2.push(p);
+        else if (stage3GroupId && p.groupid === stage3GroupId) groupedPicks.stage3.push(p);
+        else if (playoffsGroupIds.includes(p.groupid)) groupedPicks.playoffs.push(p);
+      });
+
+      const predictions = (groupedPicks && groupedPicks[activeStage]) ? groupedPicks[activeStage] : (allPicks || []);
       const STEAM_PICKID_MAP: Record<number, string> = {
         1: 'nip', 6: 'fnatic', 12: 'navi', 28: '3dm', 48: 'liquid',
         59: 'g2', 60: 'astralis', 61: 'faze', 69: 'big', 74: 'tyloo', 80: 'mibr',
