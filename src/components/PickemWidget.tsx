@@ -121,8 +121,9 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
     try {
       const actualEventId = steamEventId?.toString() || "22"; // Dynamic or fallback to Shanghai
       let url = `/api/steam-predictions?event=${actualEventId}&key=${encodeURIComponent(steamAuthCode)}${steamId ? `&steamid=${steamId}` : ''}`;
-      if (developerApiKey) {
-        url += `&developerkey=${encodeURIComponent(developerApiKey)}`;
+      const cleanDevKey = developerApiKey.replace(/[^A-Za-z0-9]/g, '');
+      if (cleanDevKey) {
+        url += `&developerkey=${encodeURIComponent(cleanDevKey)}`;
       }
       const response = await fetch(url);
       const contentType = response.headers.get("content-type");
@@ -254,12 +255,12 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
           </div>
           
           {showDeveloperKeyInput ? (
-            <div className={`flex flex-col gap-3 p-4 border rounded-xl mb-4 ${developerApiKey.length === 32 ? 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10' : 'bg-red-50/50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30'}`}>
+            <div className={`flex flex-col gap-3 p-4 border rounded-xl mb-4 ${cleanKeyLength === 32 ? 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10' : 'bg-red-50/50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30'}`}>
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-start justify-between">
                   <div className="flex flex-col">
-                    <span className={`text-[13px] font-bold ${developerApiKey.length === 32 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-700 dark:text-red-400'}`}>
-                      {developerApiKey.length === 32 ? '✅ 已配置: Steam Developer API Key' : '⚠️ 为什么需要提供 Steam API Key？'}
+                    <span className={`text-[13px] font-bold ${cleanKeyLength === 32 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-700 dark:text-red-400'}`}>
+                      {cleanKeyLength === 32 ? '✅ 已配置: Steam Developer API Key' : '⚠️ 为什么需要提供 Steam API Key？'}
                     </span>
                     <span className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-1 leading-relaxed">
                       第三方竞猜网站通常使用他们自建的服务器 API Key。但由于我们是开源自建工具，没有全局密钥，所以需要您<b>自己申请一个</b>才能访问 Steam 官方服务器。
@@ -278,7 +279,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
                     setDeveloperApiKey(e.target.value.trim());
                     localStorage.setItem("steam_developer_api_key", e.target.value.trim());
                   }}
-                  className={`flex-1 bg-white dark:bg-black border rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none transition-colors shadow-inner ${developerApiKey.length === 32 ? 'border-zinc-300 dark:border-zinc-700 focus:border-blue-500' : 'border-red-300 dark:border-red-500/50 focus:border-red-500'}`}
+                  className={`flex-1 bg-white dark:bg-black border rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none transition-colors shadow-inner ${cleanKeyLength === 32 ? 'border-zinc-300 dark:border-zinc-700 focus:border-blue-500' : 'border-red-300 dark:border-red-500/50 focus:border-red-500'}`}
                   placeholder="在此粘贴 32 位 Steam Web API Key..."
                 />
                 <a

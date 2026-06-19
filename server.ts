@@ -103,10 +103,9 @@ async function startServer() {
       let event = req.query.event || "22";
       let steamid = "";
       let steamidkey = "";
-      let developerkey = (req.query.developerkey as string) || process.env.STEAM_API_KEY || "";
+      let developerkey = ((req.query.developerkey as string) || process.env.STEAM_API_KEY || "").trim();
 
       const decodedKey = decodeURIComponent(key as string).trim();
-      developerkey = developerkey.trim();
       
       // Parse steamid and steamidkey from URL if provided
       if (decodedKey.includes("steamid=") && decodedKey.includes("steamidkey=")) {
@@ -116,9 +115,9 @@ async function startServer() {
           steamid = url.searchParams.get("steamid")?.trim() || "";
           steamidkey = url.searchParams.get("steamidkey")?.trim() || "";
           event = url.searchParams.get("event")?.trim() || event;
-          const urlKey = url.searchParams.get("key");
+          const urlKey = url.searchParams.get("key")?.trim();
           if (urlKey && urlKey !== "undefined" && urlKey !== "null") {
-            developerkey = urlKey.trim();
+            developerkey = urlKey;
           }
         } catch (e) {
            // Fallback if URL parsing fails
@@ -135,9 +134,12 @@ async function startServer() {
         return res.json({ error: "官方接口强制要求提供 Steam ID。请在输入框中填入您的 Steam ID（形如 7656119...）。" });
       }
 
+      // Steam keys are exactly 32 chars of hex. Extra chars might sneak in. Take only alphanumeric.
+      developerkey = developerkey.replace(/[^A-Za-z0-9]/g, '');
+
       if (!developerkey || developerkey.length !== 32) {
         return res.json({ 
-          error: "由于没有内置 API Key，调用官方接口失败。请配置 32位 Steam Developer API Key。",
+          error: `由于没有配置正确的 API Key，调用官方接口失败。当前收到的 Key 长度为 ${developerkey.length}。请配置正确的 32 位 Steam Developer API Key。`,
           needsDeveloperKey: true
         });
       }
