@@ -105,19 +105,20 @@ async function startServer() {
       let steamidkey = "";
       let developerkey = (req.query.developerkey as string) || process.env.STEAM_API_KEY || "";
 
-      const decodedKey = decodeURIComponent(key as string);
+      const decodedKey = decodeURIComponent(key as string).trim();
+      developerkey = developerkey.trim();
       
       // Parse steamid and steamidkey from URL if provided
       if (decodedKey.includes("steamid=") && decodedKey.includes("steamidkey=")) {
         const urlString = decodedKey.startsWith("http") ? decodedKey : `https://api.steampowered.com${decodedKey.startsWith("/") ? "" : "/"}${decodedKey}`;
         try {
           const url = new URL(urlString);
-          steamid = url.searchParams.get("steamid") || "";
-          steamidkey = url.searchParams.get("steamidkey") || "";
-          event = url.searchParams.get("event") || event;
+          steamid = url.searchParams.get("steamid")?.trim() || "";
+          steamidkey = url.searchParams.get("steamidkey")?.trim() || "";
+          event = url.searchParams.get("event")?.trim() || event;
           const urlKey = url.searchParams.get("key");
           if (urlKey && urlKey !== "undefined" && urlKey !== "null") {
-            developerkey = urlKey;
+            developerkey = urlKey.trim();
           }
         } catch (e) {
            // Fallback if URL parsing fails
@@ -127,16 +128,16 @@ async function startServer() {
       }
       
       if (!steamid && req.query.steamid) {
-        steamid = req.query.steamid as string;
+        steamid = (req.query.steamid as string).trim();
       }
 
       if (!steamid || steamid === "0") {
-        return res.json({ error: "Steam官方API强制要求提供Steam ID。请在输入框中填入您的 Steam ID（例如 7656119...）。" });
+        return res.json({ error: "官方接口强制要求提供 Steam ID。请在输入框中填入您的 Steam ID（形如 7656119...）。" });
       }
 
-      if (!developerkey || developerkey.trim().length !== 32) {
+      if (!developerkey || developerkey.length !== 32) {
         return res.json({ 
-          error: "服务器缺少有效的 STEAM_API_KEY。请在界面中配置您的 32位 Steam 开发者 API Key。",
+          error: "由于没有内置 API Key，调用官方接口失败。请配置 32位 Steam Developer API Key。",
           needsDeveloperKey: true
         });
       }
