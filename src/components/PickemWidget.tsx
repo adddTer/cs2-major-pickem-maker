@@ -71,21 +71,34 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
 }) => {
   const [isImportingSteam, setIsImportingSteam] = useState(false);
   const [developerApiKey, setDeveloperApiKey] = useState(() => localStorage.getItem("steam_developer_api_key") || "");
-  const [showDeveloperKeyInput, setShowDeveloperKeyInput] = useState(false);
+  const [showDeveloperKeyInput, setShowDeveloperKeyInput] = useState(true); // Default to showing until proven otherwise
+  const [isCheckingConfig, setIsCheckingConfig] = useState(true);
   const [diffModalData, setDiffModalData] = useState<{
     local: PickSlot[];
     steam: PickSlot[];
   } | null>(null);
 
   React.useEffect(() => {
-    fetch("/api/config/steam")
-      .then((res) => res.json())
+    // Add cache buster
+    fetch(`/api/config/steam?t=${Date.now()}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
       .then((data) => {
-        if (data && data.hasSteamApiKey === false) {
+        if (data && data.hasSteamApiKey === true) {
+          setShowDeveloperKeyInput(false);
+        } else {
           setShowDeveloperKeyInput(true);
         }
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error("Failed to check steam config:", err);
+        setShowDeveloperKeyInput(true);
+      })
+      .finally(() => {
+        setIsCheckingConfig(false);
+      });
   }, []);
 
   const applySteamPicks = (importedSlots: PickSlot[]) => {
