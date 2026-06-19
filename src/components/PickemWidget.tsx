@@ -240,44 +240,25 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
             )}
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input
-              type="text"
-              value={steamId || ""}
-              onChange={(e) => setSteamId?.(e.target.value)}
-              className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-blue-500 transition-colors shadow-inner w-full"
-              placeholder="Steam ID (SteamID64)..."
-            />
-            <input
-              type="text"
-              value={steamAuthCode || ""}
-              onChange={(e) => setSteamAuthCode?.(e.target.value)}
-              className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-blue-500 transition-colors shadow-inner w-full"
-              placeholder="Auth Code 或 完整鉴权链接..."
-            />
-            <button
-              onClick={handleSteamImport}
-              disabled={isImportingSteam}
-              className="px-3 py-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 text-zinc-800 dark:text-zinc-200 font-bold text-xs transition-colors rounded-lg flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50"
-            >
-              <DownloadCloud className="w-3.5 h-3.5" /> 导入游戏竞猜
-            </button>
-          </div>
-
-          {showDeveloperKeyInput && (
-            <div className="flex flex-col gap-2 mt-2 p-3 bg-red-50/50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-red-600 dark:text-red-400">
-                  无内置 Steam API Key，需您自己提供。
+          {showDeveloperKeyInput ? (
+            <div className="flex flex-col gap-3 p-3 bg-red-50/50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl mb-2">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-bold text-red-600 dark:text-red-400">
+                    ⚠️ 必需: Steam Developer API Key
+                  </span>
+                  <a
+                    href="https://steamcommunity.com/dev/apikey"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] text-blue-500 hover:text-blue-400 font-bold underline"
+                  >
+                    前往申请 (域名随意)
+                  </a>
+                </div>
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                  服务器未配置全局 Key，请提供个人的开发者 Key。Key 仅保存在浏览器本地。
                 </span>
-                <a
-                  href="https://steamcommunity.com/dev/apikey"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[10px] text-blue-500 hover:text-blue-400 font-bold underline"
-                >
-                  去申请 (域名填 localhost)
-                </a>
               </div>
               <input
                 type="text"
@@ -286,9 +267,35 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
                   setDeveloperApiKey(e.target.value);
                   localStorage.setItem("steam_developer_api_key", e.target.value);
                 }}
-                className="w-full bg-white dark:bg-black border border-red-200 dark:border-red-500/30 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-red-400 transition-colors shadow-inner"
-                placeholder="Steam Web API Key..."
+                className="w-full bg-white dark:bg-black border border-red-300 dark:border-red-500/50 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-red-500 transition-colors shadow-inner"
+                placeholder="在此粘贴 32 位 Steam Web API Key..."
               />
+            </div>
+          ) : null}
+
+          {(!showDeveloperKeyInput || developerApiKey.length >= 32) && (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={steamId || ""}
+                onChange={(e) => setSteamId?.(e.target.value)}
+                className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-blue-500 transition-colors shadow-inner w-full"
+                placeholder="Steam ID (SteamID64)..."
+              />
+              <input
+                type="text"
+                value={steamAuthCode || ""}
+                onChange={(e) => setSteamAuthCode?.(e.target.value)}
+                className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-blue-500 transition-colors shadow-inner w-full"
+                placeholder="Auth Code 或 完整鉴权链接..."
+              />
+              <button
+                onClick={handleSteamImport}
+                disabled={isImportingSteam}
+                className="px-3 py-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 text-zinc-800 dark:text-zinc-200 font-bold text-xs transition-colors rounded-lg flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50"
+              >
+                <DownloadCloud className="w-3.5 h-3.5" /> 导入游戏竞猜
+              </button>
             </div>
           )}
         </div>

@@ -44,7 +44,10 @@ async function startServer() {
   const PORT = 3000;
 
   app.get("/api/config/steam", (req, res) => {
-    res.json({ hasSteamApiKey: !!process.env.STEAM_API_KEY });
+    const key = process.env.STEAM_API_KEY;
+    const hasKey = key && key.trim() !== "" && key !== '""' && key !== "''";
+    console.log("Config/Steam API called. Found key?", !!hasKey, "Key length:", key?.length);
+    res.json({ hasSteamApiKey: !!hasKey });
   });
 
   app.get("/api/hltv-rankings", async (req, res) => {
