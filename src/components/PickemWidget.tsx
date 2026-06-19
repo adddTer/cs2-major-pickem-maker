@@ -73,6 +73,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
   const [developerApiKey, setDeveloperApiKey] = useState(() => localStorage.getItem("steam_developer_api_key") || "");
   const [showDeveloperKeyInput, setShowDeveloperKeyInput] = useState(true); // Default to showing until proven otherwise
   const [isCheckingConfig, setIsCheckingConfig] = useState(true);
+  const [importError, setImportError] = useState<string | null>(null);
   const [diffModalData, setDiffModalData] = useState<{
     local: PickSlot[];
     steam: PickSlot[];
@@ -117,6 +118,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
       return;
     }
 
+    setImportError(null);
     setIsImportingSteam(true);
     try {
       const actualEventId = steamEventId?.toString() || "22"; // Dynamic or fallback to Shanghai
@@ -196,7 +198,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
         setDiffModalData({ local: currentSlots, steam: importedSlots });
       }
     } catch (e: any) {
-      dialog.alert("导入失败：" + e.message);
+      setImportError(e.message);
     } finally {
       setIsImportingSteam(false);
     }
@@ -319,6 +321,11 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
               <DownloadCloud className="w-3.5 h-3.5" /> 导入数据
             </button>
           </div>
+          {importError && (
+            <div className="mt-2 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg text-xs leading-relaxed text-red-700 dark:text-red-400 break-words font-medium">
+              ❌ 导入失败：{importError}
+            </div>
+          )}
         </div>
       </div>
 
