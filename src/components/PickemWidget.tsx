@@ -127,11 +127,17 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
       if (cleanDevKey) {
         url += `&developerkey=${encodeURIComponent(cleanDevKey)}`;
       }
-      const response = await fetch(url);
+      const response = await fetch(url).catch((err) => {
+        throw new Error(`网络连接失败 (fetch failed)。如果您正在使用浏览器插件拦截请求，请关闭后重试。详情: ${err.message}`);
+      });
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const text = await response.text();
-        throw new Error(`服务端返回了非 JSON 数据，可能服务器正在重启或网络异常 (HTTP ${response.status})。请稍后重试。`);
+        let preview = text.substring(0, 150).replace(/\s+/g, ' ');
+        if (response.status === 404) {
+           throw new Error(`请求的接口不存在 (HTTP 404)。这可能是由于刚保存代码，服务方还没完全启动，请等待几秒后重新再试。原始返回: ${preview}`);
+        }
+        throw new Error(`服务端返回了非 JSON 数据，可能是 API 请求失败或网络异常 (HTTP ${response.status})。原始返回: ${preview}`);
       }
       
       const data = await response.json();
@@ -322,8 +328,13 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
             </button>
           </div>
           {importError && (
-            <div className="mt-2 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg text-xs leading-relaxed text-red-700 dark:text-red-400 break-words font-medium">
-              ❌ 导入失败：{importError}
+            <div className="mt-3 flex flex-col gap-2 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-red-700 dark:text-red-400">
+                <span>❌ 导入失败</span>
+              </div>
+              <div className="text-[11px] leading-relaxed text-red-600 dark:text-red-300 break-words whitespace-pre-wrap select-text">
+                {importError.replace(/^Error:\s*/, "")}
+              </div>
             </div>
           )}
         </div>
