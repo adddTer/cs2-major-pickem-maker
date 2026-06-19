@@ -45,8 +45,8 @@ async function startServer() {
 
   app.get("/api/config/steam", (req, res) => {
     const key = process.env.STEAM_API_KEY;
-    const hasKey = key && key.trim() !== "" && key !== '""' && key !== "''";
-    console.log("Config/Steam API called. Found key?", !!hasKey, "Key length:", key?.length);
+    const hasKey = key && key.trim().length === 32;
+    console.log("Config/Steam API called. Found valid key?", !!hasKey, "Key length:", key?.length);
     res.json({ hasSteamApiKey: !!hasKey });
   });
 
@@ -134,9 +134,9 @@ async function startServer() {
         return res.json({ error: "Steam官方API强制要求提供Steam ID。请在输入框中填入您的 Steam ID（例如 7656119...）。" });
       }
 
-      if (!developerkey) {
+      if (!developerkey || developerkey.trim().length !== 32) {
         return res.json({ 
-          error: "服务器缺少 STEAM_API_KEY。请在界面中配置您的 Steam 开发者 API Key。",
+          error: "服务器缺少有效的 STEAM_API_KEY。请在界面中配置您的 32位 Steam 开发者 API Key。",
           needsDeveloperKey: true
         });
       }
@@ -152,6 +152,13 @@ async function startServer() {
       const text = await response.text();
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          res.json({ 
+            error: `Steam API 拒绝访问 (${response.status})。您的 API Key 可能无效。请在界面中配置有效的开发者 API Key。`,
+            needsDeveloperKey: true
+          });
+          return;
+        }
         res.json({ error: `Steam API 报错 (${response.status})。请检查 Steam ID、Auth Code/鉴权链接 或 API Key 是否填写正确。` });
         return;
       }
