@@ -1,6 +1,6 @@
 import http from 'http';
 
-http.get('http://localhost:3000/api/steam-predictions?event=22&key=6TE7-HL9HY-C9&steamid=76561199076230000&developerkey=536BF84F671FD4E5733F111111111111', {
+http.get('http://localhost:3000/api/steam-predictions?event=22&key=6TE7-HL9HY-C9%0A&steamid=7656119907623%0A&developerkey=536BF84F671FD4E5733F111111111111', {
   headers: {
     'Accept': 'application/json'
   }

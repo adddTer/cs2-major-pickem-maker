@@ -133,11 +133,16 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const text = await response.text();
-        let preview = text.substring(0, 150).replace(/\s+/g, ' ');
-        if (response.status === 404) {
-           throw new Error(`请求的接口不存在 (HTTP 404)。这可能是由于刚保存代码，服务方还没完全启动，请等待几秒后重新再试。原始返回: ${preview}`);
+        
+        if (text.includes("<title>Site Not Found</title>") || text.includes("GitHub Pages")) {
+          throw new Error("当前应用运行在纯静态环境（如 GitHub Pages），缺少 Node.js 后端服务。由于 Steam 官方接口禁止跨域访问 (CORS)，必须依赖后端进行代理转发。请在 AI Studio 内运行，或将项目部署为全栈服务（如 Vercel/Cloud Run）。");
         }
-        throw new Error(`服务端返回了非 JSON 数据，可能是 API 请求失败或网络异常 (HTTP ${response.status})。原始返回: ${preview}`);
+
+        let preview = text.substring(0, 200).replace(/\s+/g, ' ');
+        if (response.status === 404) {
+           throw new Error(`无法连接到后端代理接口 (HTTP 404)。如果您当前不在 AI Studio 环境，请确保后端服务已正确启动。原始返回: ${preview}...`);
+        }
+        throw new Error(`服务异常 (HTTP ${response.status})。请确保后端正常运行。返回片段: ${preview}`);
       }
       
       const data = await response.json();
