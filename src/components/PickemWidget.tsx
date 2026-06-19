@@ -135,7 +135,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
 
       if (data.needsDeveloperKey) {
         setShowDeveloperKeyInput(true);
-        throw new Error("服务端未配置 STEAM_API_KEY，需要您自己提供开发者 API Key。");
+        throw new Error(data.error || "服务端未配置全局 Steam API Key，需要提供您自己的 Developer API Key。");
       }
 
       if (data.error || (!data.success && !data.result)) {
@@ -254,11 +254,11 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
           </div>
           
           {showDeveloperKeyInput ? (
-            <div className="flex flex-col gap-3 p-3 bg-red-50/50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl mb-2">
+            <div className={`flex flex-col gap-3 p-3 border rounded-xl mb-2 ${developerApiKey.length === 32 ? 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10' : 'bg-red-50/50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20'}`}>
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-bold text-red-600 dark:text-red-400">
-                    ⚠️ 必需: Steam Developer API Key
+                  <span className={`text-[12px] font-bold ${developerApiKey.length === 32 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-600 dark:text-red-400'}`}>
+                    {developerApiKey.length === 32 ? '已配置: Steam Developer API Key' : '⚠️ 必需: Steam Developer API Key'}
                   </span>
                   <a
                     href="https://steamcommunity.com/dev/apikey"
@@ -266,7 +266,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
                     rel="noreferrer"
                     className="text-[10px] text-blue-500 hover:text-blue-400 font-bold underline"
                   >
-                    前往申请 (域名随意)
+                    前往免费申请
                   </a>
                 </div>
                 <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
@@ -280,7 +280,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
                   setDeveloperApiKey(e.target.value);
                   localStorage.setItem("steam_developer_api_key", e.target.value);
                 }}
-                className="w-full bg-white dark:bg-black border border-red-300 dark:border-red-500/50 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none focus:border-red-500 transition-colors shadow-inner"
+                className={`w-full bg-white dark:bg-black border rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none transition-colors shadow-inner ${developerApiKey.length === 32 ? 'border-zinc-300 dark:border-zinc-700 focus:border-blue-500' : 'border-red-300 dark:border-red-500/50 focus:border-red-500'}`}
                 placeholder="在此粘贴 32 位 Steam Web API Key..."
               />
             </div>

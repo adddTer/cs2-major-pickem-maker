@@ -153,13 +153,14 @@ async function startServer() {
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
+          const isKeyMissing = !developerkey || developerkey.length !== 32;
           res.json({ 
-            error: `Steam API 拒绝访问 (${response.status})。您的 API Key 可能无效。请在界面中配置有效的开发者 API Key。`,
-            needsDeveloperKey: true
+            error: `Steam API 拒绝访问 (${response.status})。可能是您的 Auth Code 错误/已过期，也可能是 API Key 无效。`,
+            needsDeveloperKey: isKeyMissing
           });
           return;
         }
-        res.json({ error: `Steam API 报错 (${response.status})。请检查 Steam ID、Auth Code/鉴权链接 或 API Key 是否填写正确。` });
+        res.json({ error: `Steam API 报错 (${response.status})。请检查 Steam ID、Auth Code 或是 API Key 是否填写正确。` });
         return;
       }
 
