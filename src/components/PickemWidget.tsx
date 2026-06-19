@@ -143,7 +143,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
       }
 
       if (!steamid || steamid === "0") {
-         throw new Error("官方接口强制要求提供 Steam ID。请在输入框中填入您的 Steam ID（形如 7656119...）。");
+         throw new Error("请在输入框中填入您的 Steam ID（形如 7656119...）。");
       }
 
       if (!developerkey || developerkey.length !== 32) {
@@ -161,7 +161,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
         fetch(proxyApiUrl),
         fetch(proxyLayoutUrl)
       ]).catch((err) => {
-        throw new Error(`网络连接失败 (fetch failed)。如果您正在使用浏览器插件拦截请求，请关闭后重试。详情: ${err.message}`);
+        throw new Error(`网络连接失败，请稍后再试。`);
       });
 
       const text = await response.text();
@@ -174,9 +174,9 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
         if (response.status === 401 || response.status === 403) {
           const isKeyMissing = !developerkey || developerkey.length !== 32;
           if (isKeyMissing) setShowDeveloperKeyInput(true);
-          throw new Error(`Steam API 拒绝访问 (${response.status})。可能是 Auth Code 过期或 API Key 无效。官方服务器返回的原始错误信息: ${rawResponse}`);
+          throw new Error(`获取失败，请稍后再试。`);
         }
-        throw new Error(`Steam API 报错 (${response.status})。官方服务器返回: ${rawResponse}`);
+        throw new Error(`获取失败，请稍后再试。`);
       }
 
       let steamData;
@@ -184,7 +184,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
       try {
         steamData = JSON.parse(text);
       } catch (err) {
-        throw new Error("Steam返回了无效的数据格式（意外的网页内容）。请确认填写的鉴权链接正确无误。");
+        throw new Error("获取失败，请稍后再试。");
       }
 
       if (layoutResponse.ok) {
@@ -349,13 +349,13 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
                 <div className="flex items-start justify-between">
                   <div className="flex flex-col">
                     <span className={`text-[13px] font-bold ${cleanKeyLength === 32 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-700 dark:text-red-400'}`}>
-                      {cleanKeyLength === 32 ? '✅ 已配置: Steam Developer API Key' : '⚠️ 为什么需要提供 Steam API Key？'}
+                      {cleanKeyLength === 32 ? '已配置: Steam Developer API Key' : '请填写：Steam Developer API Key'}
                     </span>
                     <span className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-1 leading-relaxed">
-                      第三方竞猜网站通常使用他们自建的服务器 API Key。但由于我们是开源自建工具，没有全局密钥，所以需要您<b>自己申请一个</b>才能访问 Steam 官方服务器。
+                      您需要自己申请一个<b> Steam Developer API Key </b>才能访问 Steam 官方服务器。
                     </span>
                     <span className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-1 leading-relaxed">
-                      <b>关于域名：</b>Steam 申请页面会要求填写一个“域名 (Domain Name)”，这只是走个流程，您可以<b>随意填写</b>，例如 <code>localhost</code> 或者 <code>abc.com</code>。
+                      <b>关于要求填写的域名：</b>您可以<b>随意填写</b>。
                     </span>
                   </div>
                 </div>
@@ -369,7 +369,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
                     localStorage.setItem("steam_developer_api_key", e.target.value.trim());
                   }}
                   className={`flex-1 bg-white dark:bg-black border rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 outline-none transition-colors shadow-inner ${cleanKeyLength === 32 ? 'border-zinc-300 dark:border-zinc-700 focus:border-blue-500' : 'border-red-300 dark:border-red-500/50 focus:border-red-500'}`}
-                  placeholder="在此粘贴 32 位 Steam Web API Key..."
+                  placeholder="Steam Developer API Key"
                 />
                 <a
                   href="https://steamcommunity.com/dev/apikey"
@@ -377,7 +377,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
                   rel="noreferrer"
                   className="px-4 py-2 bg-zinc-800 dark:bg-zinc-200 text-white dark:text-black hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0"
                 >
-                  前往 Steam 免费申请
+                  前往 Steam 申请
                 </a>
               </div>
             </div>
@@ -409,7 +409,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
           {importError && (
             <div className="mt-3 flex flex-col gap-2 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg">
               <div className="flex items-center gap-1.5 text-xs font-bold text-red-700 dark:text-red-400">
-                <span>❌ 导入失败</span>
+                <span>导入失败</span>
               </div>
               <div className="text-[11px] leading-relaxed text-red-600 dark:text-red-300 break-words whitespace-pre-wrap select-text">
                 {importError.replace(/^Error:\s*/, "")}
