@@ -155,15 +155,19 @@ async function startServer() {
       const text = await response.text();
 
       if (!response.ok) {
+        let rawResponse = text.trim();
+        if (rawResponse.length > 300) {
+          rawResponse = rawResponse.substring(0, 300) + '...';
+        }
         if (response.status === 401 || response.status === 403) {
           const isKeyMissing = !developerkey || developerkey.length !== 32;
           res.json({ 
-            error: `Steam API 拒绝访问 (${response.status})。可能是您的 Auth Code 错误/已过期，也可能是 API Key 无效。`,
+            error: `Steam API 拒绝访问 (${response.status})。可能是 Auth Code 过期或 API Key 无效。官方服务器返回的原始错误信息: ${rawResponse}`,
             needsDeveloperKey: isKeyMissing
           });
           return;
         }
-        res.json({ error: `Steam API 报错 (${response.status})。请检查 Steam ID、Auth Code 或是 API Key 是否填写正确。` });
+        res.json({ error: `Steam API 报错 (${response.status})。官方服务器返回: ${rawResponse}` });
         return;
       }
 
