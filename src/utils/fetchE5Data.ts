@@ -506,7 +506,7 @@ export async function fetchAndPatchCSGOData(currentEvent?: TournamentEvent, isAu
                   externalId,
                   team1Id: t1Id,
                   team2Id: t2Id,
-                  format: "bo3",
+                  format: m.format === "3" ? "bo3" : m.format === "5" ? "bo5" : (roundDesc[idx] === "final" ? "bo5" : "bo3"),
                   status: m.status,
                   time: matchTime,
                   star: star,
