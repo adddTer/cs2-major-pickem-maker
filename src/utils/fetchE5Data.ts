@@ -819,7 +819,7 @@ export async function fetchAndPatchCSGOData(currentEvent?: TournamentEvent, isAu
                 if (
                   m.score1 !== undefined &&
                   m.score2 !== undefined &&
-                  (m.score1 === 2 || m.score2 === 2)
+                  (m.score1 >= 2 || m.score2 >= 2)
                 ) {
                   pushSlot(
                     "champion",
@@ -882,7 +882,7 @@ export async function fetchAndPatchCSGOData(currentEvent?: TournamentEvent, isAu
                 if (
                   m.score1 !== undefined &&
                   m.score2 !== undefined &&
-                  (m.score1 === 2 || m.score2 === 2)
+                  (m.score1 >= 2 || m.score2 >= 2)
                 ) {
                   actualPlayoffsWithGaps.push({
                     id: `act-p-${pId++}`,

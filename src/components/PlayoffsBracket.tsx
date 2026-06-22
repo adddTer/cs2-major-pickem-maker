@@ -60,7 +60,7 @@ export const BracketSlot: React.FC<{
       }
       onClick={() => slot && onClick && onClick(slot.id, slot.teamId)}
       className={cn(
-        "w-[180px] h-[40px] rounded-[6px] flex items-center px-3 gap-2 border transition-colors relative overflow-hidden",
+        "w-[180px] h-[40px] rounded-[6px] flex items-center px-2.5 gap-2 border transition-colors relative overflow-hidden",
         onClick ? "cursor-pointer" : !readOnly ? "cursor-pointer" : "",
         team
           ? cn(
@@ -98,7 +98,7 @@ export const BracketSlot: React.FC<{
                 {slot.score}
               </span>
             </div>
-          ) : (
+          ) : (slot?.bottomText || slot?.isLive) ? (
             <div className="flex flex-col items-center justify-center min-w-[24px] shrink-0 relative h-full">
               {slot?.bottomText ? (
                 <div className="text-[10px] sm:text-xs font-mono font-bold text-emerald-400 shrink-0">
@@ -111,7 +111,7 @@ export const BracketSlot: React.FC<{
                 </span>
               )}
             </div>
-          )}
+          ) : null}
         </>
       ) : (
         <span

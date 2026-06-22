@@ -7,6 +7,7 @@ interface MatchAnalyticsProps {
   analysisData?: any;
   t1: any;
   t2: any;
+  isReversed?: boolean;
 }
 
 export const MatchAnalytics: React.FC<MatchAnalyticsProps> = ({
@@ -14,6 +15,7 @@ export const MatchAnalytics: React.FC<MatchAnalyticsProps> = ({
   analysisData,
   t1,
   t2,
+  isReversed,
 }) => {
   const currentBout =
     matchData?.bouts_state?.[matchData.bouts_state.length - 1];
@@ -22,8 +24,13 @@ export const MatchAnalytics: React.FC<MatchAnalyticsProps> = ({
   const getTeamPowerAverages = () => {
     if (!analysisData?.power_comparison) return null;
 
-    const t1PowerStats = analysisData.power_comparison.t1_player_stats;
-    const t2PowerStats = analysisData.power_comparison.t2_player_stats;
+    let t1PowerStats = analysisData.power_comparison.t1_player_stats;
+    let t2PowerStats = analysisData.power_comparison.t2_player_stats;
+
+    if (isReversed) {
+      t1PowerStats = analysisData.power_comparison.t2_player_stats;
+      t2PowerStats = analysisData.power_comparison.t1_player_stats;
+    }
 
     if (
       !t1PowerStats ||
@@ -62,8 +69,13 @@ export const MatchAnalytics: React.FC<MatchAnalyticsProps> = ({
   if (prStats.length === 0 && !powerAverages) return null;
 
   const getPlayerInfo = (playerId: string, teamSide: "t1" | "t2") => {
+    let actualSide = teamSide;
+    if (isReversed) {
+      if (teamSide === "t1") actualSide = "t2";
+      if (teamSide === "t2") actualSide = "t1";
+    }
     const statsList =
-      teamSide === "t1" ? currentBout?.t1_pr_stats : currentBout?.t2_pr_stats;
+      actualSide === "t1" ? currentBout?.t1_pr_stats : currentBout?.t2_pr_stats;
     if (!statsList) return null;
     return statsList.find((p: any) => p.id === playerId);
   };
@@ -84,18 +96,18 @@ export const MatchAnalytics: React.FC<MatchAnalyticsProps> = ({
               ) : (
                 <span className="text-zinc-800 dark:text-zinc-300 text-[11px] font-bold">{t1?.name}</span>
               )}
-              {analysisData?.comparison?.t1_stats && (
+              {analysisData?.comparison && (
                 <div className="flex gap-3 text-[10px] font-mono tracking-tighter">
                   <span className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">
                     WIN:{" "}
                     <span className="text-emerald-400 font-bold">
-                      {analysisData.comparison.t1_stats.win_rate}%
+                      {isReversed ? analysisData.comparison.t2_stats?.win_rate : analysisData.comparison.t1_stats?.win_rate}%
                     </span>
                   </span>
                   <span className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">
                     KD:{" "}
                     <span className="text-emerald-400 font-bold">
-                      {analysisData.comparison.t1_stats.kd}
+                      {isReversed ? analysisData.comparison.t2_stats?.kd : analysisData.comparison.t1_stats?.kd}
                     </span>
                   </span>
                 </div>
@@ -157,18 +169,18 @@ export const MatchAnalytics: React.FC<MatchAnalyticsProps> = ({
               ) : (
                 <span className="text-zinc-800 dark:text-zinc-300 text-[11px] font-bold">{t2?.name}</span>
               )}
-              {analysisData?.comparison?.t2_stats && (
+              {analysisData?.comparison && (
                 <div className="flex gap-3 text-[10px] font-mono tracking-tighter">
                   <span className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">
                     WIN:{" "}
                     <span className="text-amber-400 font-bold">
-                      {analysisData.comparison.t2_stats.win_rate}%
+                      {isReversed ? analysisData.comparison.t1_stats?.win_rate : analysisData.comparison.t2_stats?.win_rate}%
                     </span>
                   </span>
                   <span className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">
                     KD:{" "}
                     <span className="text-amber-400 font-bold">
-                      {analysisData.comparison.t2_stats.kd}
+                      {isReversed ? analysisData.comparison.t1_stats?.kd : analysisData.comparison.t2_stats?.kd}
                     </span>
                   </span>
                 </div>

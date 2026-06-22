@@ -6,6 +6,7 @@ interface MatchStatsProps {
   matchData: any;
   t1: any;
   t2: any;
+  isReversed?: boolean;
 }
 
 const mapTranslation: Record<string, string> = {
@@ -20,7 +21,7 @@ const mapTranslation: Record<string, string> = {
   "Train": "列车停放站",
 };
 
-function computeOverallStats(boutsList: any[]): any {
+function computeOverallStats(boutsList: any[], isReversed?: boolean): any {
   if (boutsList.length <= 1) return null;
 
   const t1_players: Record<string, any> = {};
@@ -73,8 +74,13 @@ function computeOverallStats(boutsList: any[]): any {
       });
     };
 
-    processTeam(b.t1_pr_stats, t1_players);
-    processTeam(b.t2_pr_stats, t2_players);
+    if (isReversed) {
+      processTeam(b.t2_pr_stats, t1_players);
+      processTeam(b.t1_pr_stats, t2_players);
+    } else {
+      processTeam(b.t1_pr_stats, t1_players);
+      processTeam(b.t2_pr_stats, t2_players);
+    }
   });
 
   const finalizeTeam = (playerMap: Record<string, any>) => {
@@ -113,7 +119,7 @@ function computeOverallStats(boutsList: any[]): any {
   };
 }
 
-export const MatchStats: React.FC<MatchStatsProps> = ({ matchData, t1, t2 }) => {
+export const MatchStats: React.FC<MatchStatsProps> = ({ matchData, t1, t2, isReversed }) => {
   const [activeBoutIndex, setActiveBoutIndex] = useState(0);
 
   useEffect(() => {
@@ -124,7 +130,7 @@ export const MatchStats: React.FC<MatchStatsProps> = ({ matchData, t1, t2 }) => 
     if (!matchData?.bouts_state) return [];
     let bs = matchData.bouts_state.filter((b: any) => b.t1_pr_stats?.length > 0 && b.t2_pr_stats?.length > 0);
     if (bs.length > 1) {
-       const overall = computeOverallStats(bs);
+       const overall = computeOverallStats(bs, isReversed);
        if (overall) {
           bs = [overall, ...bs];
        }
@@ -246,8 +252,8 @@ export const MatchStats: React.FC<MatchStatsProps> = ({ matchData, t1, t2 }) => 
       </div>
 
       <div className="bg-zinc-100/80 dark:bg-zinc-900/80 border border-black/5 dark:border-white/5 rounded-xl p-3 pt-5 flex flex-col items-center">
-        {renderTable(t1, activeBout.t1_pr_stats, true)}
-        {renderTable(t2, activeBout.t2_pr_stats, false)}
+        {renderTable(t1, isReversed ? activeBout.t2_pr_stats : activeBout.t1_pr_stats, true)}
+        {renderTable(t2, isReversed ? activeBout.t1_pr_stats : activeBout.t2_pr_stats, false)}
       </div>
     </div>
   );

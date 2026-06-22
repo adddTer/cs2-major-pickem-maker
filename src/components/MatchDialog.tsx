@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { BracketMatch } from "../types";
 import { Modal } from "./Modal";
 import { cn } from "../lib/utils";
@@ -16,6 +16,7 @@ interface MapVetoDisplayProps {
   t1?: { name: string; shortName?: string; logo?: string };
   t2?: { name: string; shortName?: string; logo?: string };
   maps?: { score1?: number; score2?: number }[];
+  isReversed?: boolean;
 }
 
 const mapTranslations: Record<string, string> = {
@@ -36,6 +37,7 @@ const MapVetoDisplay: React.FC<MapVetoDisplayProps & { matchData?: any }> = ({
   t2,
   maps,
   matchData,
+  isReversed,
 }) => {
   const [vetoData, setVetoData] = useState<any[]>([]);
 
@@ -63,183 +65,207 @@ const MapVetoDisplay: React.FC<MapVetoDisplayProps & { matchData?: any }> = ({
 
   const getVetoLabel = (type: string) => {
     if (type === "left") return "DECIDER";
-
     const isPick = type.includes("pick");
     const isBan = type.includes("ban");
-
     if (isPick) return "PICK";
     if (isBan) return "BAN";
     return type.toUpperCase();
   };
 
+  const mapsWithScores = vetoData.map((mapInfo, i) => {
+    let type = mapInfo.bp_type;
+    let side = mapInfo.team_side;
+    if (!side) {
+      if (type.startsWith("t1_")) {
+        side = "t1";
+        type = type.replace("t1_", "");
+      }
+      if (type.startsWith("t2_")) {
+        side = "t2";
+        type = type.replace("t2_", "");
+      }
+    }
+
+    const isBan = type.includes("ban");
+    const isPick = type.includes("pick");
+    const isLeft = type === "left";
+    const isCurrentlyPlaying = isPick || isLeft;
+    const bgm = mapInfo.bgm || mapInfo.map_logo;
+    const icon = mapInfo.icon || mapInfo.map_icon;
+    const name = mapInfo.name || mapInfo.map_name;
+    const nameZh = mapTranslations[name] || mapInfo.name_zh || name;
+
+    let activeTeam = null;
+    let actualSide = side;
+    if (isReversed) {
+      if (side === "t1") actualSide = "t2";
+      else if (side === "t2") actualSide = "t1";
+    }
+
+    if (actualSide === "t1") activeTeam = t1;
+    else if (actualSide === "t2") activeTeam = t2;
+
+    let scoreItem = undefined;
+    if (isCurrentlyPlaying) {
+      const playedBefore = vetoData.slice(0, i).filter((m) => {
+        const t = m.bp_type || "";
+        return t.includes("pick") || t === "left";
+      }).length;
+
+      if (matchData?.bouts_state) {
+        const bout = matchData?.bouts_state?.[playedBefore];
+        if (bout?.t1_stats?.all_score !== undefined && bout?.t2_stats?.all_score !== undefined && bout?.t1_stats?.all_score !== "") {
+          const h1 = bout.t1_stats.half_score?.split(",") || [];
+          const h2 = bout.t2_stats.half_score?.split(",") || [];
+          
+          if (isReversed) {
+            scoreItem = {
+              score1: parseInt(bout.t2_stats.all_score, 10),
+              score2: parseInt(bout.t1_stats.all_score, 10),
+              half1: h2,
+              half2: h1,
+            };
+          } else {
+            scoreItem = {
+              score1: parseInt(bout.t1_stats.all_score, 10),
+              score2: parseInt(bout.t2_stats.all_score, 10),
+              half1: h1,
+              half2: h2,
+            };
+          }
+        }
+      }
+      if (!scoreItem && maps) {
+        scoreItem = maps[playedBefore];
+        if (scoreItem && isReversed && scoreItem.score1 !== undefined && scoreItem.score2 !== undefined) {
+           scoreItem = {
+               ...scoreItem,
+               score1: scoreItem.score2,
+               score2: scoreItem.score1
+           };
+        }
+      }
+    }
+
+    return {
+      mapInfo, type, side, isBan, isPick, isLeft, isCurrentlyPlaying,
+      bgm, icon, name, nameZh, activeTeam, scoreItem
+    };
+  });
+
+  const playMaps = mapsWithScores.filter(m => m.isCurrentlyPlaying);
+  const banMaps = mapsWithScores.filter(m => m.isBan);
+
   return (
-    <div className="flex flex-col gap-3 mt-4 w-full px-1">
-      <h4 className="text-[11px] font-medium text-white/50 tracking-widest px-1">
-        地图 BP
+    <div className="flex flex-col gap-5 mt-5 w-full px-1">
+      {/* Played Maps Header */}
+      <h4 className="text-[11px] font-medium text-zinc-500 dark:text-zinc-500 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+        <span className="h-[1px] flex-1 bg-black/5 dark:bg-white/5"></span>
+        对阵地图
+        <span className="h-[1px] flex-1 bg-black/5 dark:bg-white/5"></span>
       </h4>
-      <div className="flex flex-col gap-2 relative">
-        {vetoData.map((mapInfo, i) => {
-          // handle both old format (bp_type: t1_ban) and new format (bp_type: ban, team_side: t1)
-          let type = mapInfo.bp_type;
-          let side = mapInfo.team_side;
-          if (!side) {
-            if (type.startsWith("t1_")) {
-              side = "t1";
-              type = type.replace("t1_", "");
-            }
-            if (type.startsWith("t2_")) {
-              side = "t2";
-              type = type.replace("t2_", "");
-            }
-          }
-
-          const isBan = type.includes("ban");
-          const isPick = type.includes("pick");
-          const isLeft = type === "left";
-
-          const isCurrentlyPlaying = isPick || isLeft;
-          const bgm = mapInfo.bgm || mapInfo.map_logo;
-          const icon = mapInfo.icon || mapInfo.map_icon;
-          const name = mapInfo.name || mapInfo.map_name;
-          const nameZh = mapTranslations[name] || mapInfo.name_zh || name;
-
-          let activeTeam = null;
-          if (side === "t1") activeTeam = t1;
-          else if (side === "t2") activeTeam = t2;
-
-          // Count played maps before this one to find score index
-          let scoreItem = undefined;
-          if (isCurrentlyPlaying) {
-            const playedBefore = vetoData.slice(0, i).filter((m) => {
-              const t = m.bp_type || "";
-              return t.includes("pick") || t === "left";
-            }).length;
-
-            if (matchData?.bouts_state) {
-              const bout = matchData?.bouts_state?.[playedBefore];
-              if (bout?.t1_stats?.all_score !== undefined && bout?.t2_stats?.all_score !== undefined && bout?.t1_stats?.all_score !== "") {
-                scoreItem = {
-                  score1: parseInt(bout.t1_stats.all_score, 10),
-                  score2: parseInt(bout.t2_stats.all_score, 10),
-                };
-              }
-            }
-            if (!scoreItem && maps) {
-              scoreItem = maps[playedBefore];
-            }
-          }
-
-          return (
-            <div
-              key={i}
-              className={cn(
-                "relative group overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-black/5 dark:border-white/5 flex items-center justify-between",
-                isLive && isCurrentlyPlaying
-                  ? "ring-1 ring-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
-                  : "h-[42px]",
-              )}
-            >
-              {bgm && (
-                <div className="absolute inset-0 z-0 select-none pointer-events-none">
-                  <div
-                    className={cn(
-                      "absolute inset-0 z-10",
-                      isBan
-                        ? "bg-zinc-50/90 dark:bg-zinc-950/90"
-                        : "bg-gradient-to-r from-zinc-100 dark:from-zinc-900 via-zinc-100/90 dark:via-zinc-900/80 to-transparent",
-                    )}
-                  ></div>
-                  <img
-                    src={bgm}
-                    className={cn(
-                      "w-full h-full object-cover",
-                      isBan
-                        ? "opacity-10 grayscale"
-                        : "opacity-30 grayscale-[0.8] group-hover:grayscale-0",
-                    )}
-                    referrerPolicy="no-referrer"
-                  />
+      
+      <div className="flex flex-col gap-3">
+        {playMaps.map((m, i) => (
+          <div
+            key={i}
+            className={cn(
+              "relative h-20 sm:h-24 overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-black/5 dark:border-white/5 shadow-md flex flex-col group",
+              isLive ? "ring-1 ring-emerald-500/30" : ""
+            )}
+          >
+            {m.bgm && (
+              <div className="absolute inset-0 z-0 select-none pointer-events-none">
+                <div className="absolute inset-0 z-10 bg-gradient-to-r from-white/90 via-white/70 to-white/90 dark:from-zinc-950/90 dark:via-zinc-950/60 dark:to-zinc-950/90"></div>
+                <img
+                  src={m.bgm}
+                  className="w-full h-full object-cover opacity-60 dark:opacity-50 grayscale-[0.6] group-hover:grayscale-0 transition-all duration-700"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+            )}
+            
+            <div className="relative z-10 flex items-center justify-between px-3 sm:px-5 h-full">
+              {/* Team 1 area */}
+              <div className="flex items-center gap-3 w-[25%] sm:w-[20%] justify-start">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 relative flex items-center justify-center bg-white/50 dark:bg-black/30 rounded-full shadow-sm border border-black/5 dark:border-white/5 p-1 backdrop-blur-sm">
+                  {t1 ? <TeamLogo team={t1 as any} fallbackClasses="w-7 h-7 sm:w-8 sm:h-8 object-contain drop-shadow" /> : null}
                 </div>
-              )}
-
-              <div className="relative z-10 px-3 py-2 flex items-center gap-3">
-                {icon && (
-                  <img
-                    src={icon}
-                    className={cn(
-                      "w-6 h-6 invert drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]",
-                      isCurrentlyPlaying
-                        ? "opacity-100"
-                        : isBan
-                          ? "opacity-20"
-                          : "opacity-60",
-                    )}
-                    referrerPolicy="no-referrer"
-                  />
-                )}
-                <span
-                  className={cn(
-                    "text-sm font-medium tracking-wide",
-                    isBan
-                      ? "text-zinc-500 dark:text-zinc-400"
-                      : isCurrentlyPlaying
-                        ? "text-emerald-600 dark:text-emerald-400 font-bold"
-                        : "text-zinc-900 dark:text-zinc-200",
+              </div>
+              
+              {/* Center Map Info & Score */}
+              <div className="flex flex-col items-center justify-center flex-1">
+                <div className="flex items-center gap-1.5 mb-1 sm:mb-1.5">
+                  {m.icon && <img src={m.icon} className="w-3.5 h-3.5 invert opacity-60 dark:opacity-70 dark:brightness-200" referrerPolicy="no-referrer" />}
+                  <span className="text-[11px] sm:text-[12px] font-bold text-zinc-900 dark:text-zinc-100 tracking-widest drop-shadow-sm">{m.nameZh}</span>
+                  {m.activeTeam && (
+                    <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded leading-none ml-1 transform -translate-y-[0.5px]">
+                      {m.isLeft ? "DECIDER" : `${m.activeTeam.shortName || m.activeTeam.name} PICK`}
+                    </span>
                   )}
-                >
-                  {nameZh}
-                </span>
+                  {!m.activeTeam && m.isLeft && (
+                     <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded leading-none ml-1 transform -translate-y-[0.5px]">
+                      DECIDER
+                    </span>
+                  )}
+                </div>
+                
+                {m.scoreItem ? (
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-end gap-3 text-2xl sm:text-3xl font-mono font-black tabular-nums drop-shadow-md">
+                      <span className={cn((m.scoreItem.score1 ?? 0) > (m.scoreItem.score2 ?? 0) ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-800 dark:text-white/90")}>
+                        {m.scoreItem.score1}
+                      </span>
+                      <span className="text-zinc-400 dark:text-white/30 text-xl font-light pb-0.5">-</span>
+                      <span className={cn((m.scoreItem.score2 ?? 0) > (m.scoreItem.score1 ?? 0) ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-800 dark:text-white/90")}>
+                        {m.scoreItem.score2}
+                      </span>
+                    </div>
+                    {/* Half-time scores */}
+                    {m.scoreItem.half1 && m.scoreItem.half1.length > 0 && (
+                      <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-zinc-500 dark:text-zinc-400 font-medium tracking-tighter">
+                        {m.scoreItem.half1.map((h: string, idx: number) => (
+                           <span key={idx} className="bg-black/5 dark:bg-white/5 px-1.5 py-0.5 rounded-sm border border-black/5 dark:border-white/5">
+                              {h}:{m.scoreItem.half2?.[idx] || 0}
+                           </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-zinc-400 dark:text-zinc-500 text-xs font-medium tracking-widest mt-1">未开始</div>
+                )}
               </div>
 
-              <div className="relative z-10 flex items-center gap-3 pr-3">
-                {scoreItem && (
-                  <div className="flex items-center gap-1.5 font-mono text-[13px] bg-zinc-200/40 dark:bg-black/40 px-2.5 py-0.5 rounded border border-black/5 dark:border-white/5">
-                    <span
-                      className={cn(
-                        (scoreItem.score1 ?? 0) > (scoreItem.score2 ?? 0)
-                          ? "text-emerald-600 dark:text-emerald-400 font-bold"
-                          : "text-zinc-800 dark:text-zinc-300",
-                      )}
-                    >
-                      {scoreItem.score1}
-                    </span>
-                    <span className="text-zinc-500 dark:text-zinc-600">-</span>
-                    <span
-                      className={cn(
-                        (scoreItem.score2 ?? 0) > (scoreItem.score1 ?? 0)
-                          ? "text-emerald-600 dark:text-emerald-400 font-bold"
-                          : "text-zinc-800 dark:text-zinc-300",
-                      )}
-                    >
-                      {scoreItem.score2}
-                    </span>
-                  </div>
-                )}
-
-                <div
-                  className={cn(
-                    "flex items-center gap-2 pl-2 pr-2 py-1 rounded backdrop-blur-sm border",
-                    isBan
-                      ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
-                      : isLeft
-                        ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                        : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-                  )}
-                >
-                  {activeTeam && (
-                    <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-                      <TeamLogo team={activeTeam as any} fallbackClasses="text-[8px]" />
-                    </div>
-                  )}
-                  <span className="text-[10px] font-bold tracking-widest leading-none pt-[1px]">
-                    {getVetoLabel(type)}
-                  </span>
+              {/* Team 2 area */}
+              <div className="flex items-center gap-3 w-[25%] sm:w-[20%] justify-end">
+                 <div className="w-10 h-10 sm:w-12 sm:h-12 relative flex items-center justify-center bg-white/50 dark:bg-black/30 rounded-full shadow-sm border border-black/5 dark:border-white/5 p-1 backdrop-blur-sm">
+                  {t2 ? <TeamLogo team={t2 as any} fallbackClasses="w-7 h-7 sm:w-8 sm:h-8 object-contain drop-shadow" /> : null}
                 </div>
               </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
+
+      {/* Ban Maps Footer */}
+      {banMaps.length > 0 && (
+        <div className="mt-2 flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 justify-center">
+            {banMaps.map((m, i) => (
+              <div key={i} className="flex items-center gap-1.5 px-2 py-1 bg-zinc-100 dark:bg-zinc-900 border border-black/5 dark:border-white/5 rounded-md text-[10px] text-zinc-600 dark:text-zinc-400">
+                {m.activeTeam && (
+                   <div className="w-3.5 h-3.5 flex items-center justify-center opacity-80">
+                      <TeamLogo team={m.activeTeam as any} fallbackClasses="w-3 h-3" />
+                   </div>
+                )}
+                <span className="font-bold text-rose-500/80 mr-0.5">BAN</span>
+                <span className="tracking-wide">{m.nameZh}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -313,23 +339,23 @@ const MatchPrediction: React.FC<{
   }
 
   return (
-    <div className="flex flex-col gap-2 mt-2 pt-4 px-1 w-full border-t border-black/5 dark:border-white/5">
-      <h4 className="text-[11px] font-medium text-zinc-500 dark:text-white/50 tracking-widest px-1 text-center">
-        预测
-      </h4>
-      <div className="flex items-center w-full h-1.5 rounded-full overflow-hidden bg-white dark:bg-black border border-black/5 dark:border-white/5 mt-1">
-        <div style={{ width: `${(probT1 * 100).toFixed(1)}%` }} className={`h-full ${t1BarColor} transition-all`}></div>
-        <div style={{ width: `${((1 - probT1) * 100).toFixed(1)}%` }} className={`h-full ${t2BarColor} transition-all`}></div>
-      </div>
-      <div className="flex items-center justify-between px-1 mt-0.5">
-        <span className={`text-[11px] font-mono ${t1TextColor}`}>
+    <div className="flex flex-col gap-1 w-full px-2">
+      <div className="flex items-center justify-between px-1 mb-1">
+         <span className={cn("text-[11px] font-mono font-medium tracking-wide", t1TextColor)}>
           {winner === 1 && "✓ "}
           {(probT1 * 100).toFixed(1)}%
         </span>
-        <span className={`text-[11px] font-mono ${t2TextColor}`}>
+        <h4 className="text-[10px] uppercase font-bold text-zinc-400 dark:text-zinc-500 tracking-[0.2em]">
+          预测体量
+        </h4>
+        <span className={cn("text-[11px] font-mono font-medium tracking-wide", t2TextColor)}>
           {((1 - probT1) * 100).toFixed(1)}%
           {winner === 2 && " ✓"}
         </span>
+      </div>
+      <div className="flex items-center w-full h-1.5 sm:h-2 rounded-full overflow-hidden bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 mx-1">
+        <div style={{ width: `${(probT1 * 100).toFixed(1)}%` }} className={`h-full ${t1BarColor} transition-all`}></div>
+        <div style={{ width: `${((1 - probT1) * 100).toFixed(1)}%` }} className={`h-full ${t2BarColor} transition-all`}></div>
       </div>
     </div>
   );
@@ -345,6 +371,74 @@ export const MatchDialog: React.FC<{
   const [matchData, setMatchData] = useState<any>(null);
   const [analysisData, setAnalysisData] = useState<any>(null);
   const prevMatchId = React.useRef<string>("");
+
+  const t1 = match?.team1Id ? TEAMS.find((t) => t.id === match.team1Id) : null;
+  const t2 = match?.team2Id ? TEAMS.find((t) => t.id === match.team2Id) : null;
+  const t1NameStr = t1 ? t1.shortName || t1.name : match?.team1Id || "待定";
+  const t2NameStr = t2 ? t2.shortName || t2.name : match?.team2Id || "待定";
+
+  const isReversedApi = useMemo(() => {
+    if (!matchData?.result?.t1_name) return false;
+    const apiT1 = matchData.result.t1_name.toLowerCase();
+    const apiT2 = matchData.result.t2_name?.toLowerCase() || '';
+    const uiT1 = t1NameStr.toLowerCase();
+    const uiT2 = t2NameStr.toLowerCase();
+    
+    const uiT1_full = t1?.name?.toLowerCase() || uiT1;
+    const uiT2_full = t2?.name?.toLowerCase() || uiT2;
+    
+    const getScore = (a: string, b: string, fullB: string) => {
+      if (!a || !b) return 0;
+      if (a === b || a === fullB) return 100;
+      if (a.includes(b) || b.includes(a) || a.includes(fullB) || fullB.includes(a)) return 50;
+      return 0;
+    };
+
+    const directScore = getScore(apiT1, uiT1, uiT1_full) + getScore(apiT2, uiT2, uiT2_full);
+    const crossScore = getScore(apiT1, uiT2, uiT2_full) + getScore(apiT2, uiT1, uiT1_full);
+    
+    return crossScore > directScore;
+  }, [matchData, t1NameStr, t2NameStr, t1, t2]);
+
+  const isActuallyReversed = useMemo(() => {
+    if (!match) return false;
+    
+    let t1MapWins = 0;
+    let t2MapWins = 0;
+    
+    if (matchData?.bouts_state) {
+      Object.keys(matchData.bouts_state).forEach(key => {
+        const bout = matchData.bouts_state[key];
+        if (bout?.t1_stats?.all_score !== undefined && bout?.t2_stats?.all_score !== undefined) {
+          const s1 = parseInt(bout.t1_stats.all_score, 10);
+          const s2 = parseInt(bout.t2_stats.all_score, 10);
+          if (s1 > s2) t1MapWins++;
+          else if (s2 > s1) t2MapWins++;
+        }
+      });
+    } else if (match.maps) {
+      match.maps.forEach(map => {
+        if (map.score1 !== undefined && map.score2 !== undefined) {
+           if (map.score1 > map.score2) t1MapWins++;
+           else if (map.score2 > map.score1) t2MapWins++;
+        }
+      });
+    }
+
+    const s1 = match.score1 ?? 0;
+    const s2 = match.score2 ?? 0;
+    
+    if ((t1MapWins > 0 || t2MapWins > 0) && (s1 > 0 || s2 > 0)) {
+       if (t1MapWins === s2 && t2MapWins === s1 && t1MapWins !== t2MapWins) {
+          return true; 
+       }
+       if (t1MapWins === s1 && t2MapWins === s2 && t1MapWins !== t2MapWins) {
+          return false;
+       }
+    }
+    
+    return isReversedApi;
+  }, [matchData, match?.maps, match?.score1, match?.score2, isReversedApi]);
 
   const fetchLiveStreams = async () => {
     if (!match?.externalId) return;
@@ -432,11 +526,6 @@ export const MatchDialog: React.FC<{
     if (status === "live") return "进行中";
     return "未开始";
   };
-
-  const t1 = match.team1Id ? TEAMS.find((t) => t.id === match.team1Id) : null;
-  const t2 = match.team2Id ? TEAMS.find((t) => t.id === match.team2Id) : null;
-  const t1NameStr = t1 ? t1.shortName || t1.name : match.team1Id || "待定";
-  const t2NameStr = t2 ? t2.shortName || t2.name : match.team2Id || "待定";
 
   const hasLiveStream = liveStreams.length > 0 && match.status === "live";
   const modalWidth = hasLiveStream
@@ -557,67 +646,56 @@ export const MatchDialog: React.FC<{
             </div>
           )}
 
-          <div className="flex items-stretch justify-between px-4 py-5 bg-zinc-100/50 dark:bg-zinc-900/50 rounded-xl border border-black/5 dark:border-white/5 shadow-inner shrink-0 mt-2">
-            <div className="flex flex-col justify-between items-center gap-2 w-[35%] shrink-0">
-              {t1 ? (
-                <div className="w-14 h-14 relative flex items-center justify-center bg-zinc-200/30 dark:bg-black/30 rounded-full shadow-lg border border-black/5 dark:border-white/5 p-1.5">
-                  <TeamLogo
-                    team={t1}
-                    fallbackClasses="w-10 h-10 object-contain"
-                  />
+          <div className="relative overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-black/5 dark:border-white/5 shadow-lg shrink-0 mt-2">
+            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/5 dark:from-white/5 to-transparent pointer-events-none"></div>
+            
+            <div className="relative z-10 flex items-center justify-between p-5 sm:p-6 pb-6">
+              {/* Team 1 Panel */}
+              <div className="flex flex-col items-center gap-3 w-[35%] shrink-0">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 relative flex items-center justify-center bg-white dark:bg-black/50 rounded-2xl shadow-sm border border-black/5 dark:border-white/5 p-2 transition-transform hover:scale-[1.02]">
+                  {t1 ? (
+                    <TeamLogo team={t1} fallbackClasses="w-12 h-12 sm:w-14 sm:h-14 object-contain" />
+                  ) : (
+                    <div className="opacity-20 flex items-center justify-center font-bold text-lg">TBD</div>
+                  )}
                 </div>
-              ) : (
-                <div className="w-14 h-14 bg-zinc-100 dark:bg-zinc-900 rounded-full border border-dashed border-black/10 dark:border-white/10" />
-              )}
-              <div className="flex-1 flex items-center">
-                <div className="text-[13px] leading-tight font-bold text-zinc-900 dark:text-zinc-100 tracking-wide text-center whitespace-normal break-words max-w-[100px]">
+                <div className="text-sm sm:text-base leading-tight font-black text-zinc-900 dark:text-zinc-100 tracking-wider text-center break-words uppercase">
                   {t1NameStr}
                 </div>
               </div>
-            </div>
 
-            <div className="flex flex-col items-center justify-center gap-2 w-[30%] shrink-0 px-1">
-              <div className="text-3xl font-mono font-black tabular-nums tracking-tighter text-black dark:text-white drop-shadow-md flex items-center gap-1.5">
-                <span
-                  className={cn(
-                    (match.score1 ?? 0) > (match.score2 ?? 0) &&
-                      "text-emerald-600 dark:text-emerald-400",
-                  )}
-                >
-                  {match.score1 ?? "-"}
-                </span>
-                <span className="text-zinc-500 dark:text-zinc-600 text-xl pb-1">:</span>
-                <span
-                  className={cn(
-                    (match.score2 ?? 0) > (match.score1 ?? 0) &&
-                      "text-emerald-600 dark:text-emerald-400",
-                  )}
-                >
-                  {match.score2 ?? "-"}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-col justify-between items-center gap-2 w-[35%] shrink-0">
-              {t2 ? (
-                <div className="w-14 h-14 relative flex items-center justify-center bg-zinc-200/30 dark:bg-black/30 rounded-full shadow-lg border border-black/5 dark:border-white/5 p-1.5">
-                  <TeamLogo
-                    team={t2}
-                    fallbackClasses="w-10 h-10 object-contain"
-                  />
+              {/* Center Match Score Area */}
+              <div className="flex flex-col items-center justify-center w-[30%] shrink-0 gap-1.5">
+                <div className="text-4xl sm:text-6xl font-mono font-black tabular-nums tracking-tighter text-zinc-900 dark:text-white drop-shadow-md flex items-center gap-2">
+                  <span className={cn((match.score1 ?? 0) > (match.score2 ?? 0) ? "text-emerald-500" : "opacity-90")}>
+                    {match.score1 ?? "-"}
+                  </span>
+                  <span className="text-zinc-300 dark:text-zinc-700 text-3xl sm:text-4xl pb-1 font-light -mt-1">:</span>
+                  <span className={cn((match.score2 ?? 0) > (match.score1 ?? 0) ? "text-emerald-500" : "opacity-90")}>
+                    {match.score2 ?? "-"}
+                  </span>
                 </div>
-              ) : (
-                <div className="w-14 h-14 bg-zinc-100 dark:bg-zinc-900 rounded-full border border-dashed border-black/10 dark:border-white/10" />
-              )}
-              <div className="flex-1 flex items-center">
-                <div className="text-[13px] leading-tight font-bold text-zinc-900 dark:text-zinc-100 tracking-wide text-center whitespace-normal break-words max-w-[100px]">
+              </div>
+
+              {/* Team 2 Panel */}
+              <div className="flex flex-col items-center gap-3 w-[35%] shrink-0">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 relative flex items-center justify-center bg-white dark:bg-black/50 rounded-2xl shadow-sm border border-black/5 dark:border-white/5 p-2 transition-transform hover:scale-[1.02]">
+                  {t2 ? (
+                    <TeamLogo team={t2} fallbackClasses="w-12 h-12 sm:w-14 sm:h-14 object-contain" />
+                  ) : (
+                    <div className="opacity-20 flex items-center justify-center font-bold text-lg">TBD</div>
+                  )}
+                </div>
+                <div className="text-sm sm:text-base leading-tight font-black text-zinc-900 dark:text-zinc-100 tracking-wider text-center break-words uppercase">
                   {t2NameStr}
                 </div>
               </div>
             </div>
+            
+            <div className="border-t border-black/5 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/50 pb-3 pt-1">
+               <MatchPrediction match={match} />
+            </div>
           </div>
-          
-          <MatchPrediction match={match} />
 
           {/* BP SEQUENCE / ANALYTICS */}
           <div className="flex-1 pb-4">
@@ -633,13 +711,15 @@ export const MatchDialog: React.FC<{
                   t2={t2 || { name: t2NameStr }}
                   maps={match.maps}
                   matchData={matchData}
+                  isReversed={isActuallyReversed}
                 />
-                <MatchStats matchData={matchData} t1={t1 || { name: t1NameStr }} t2={t2 || { name: t2NameStr }} />
+                <MatchStats matchData={matchData} t1={t1 || { name: t1NameStr }} t2={t2 || { name: t2NameStr }} isReversed={isActuallyReversed} />
                 <MatchAnalytics
                   matchData={matchData}
                   analysisData={analysisData}
                   t1={t1 || { name: t1NameStr }}
                   t2={t2 || { name: t2NameStr }}
+                  isReversed={isActuallyReversed}
                 />
               </>
             ) : null}
