@@ -772,7 +772,7 @@ export const SwissBracket = ({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col overflow-hidden z-10 relative">
+    <div className="w-full flex-1 min-h-0 flex flex-col overflow-hidden z-10 relative">
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
         {!isAnimating && !externalPredictions && (
           <div className="flex gap-2 isolate">

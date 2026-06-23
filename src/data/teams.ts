@@ -74,7 +74,7 @@ const INITIAL_TEAMS: Team[] = [
   { id: 'kinguin', name: 'Kinguin', shortName: 'Kinguin', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://www.hltv.org/dynamic-svg/teamplaceholder?letter=K', startStage: 0 },
   { id: 'clg', name: 'Counter Logic Gaming', shortName: 'CLG', color: '#0055ff', textColor: '#ffffff', logo: 'https://www.hltv.org/dynamic-svg/teamplaceholder?letter=C', startStage: 0 },
   { id: 'recursive', name: 'Recursive', shortName: 'REC', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://www.hltv.org/dynamic-svg/teamplaceholder?letter=R', startStage: 0 },
-  { id: 'intothebreach', name: 'Into The Breach', shortName: 'ITB', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://www.hltv.org/dynamic-svg/teamplaceholder?letter=I', startStage: 0 },
+  { id: 'intothebreach', name: 'Into The Breach', shortName: 'ITB', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/Tgyea9TVbc37YisEY4Y13a.png?ixlib=java-2.1.0&w=100&s=27b9deb8268e152ea71385525d47e36f', startStage: 0 },
   { id: 'cphflames', name: 'CPH Flames', shortName: 'CPHF', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/YAkfXXu_VhFVsOoATpff0A.svg?ixlib=java-2.1.0&s=5803a5e72e30b6ab7a46588ea6d17778', startStage: 0 },
   { id: 'qbf', name: 'Quantum Bellator Fire', shortName: 'QBF', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/4Ug3V2qj6Nv_YXXPNGqLF3.svg?ixlib=java-2.1.0&s=681878e4a7f78c93233ed247202f9124', startStage: 0 },
   { id: 'renegades', name: 'Renegades', shortName: 'RNG', color: '#1a1a1a', textColor: '#ffffff', logo: 'https://img-cdn.hltv.org/teamlogo/KN-bogp5T6YcaAbR-8QuaG.svg?ixlib=java-2.1.0&s=30510c644332be4cf0b93e4df7e9afa5', startStage: 0 },

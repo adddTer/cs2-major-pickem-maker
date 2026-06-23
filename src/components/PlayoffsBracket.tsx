@@ -364,7 +364,7 @@ export const PlayoffsBracket: React.FC<{
   };
 
   return (
-    <div className="w-full flex-1 overflow-hidden z-10 relative flex flex-col">
+    <div className="w-full flex-1 min-h-0 overflow-hidden z-10 relative flex flex-col">
       {!hideControls && readOnly && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center pointer-events-auto">
           <div className="flex gap-2 isolate">

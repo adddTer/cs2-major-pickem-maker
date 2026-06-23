@@ -17,10 +17,10 @@ export const MAJOR_HISTORY: MajorResult[] = [
     name: "IEM Cologne Major 2026",
     date: "2026-06-08 ~ 06-21",
     location: "德国，科隆",
-    champion: "TBD",
-    runnerUp: "TBD",
-    thirdFourth: ["TBD", "TBD"],
-    fifthEighth: ["TBD", "TBD", "TBD", "TBD"]
+    champion: "Falcons",
+    runnerUp: "FURIA",
+    thirdFourth: ["Spirit", "Aurora"],
+    fifthEighth: ["G2", "Vitality", "9z", "BetBoom"]
   },
   {
     game: "CS2",

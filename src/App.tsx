@@ -903,7 +903,7 @@ export default function App() {
 
         <div
           className={cn(
-            "w-full flex-1 max-w-full relative z-10 flex flex-col pt-0 overflow-hidden",
+            "w-full flex-1 min-h-0 max-w-full relative z-10 flex flex-col pt-0 overflow-hidden",
             mainView !== "bracket" ? "hidden" : "",
           )}
         >
@@ -932,9 +932,9 @@ export default function App() {
             })}
           </div>
 
-          <div className="flex-1 overflow-hidden bg-zinc-50/40 dark:bg-zinc-950/40 relative flex flex-col">
+          <div className="flex-1 min-h-0 overflow-hidden bg-zinc-50/40 dark:bg-zinc-950/40 relative flex flex-col">
             {!dataLoaded ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-500 gap-3">
+              <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-500 gap-3">
                 <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
                 <div className="text-sm font-bold animate-pulse">
                   正在同步数据...
@@ -972,7 +972,7 @@ export default function App() {
                       <SwissBracket activeStage={activeStage} refreshTrigger={refreshTrigger} currentEvent={currentEvent} />
                     </div>
                   ) : format === "playoffs" ? (
-                    <div className="w-full flex-1 relative flex flex-col" key={activeGroupId}>
+                    <div className="w-full flex-1 min-h-0 relative flex flex-col" key={activeGroupId}>
                       <PlayoffsBracket
                         refreshTrigger={refreshTrigger}
                         slots={PLAYOFFS_SLOTS.map((s) => {

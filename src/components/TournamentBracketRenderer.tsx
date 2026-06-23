@@ -89,7 +89,7 @@ export const TournamentBracketRenderer: React.FC<{
   };
 
   return (
-    <div className="w-full flex-1 relative overflow-hidden">
+    <div className="w-full flex-1 min-h-0 relative overflow-hidden">
       <TransformWrapper
         initialScale={initialScale}
         minScale={0.1}
@@ -101,7 +101,7 @@ export const TournamentBracketRenderer: React.FC<{
       >
         {({ zoomIn, zoomOut, resetTransform, centerView }) => (
           <>
-            <div className="absolute bottom-16 lg:bottom-[100px] left-4 lg:left-6 z-[100] flex items-center gap-1.5 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md shadow-lg border border-zinc-200/55 dark:border-zinc-800/55 flex-shrink-0 pointer-events-auto">
+            <div className="absolute bottom-24 lg:bottom-[100px] left-4 lg:left-6 z-[200] flex items-center gap-1.5 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md shadow-lg border border-zinc-200/55 dark:border-zinc-800/55 flex-shrink-0 pointer-events-auto">
               <button
                 onClick={() => zoomIn(0.15)}
                 title="放大"
