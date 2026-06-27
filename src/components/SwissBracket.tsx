@@ -17,13 +17,13 @@ export const MatchParticipant = ({ teamId }: { teamId?: string }) => {
   const team = TEAMS.find((t) => t.id === teamId);
   if (team) {
     return (
-      <div className="w-[32px] h-[32px] shrink-0 flex items-center justify-center relative zoom-in-95 animate-in">
-        <TeamLogo team={team} fallbackClasses="rounded-[4px] text-[9px]" />
+      <div className="w-[36px] h-[36px] shrink-0 flex items-center justify-center relative zoom-in-95 animate-in bg-zinc-100/50 dark:bg-zinc-800/50 rounded-md border border-black/5 dark:border-white/5 shadow-sm">
+        <TeamLogo team={team} fallbackClasses="rounded-[4px] text-[0.625rem]" />
       </div>
     );
   }
   return (
-    <div className="w-[32px] h-[32px] shrink-0 rounded-[4px] bg-zinc-50/80 dark:bg-zinc-950/80 border border-black/10 dark:border-white/10 flex items-center justify-center font-bold text-zinc-500 dark:text-zinc-500 text-[11px] shadow-inner pb-[1px] relative zoom-in-95 animate-in">
+    <div className="w-[36px] h-[36px] shrink-0 rounded-md bg-zinc-100/50 dark:bg-zinc-900/50 border border-dashed border-black/20 dark:border-white/20 flex items-center justify-center font-display font-semibold text-zinc-400 dark:text-zinc-600 text-xs shadow-inner pb-[1px] relative zoom-in-95 animate-in">
       ?
     </div>
   );
@@ -36,7 +36,7 @@ const MatchLine: React.FC<{
   isSimulated?: boolean;
 }> = ({ match, onClick, simulateWinner, isSimulated }) => {
   const hasResult = match?.score1 !== undefined && match?.score2 !== undefined;
-  
+
   let isFinished = false;
   if (hasResult) {
     if (match?.format === "bo3") {
@@ -47,7 +47,7 @@ const MatchLine: React.FC<{
       isFinished = match.score1 !== match.score2; // bo1, not a draw
     }
   }
-  
+
   const isLive = match?.status === "live";
 
   let displayLeft = match?.score1;
@@ -63,7 +63,12 @@ const MatchLine: React.FC<{
     .join(" | ");
 
   const isInteractive = simulateWinner || hasResult;
-  const isClickable = !simulateWinner && match?.team1Id && match?.team2Id && match.team1Id !== "tbd" && match.team2Id !== "tbd";
+  const isClickable =
+    !simulateWinner &&
+    match?.team1Id &&
+    match?.team2Id &&
+    match.team1Id !== "tbd" &&
+    match.team2Id !== "tbd";
 
   const handleTeamClick = (e: React.MouseEvent, side: 1 | 2) => {
     if (simulateWinner && match) {
@@ -88,8 +93,10 @@ const MatchLine: React.FC<{
   return (
     <div
       className={cn(
-        "flex flex-col items-center relative z-20 w-full px-2 h-[54px] justify-center border-b border-black/5 dark:border-white/5 last:border-[0px] transition-colors group rounded-sm",
-        isClickable ? "cursor-pointer hover:bg-black/5 dark:bg-white/5" : "",
+        "flex flex-col items-center relative z-20 w-full px-3 h-[64px] justify-center border-b border-black/5 dark:border-white/5 last:border-[0px] transition-all duration-300 group rounded-xl",
+        isClickable
+          ? "cursor-pointer hover:bg-black/5 dark:hover:bg-white/5"
+          : "",
       )}
       title={titleStr}
       onClick={() => {
@@ -98,47 +105,49 @@ const MatchLine: React.FC<{
         }
       }}
     >
-      <div className="flex items-center gap-2 justify-center w-full">
+      <div className="flex items-center gap-3 justify-center w-full">
         <div
           onClick={(e) => (simulateWinner ? handleTeamClick(e, 1) : undefined)}
           className={cn(
-            "p-1 rounded transition-all",
-            simulateWinner ? "cursor-pointer hover:bg-black/10 dark:bg-white/10" : "",
+            "p-1 rounded-lg transition-all duration-300",
+            simulateWinner
+              ? "cursor-pointer hover:bg-black/10 dark:hover:bg-white/10"
+              : "",
             hasResult && (match?.score2 ?? 0) > (match?.score1 ?? 0)
-              ? "opacity-30 grayscale"
-              : "opacity-100",
+              ? "opacity-40 grayscale blur-[0.5px]"
+              : "opacity-100 drop-shadow-sm",
             simulateWinner && (match?.score1 ?? 0) > (match?.score2 ?? 0)
-              ? "ring-1 ring-emerald-500 bg-emerald-500/10"
+              ? "ring-2 ring-emerald-500 bg-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
               : "",
           )}
         >
           <MatchParticipant teamId={match?.team1Id} />
         </div>
         {hasResult ? (
-          <div className="flex items-center justify-center w-[36px] h-[32px] shrink-0 relative">
-            <div className="flex items-center justify-center w-full gap-0">
+          <div className="flex flex-col items-center justify-center w-[44px] h-[36px] shrink-0 relative bg-zinc-100/50 dark:bg-zinc-900/50 rounded-md border border-black/5 dark:border-white/5 shadow-inner">
+            <div className="flex items-center justify-center w-full gap-0 px-1">
               <span
                 className={cn(
-                  "flex-1 text-right text-[11px] font-bold",
+                  "flex-1 text-center text-[0.8125rem] font-mono font-bold tracking-tight",
                   isLive && !isSimulated
-                    ? "text-black dark:text-white"
+                    ? "text-black dark:text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]"
                     : (displayLeft ?? 0) > (displayRight ?? 0)
-                      ? "text-emerald-400 drop-shadow-sm"
+                      ? "text-emerald-500 dark:text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.4)]"
                       : "text-zinc-500 dark:text-zinc-500",
                 )}
               >
                 {displayLeft}
               </span>
-              <span className="w-[8px] text-center shrink-0 text-[10px] text-zinc-400 dark:text-zinc-700">
-                -
+              <span className="w-[6px] text-center shrink-0 text-[0.625rem] text-zinc-400 dark:text-zinc-600 font-bold mx-0.5">
+                :
               </span>
               <span
                 className={cn(
-                  "flex-1 text-left text-[11px] font-bold",
+                  "flex-1 text-center text-[0.8125rem] font-mono font-bold tracking-tight",
                   isLive && !isSimulated
-                    ? "text-black dark:text-white"
+                    ? "text-black dark:text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]"
                     : (displayRight ?? 0) > (displayLeft ?? 0)
-                      ? "text-emerald-400 drop-shadow-sm"
+                      ? "text-emerald-500 dark:text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.4)]"
                       : "text-zinc-500 dark:text-zinc-500",
                 )}
               >
@@ -146,30 +155,30 @@ const MatchLine: React.FC<{
               </span>
             </div>
             {isSimulated ? (
-              <span className="absolute -bottom-[4px] text-[8px] text-zinc-900 dark:text-zinc-100 font-bold bg-blue-600/90 px-1 rounded-[2px] tracking-tighter scale-[0.8]">
+              <span className="absolute -top-2.5 text-[8px] text-blue-900 dark:text-blue-100 font-bold bg-blue-500/20 dark:bg-blue-500/30 border border-blue-500/40 px-1.5 py-0.5 rounded-full tracking-wider shadow-sm">
                 SIM
               </span>
             ) : isLive ? (
-              <span className="absolute -bottom-[4px] text-[8px] text-zinc-900 dark:text-zinc-100 font-bold bg-rose-600/90 px-1 rounded-[2px] tracking-tighter scale-[0.8]">
+              <span className="absolute -top-2.5 text-[8px] text-rose-900 dark:text-rose-100 font-bold bg-rose-500/20 dark:bg-rose-500/30 border border-rose-500/40 px-1.5 py-0.5 rounded-full tracking-wider shadow-[0_0_8px_rgba(244,63,94,0.4)] animate-pulse">
                 LIVE
               </span>
             ) : match.format === "bo3" || match.format === "bo5" ? (
-              <span className="absolute -bottom-[4px] text-[8px] text-zinc-500 dark:text-zinc-500 uppercase font-mono tracking-tighter scale-75">
+              <span className="absolute -top-2 text-[8px] text-zinc-500 dark:text-zinc-400 uppercase font-mono tracking-wider font-semibold bg-zinc-100 dark:bg-zinc-900 px-1 rounded border border-black/5 dark:border-white/5">
                 {match.format.toUpperCase()}
               </span>
             ) : null}
           </div>
         ) : (
-          <div className="flex items-center justify-center w-[36px] h-[32px] shrink-0 relative">
-            <span className="text-[10px] text-zinc-600/80 font-medium w-full text-center uppercase tracking-widest shrink-0 transition-colors">
-              vs
+          <div className="flex items-center justify-center w-[44px] h-[36px] shrink-0 relative bg-zinc-100/30 dark:bg-zinc-900/30 rounded-md border border-dashed border-black/10 dark:border-white/10">
+            <span className="text-[0.625rem] text-zinc-400 dark:text-zinc-500 font-display font-bold w-full text-center uppercase tracking-widest shrink-0 transition-colors">
+              VS
             </span>
             {isLive ? (
-              <span className="absolute -bottom-[4px] text-[8px] text-zinc-900 dark:text-zinc-100 font-bold bg-rose-600/90 px-1 rounded-[2px] tracking-tighter scale-[0.8]">
+              <span className="absolute -top-2.5 text-[8px] text-rose-900 dark:text-rose-100 font-bold bg-rose-500/20 dark:bg-rose-500/30 border border-rose-500/40 px-1.5 py-0.5 rounded-full tracking-wider shadow-[0_0_8px_rgba(244,63,94,0.4)] animate-pulse">
                 LIVE
               </span>
-            ) : (match?.format === "bo3" || match?.format === "bo5") ? (
-              <span className="absolute -bottom-[4px] text-[8px] text-zinc-500 dark:text-zinc-500 uppercase font-mono tracking-tighter scale-75">
+            ) : match?.format === "bo3" || match?.format === "bo5" ? (
+              <span className="absolute -top-2 text-[8px] text-zinc-500 dark:text-zinc-400 uppercase font-mono tracking-wider font-semibold bg-zinc-100 dark:bg-zinc-900 px-1 rounded border border-black/5 dark:border-white/5">
                 {match.format.toUpperCase()}
               </span>
             ) : null}
@@ -178,13 +187,15 @@ const MatchLine: React.FC<{
         <div
           onClick={(e) => (simulateWinner ? handleTeamClick(e, 2) : undefined)}
           className={cn(
-            "p-1 rounded transition-all",
-            simulateWinner ? "cursor-pointer hover:bg-black/10 dark:bg-white/10" : "",
+            "p-1 rounded-lg transition-all duration-300",
+            simulateWinner
+              ? "cursor-pointer hover:bg-black/10 dark:hover:bg-white/10"
+              : "",
             hasResult && (match?.score1 ?? 0) > (match?.score2 ?? 0)
-              ? "opacity-30 grayscale"
-              : "opacity-100",
+              ? "opacity-40 grayscale blur-[0.5px]"
+              : "opacity-100 drop-shadow-sm",
             simulateWinner && (match?.score2 ?? 0) > (match?.score1 ?? 0)
-              ? "ring-1 ring-emerald-500 bg-emerald-500/10"
+              ? "ring-2 ring-emerald-500 bg-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
               : "",
           )}
         >
@@ -209,11 +220,15 @@ export const GroupBox = ({
   simulateWinner?: (m: BracketMatch, winner: 1 | 2 | 0) => void;
 }) => {
   return (
-    <div className="bg-white/80 dark:bg-zinc-900/60 border border-black/10 dark:border-white/5 rounded-[8px] px-1 pt-6 pb-2 flex flex-col items-center relative shadow-md dark:shadow-none w-[156px] shrink-0 z-10 backdrop-blur-sm pointer-events-auto">
-      <div className="absolute top-1.5 right-2 text-[11px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-tighter">
-        {score}
+    <div className="bg-white/60 dark:bg-zinc-900/60 border border-white/40 dark:border-white/10 rounded-2xl px-2 pt-8 pb-3 flex flex-col items-center relative shadow-xl dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] w-[180px] shrink-0 z-10 backdrop-blur-xl pointer-events-auto transition-transform duration-300 hover:-translate-y-1">
+      <div className="absolute top-2 left-0 w-full flex justify-center">
+        <div className="bg-zinc-200/50 dark:bg-zinc-800/80 px-3 py-1 rounded-full border border-black/5 dark:border-white/5 shadow-inner">
+          <span className="text-[0.6875rem] font-display font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-widest leading-none drop-shadow-sm">
+            {score}
+          </span>
+        </div>
       </div>
-      <div className="flex flex-col w-full items-center justify-center relative">
+      <div className="flex flex-col w-full items-center justify-center relative mt-2 gap-1">
         {Array.from({ length: count }).map((_, i) => (
           <MatchLine
             key={i}
@@ -246,9 +261,14 @@ const DrawPath: React.FC<{ p1: any; p2: any; win: boolean }> = ({
     <path
       d={`M ${sx} ${sy} C ${cx1} ${sy}, ${cx2} ${ey}, ${ex} ${ey}`}
       stroke={`url(#${win ? "win" : "loss"}-grad)`}
-      strokeWidth="1.5"
+      strokeWidth="2"
       fill="none"
-      strokeDasharray="5 3"
+      className={cn(
+        "transition-all duration-500",
+        win ? "drop-shadow-[0_0_3px_rgba(16,185,129,0.4)]" : "",
+      )}
+      strokeDasharray={win ? "none" : "6 4"}
+      strokeLinecap="round"
     />
   );
 };
@@ -267,30 +287,41 @@ export const ResultGroup = ({
   return (
     <div
       className={cn(
-        "border rounded-[8px] px-1 pt-6 pb-2 flex flex-col items-center relative shadow-md dark:shadow-none w-[156px] shrink-0 z-10 backdrop-blur-sm pointer-events-auto",
+        "border rounded-2xl px-2 pt-8 pb-3 flex flex-col items-center relative shadow-xl dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] w-[180px] shrink-0 z-10 backdrop-blur-xl pointer-events-auto transition-transform duration-300 hover:-translate-y-1",
         win
-          ? "bg-emerald-50/80 dark:bg-emerald-900/60 border-emerald-500/30 dark:border-emerald-500/20 bg-gradient-to-bl from-emerald-500/10 dark:from-emerald-500/20 via-transparent dark:via-transparent to-transparent"
-          : "bg-rose-50/80 dark:bg-rose-950/60 border-rose-500/30 dark:border-rose-500/20 bg-gradient-to-bl from-rose-500/10 dark:from-rose-500/20 via-transparent dark:via-transparent to-transparent",
+          ? "bg-emerald-50/60 dark:bg-emerald-950/40 border-emerald-400/30 dark:border-emerald-500/20 bg-gradient-to-br from-emerald-400/10 dark:from-emerald-500/20 via-transparent to-transparent"
+          : "bg-rose-50/60 dark:bg-rose-950/40 border-rose-400/30 dark:border-rose-500/20 bg-gradient-to-br from-rose-400/10 dark:from-rose-500/20 via-transparent to-transparent",
       )}
     >
-      <div
-        className={cn(
-          "absolute top-1.5 right-2 text-[11px] font-bold uppercase tracking-tighter",
-          win ? "text-emerald-600 dark:text-emerald-500/80" : "text-rose-600 dark:text-rose-500/80",
-        )}
-      >
-        {score}
+      <div className="absolute top-2 left-0 w-full flex justify-center">
+        <div
+          className={cn(
+            "px-3 py-1 rounded-full border shadow-inner",
+            win
+              ? "bg-emerald-100/50 dark:bg-emerald-900/50 border-emerald-500/20"
+              : "bg-rose-100/50 dark:bg-rose-900/50 border-rose-500/20",
+          )}
+        >
+          <span
+            className={cn(
+              "text-[0.6875rem] font-display font-bold uppercase tracking-widest leading-none drop-shadow-sm",
+              win
+                ? "text-emerald-700 dark:text-emerald-400"
+                : "text-rose-700 dark:text-rose-400",
+            )}
+          >
+            {score}
+          </span>
+        </div>
       </div>
-      <div className="flex flex-col w-full items-center justify-center relative">
+      <div className="flex flex-col w-full items-center justify-center relative mt-2 gap-1">
         {Array.from({ length: count }).map((_, i) => (
           <div
             key={i}
-            className="flex flex-col items-center relative z-20 w-full px-2 h-[54px] justify-center border-b border-black/5 dark:border-white/5 last:border-[0px]"
+            className="flex flex-col items-center relative z-20 w-full p-1 justify-center border-b border-black/5 dark:border-white/5 last:border-[0px]"
           >
             <div className="flex items-center gap-2 justify-center w-full">
-               <div className="p-1 rounded opacity-100">
-                 <MatchParticipant teamId={teams[i]} />
-               </div>
+              <MatchParticipant teamId={teams[i]} />
             </div>
           </div>
         ))}
@@ -315,9 +346,12 @@ export const SwissBracket = ({
   const [selectedMatch, setSelectedMatch] = useState<BracketMatch | null>(null);
   const [simulationMode, setSimulationMode] = useState(false);
   const [predictions, setPredictions] = useState<Record<string, any>>({});
-  
-  const calculatedScale = isAnimating 
-    ? Math.min((window.innerWidth * 0.95) / 1200, (window.innerHeight * 0.75) / 840)
+
+  const calculatedScale = isAnimating
+    ? Math.min(
+        (window.innerWidth * 0.95) / 1200,
+        (window.innerHeight * 0.75) / 1000,
+      )
     : 1;
 
   React.useEffect(() => {
@@ -339,9 +373,11 @@ export const SwissBracket = ({
     const r0 = origMap["0:0"] || [];
 
     // Collect all unique teams from 0:0
-    const allTids = Array.from(new Set(
-      r0.flatMap((m: BracketMatch) => [m.team1Id, m.team2Id]).filter(Boolean)
-    )) as string[];
+    const allTids = Array.from(
+      new Set(
+        r0.flatMap((m: BracketMatch) => [m.team1Id, m.team2Id]).filter(Boolean),
+      ),
+    ) as string[];
 
     // Sort them by vRank / GLOBAL_SEEDING to determine initialSeed
     allTids.sort((a, b) => {
@@ -356,7 +392,7 @@ export const SwissBracket = ({
           wins: 0,
           losses: 0,
           opponents: [],
-          initialSeed: GLOBAL_SEEDING[tid] || (idx + 1),
+          initialSeed: GLOBAL_SEEDING[tid] || idx + 1,
         };
       }
     });
@@ -415,7 +451,7 @@ export const SwissBracket = ({
           const bhA = getBuchholz(a);
           const bhB = getBuchholz(b);
           if (bhA !== bhB) return bhB - bhA; // Descending Buchholz
-          
+
           const seedA = teamsRecord[a].initialSeed || 99;
           const seedB = teamsRecord[b].initialSeed || 99;
           return seedA - seedB; // Ascending initial seed
@@ -433,7 +469,10 @@ export const SwissBracket = ({
               const k1 = `${t1}-${t2}`;
               const k2 = `${t2}-${t1}`;
               const p = activePredictions[k1] || activePredictions[k2];
-              if (p && (p.stageRound === undefined || p.stageRound === roundIndex)) {
+              if (
+                p &&
+                (p.stageRound === undefined || p.stageRound === roundIndex)
+              ) {
                 pairings.push([t1, t2]);
                 poolMatched.add(t1);
                 poolMatched.add(t2);
@@ -443,18 +482,23 @@ export const SwissBracket = ({
           }
         }
 
-        const remainingPool = pool.filter(t => !poolMatched.has(t));
-        
+        const remainingPool = pool.filter((t) => !poolMatched.has(t));
+
         if (remainingPool.length > 0) {
           let remainingPairings: [string, string][] | null = null;
           if (w === 0 && l === 0 && remainingPool.length === pool.length) {
             remainingPairings = [];
             const half = Math.floor(remainingPool.length / 2);
             for (let i = 0; i < half; i++) {
-              remainingPairings.push([remainingPool[i], remainingPool[i + half]]);
+              remainingPairings.push([
+                remainingPool[i],
+                remainingPool[i + half],
+              ]);
             }
           } else {
-            function findValidPairing(teams: string[]): [string, string][] | null {
+            function findValidPairing(
+              teams: string[],
+            ): [string, string][] | null {
               if (teams.length === 0) return [];
               const t1 = teams[0];
               for (let i = teams.length - 1; i >= 1; i--) {
@@ -490,7 +534,13 @@ export const SwissBracket = ({
           map[group].push({
             team1Id: teamA,
             team2Id: teamB,
-            format: currentEvent?.isSwissAllBo3 ? "bo3" : (activeStage === "stage3" ? "bo3" : (w === 2 || l === 2 ? "bo3" : "bo1")),
+            format: currentEvent?.isSwissAllBo3
+              ? "bo3"
+              : activeStage === "stage3"
+                ? "bo3"
+                : w === 2 || l === 2
+                  ? "bo3"
+                  : "bo1",
           } as BracketMatch);
         });
 
@@ -500,12 +550,19 @@ export const SwissBracket = ({
           const pKey = `${m.team1Id}-${m.team2Id}`;
           const pKeyRev = `${m.team2Id}-${m.team1Id}`;
           let pVal = activePredictions[pKey];
-          if (pVal && pVal.stageRound !== undefined && pVal.stageRound !== roundIndex) {
+          if (
+            pVal &&
+            pVal.stageRound !== undefined &&
+            pVal.stageRound !== roundIndex
+          ) {
             pVal = undefined;
           }
           if (!pVal && activePredictions[pKeyRev]) {
             const reverse = activePredictions[pKeyRev];
-            if (reverse.stageRound === undefined || reverse.stageRound === roundIndex) {
+            if (
+              reverse.stageRound === undefined ||
+              reverse.stageRound === roundIndex
+            ) {
               if (reverse.winner !== 0) {
                 pVal = {
                   winner: reverse.winner === 1 ? 2 : 1,
@@ -537,7 +594,7 @@ export const SwissBracket = ({
               m.score1 !== undefined &&
               m.score2 !== undefined &&
               m.status === "past";
-            
+
             let t1Wins = false;
             if (hasResult) {
               if (m.format === "bo3") {
@@ -580,7 +637,7 @@ export const SwissBracket = ({
         });
       });
 
-      roundRecordUpdates.forEach(fn => fn());
+      roundRecordUpdates.forEach((fn) => fn());
     });
 
     return map;
@@ -591,16 +648,21 @@ export const SwissBracket = ({
       // Find the updated match object in matchesMap
       let updatedMatch = null;
       for (const group of Object.values(matchesMap) as BracketMatch[][]) {
-        const found = group.find((m: BracketMatch) => 
-          (m.externalId && m.externalId === selectedMatch.externalId) || 
-          (m.team1Id === selectedMatch.team1Id && m.team2Id === selectedMatch.team2Id)
+        const found = group.find(
+          (m: BracketMatch) =>
+            (m.externalId && m.externalId === selectedMatch.externalId) ||
+            (m.team1Id === selectedMatch.team1Id &&
+              m.team2Id === selectedMatch.team2Id),
         );
         if (found) {
           updatedMatch = found;
           break;
         }
       }
-      if (updatedMatch && JSON.stringify(selectedMatch) !== JSON.stringify(updatedMatch)) {
+      if (
+        updatedMatch &&
+        JSON.stringify(selectedMatch) !== JSON.stringify(updatedMatch)
+      ) {
         setSelectedMatch(updatedMatch);
       }
     }
@@ -610,13 +672,13 @@ export const SwissBracket = ({
     let score1 = 0;
     let score2 = 0;
     if (winner === 1) {
-      score1 = match.format === "bo3" ? 2 : (match.format === "bo5" ? 3 : 1);
+      score1 = match.format === "bo3" ? 2 : match.format === "bo5" ? 3 : 1;
       score2 = 0;
     } else if (winner === 2) {
       score1 = 0;
-      score2 = match.format === "bo3" ? 2 : (match.format === "bo5" ? 3 : 1);
+      score2 = match.format === "bo3" ? 2 : match.format === "bo5" ? 3 : 1;
     }
-    
+
     setPredictions((prev) => ({
       ...prev,
       [`${match.team1Id}-${match.team2Id}`]: { winner, score1, score2 },
@@ -630,7 +692,12 @@ export const SwissBracket = ({
     // Traverse current matches in matchesMap and predict unplayed matches
     Object.values(matchesMap).forEach((group: unknown) => {
       (group as BracketMatch[]).forEach((m) => {
-        if (m.team1Id && m.team2Id && m.team1Id !== "tbd" && m.team2Id !== "tbd") {
+        if (
+          m.team1Id &&
+          m.team2Id &&
+          m.team1Id !== "tbd" &&
+          m.team2Id !== "tbd"
+        ) {
           const pKey = `${m.team1Id}-${m.team2Id}`;
           const pKeyRev = `${m.team2Id}-${m.team1Id}`;
           // Check if no existing prediction and no actual score
@@ -640,39 +707,55 @@ export const SwissBracket = ({
             m.score1 === undefined &&
             m.score2 === undefined
           ) {
-            const t1 = TEAMS.find(t => t.id === m.team1Id);
-            const t2 = TEAMS.find(t => t.id === m.team2Id);
-            const fallbackS1 = getLocalStrength(m.team1Id) || (2000 - (GLOBAL_SEEDING[m.team1Id] || 32) * 30);
-            const fallbackS2 = getLocalStrength(m.team2Id) || (2000 - (GLOBAL_SEEDING[m.team2Id] || 32) * 30);
+            const t1 = TEAMS.find((t) => t.id === m.team1Id);
+            const t2 = TEAMS.find((t) => t.id === m.team2Id);
+            const fallbackS1 =
+              getLocalStrength(m.team1Id) ||
+              2000 - (GLOBAL_SEEDING[m.team1Id] || 32) * 30;
+            const fallbackS2 =
+              getLocalStrength(m.team2Id) ||
+              2000 - (GLOBAL_SEEDING[m.team2Id] || 32) * 30;
             const s1 = t1?.strength || fallbackS1;
             const s2 = t2?.strength || fallbackS2;
-            
+
             let score1 = 0;
             let score2 = 0;
 
             if (m.format === "bo3") {
               const M = 1300;
               const mapAdv = 150; // Elo advantage for map pick
-              
+
               const pMap1 = 1 / (1 + Math.pow(10, (s2 - (s1 + mapAdv)) / M)); // T1 map pick
-              const pMap2 = 1 / (1 + Math.pow(10, ((s2 + mapAdv) - s1) / M)); // T2 map pick
+              const pMap2 = 1 / (1 + Math.pow(10, (s2 + mapAdv - s1) / M)); // T2 map pick
               const pMap3 = 1 / (1 + Math.pow(10, (s2 - s1) / M)); // Decider
 
               const p2_0 = pMap1 * pMap2;
-              const p2_1 = pMap1 * (1 - pMap2) * pMap3 + (1 - pMap1) * pMap2 * pMap3;
-              const p1_2 = pMap1 * (1 - pMap2) * (1 - pMap3) + (1 - pMap1) * pMap2 * (1 - pMap3);
+              const p2_1 =
+                pMap1 * (1 - pMap2) * pMap3 + (1 - pMap1) * pMap2 * pMap3;
+              const p1_2 =
+                pMap1 * (1 - pMap2) * (1 - pMap3) +
+                (1 - pMap1) * pMap2 * (1 - pMap3);
               const p0_2 = (1 - pMap1) * (1 - pMap2);
 
               const bestProb = Math.max(p2_0, p2_1, p1_2, p0_2);
-              if (bestProb === p2_0) { score1 = 2; score2 = 0; }
-              else if (bestProb === p2_1) { score1 = 2; score2 = 1; }
-              else if (bestProb === p1_2) { score1 = 1; score2 = 2; }
-              else { score1 = 0; score2 = 2; }
+              if (bestProb === p2_0) {
+                score1 = 2;
+                score2 = 0;
+              } else if (bestProb === p2_1) {
+                score1 = 2;
+                score2 = 1;
+              } else if (bestProb === p1_2) {
+                score1 = 1;
+                score2 = 2;
+              } else {
+                score1 = 0;
+                score2 = 2;
+              }
             } else if (m.format === "bo5") {
               const isClose = Math.abs(s1 - s2) < 200;
               const p1Wins = s1 >= s2;
-              score1 = p1Wins ? 3 : (isClose ? 2 : 0);
-              score2 = !p1Wins ? 3 : (isClose ? 2 : 0);
+              score1 = p1Wins ? 3 : isClose ? 2 : 0;
+              score2 = !p1Wins ? 3 : isClose ? 2 : 0;
             } else {
               const p1Wins = s1 >= s2;
               score1 = p1Wins ? 1 : 0;
@@ -705,7 +788,7 @@ export const SwissBracket = ({
         const match = m as BracketMatch;
         let hasResult =
           match.score1 !== undefined && match.score2 !== undefined;
-        
+
         if (hasResult) {
           let isFinished = false;
           if (match.format === "bo3") {
@@ -715,10 +798,10 @@ export const SwissBracket = ({
           } else {
             isFinished = match.score1 !== match.score2;
           }
-          
+
           if (isFinished) {
             let t1Win = match.score1! > match.score2!;
-            
+
             if (match.team1Id && match.team1Id !== "tbd") {
               if (!records[match.team1Id])
                 records[match.team1Id] = { w: 0, l: 0 };
@@ -748,24 +831,24 @@ export const SwissBracket = ({
   const renderNode = (node: BracketNode) => {
     if (node.type === "swissGroup") {
       return (
-         <GroupBox
-           score={node.score!}
-           count={node.count!}
-           matches={getMatches(node.score!)}
-           onMatchClick={setSelectedMatch}
-           simulateWinner={simulationMode ? handleSimulateWinner : undefined}
-         />
+        <GroupBox
+          score={node.score!}
+          count={node.count!}
+          matches={getMatches(node.score!)}
+          onMatchClick={setSelectedMatch}
+          simulateWinner={simulationMode ? handleSimulateWinner : undefined}
+        />
       );
     } else if (node.type === "swissResult") {
       const wins = parseInt(node.score!.split(":")[0]);
       const losses = parseInt(node.score!.split(":")[1]);
       return (
-         <ResultGroup
-           score={node.score!}
-           count={node.count!}
-           win={node.win!}
-           teams={getFinalTeams(wins, losses)}
-         />
+        <ResultGroup
+          score={node.score!}
+          count={node.count!}
+          win={node.win!}
+          teams={getFinalTeams(wins, losses)}
+        />
       );
     }
     return null;
@@ -773,7 +856,7 @@ export const SwissBracket = ({
 
   return (
     <div className="w-full flex-1 min-h-0 flex flex-col overflow-hidden z-10 relative">
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center pointer-events-auto">
         {!isAnimating && !externalPredictions && (
           <div className="flex gap-2 isolate">
             <button
@@ -783,7 +866,7 @@ export const SwissBracket = ({
               }}
               disabled={isRoundIncomplete}
               className={cn(
-                "px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2",
+                "px-3 py-1.5 border rounded-[4px] text-xs font-bold shadow-lg transition-colors flex items-center gap-2",
                 isRoundIncomplete
                   ? "opacity-50 cursor-not-allowed bg-zinc-200/50 dark:bg-black/50 text-zinc-500 dark:text-zinc-600 border-black/5 dark:border-white/5"
                   : simulationMode
@@ -804,34 +887,36 @@ export const SwissBracket = ({
               )}
             </button>
             {simulationMode && (
-               <button 
-                 onClick={handleAutoSimulateNextRound}
-                 className="px-3 py-1.5 border rounded-[4px] text-[12px] font-bold shadow-lg transition-colors flex items-center gap-2 bg-zinc-700/50 text-zinc-800 dark:text-zinc-300 border-zinc-600/50 hover:bg-zinc-700/80"
-               >
-                 推演下一轮
-               </button>
+              <button
+                onClick={handleAutoSimulateNextRound}
+                className="px-3 py-1.5 border rounded-[4px] text-xs font-bold shadow-lg transition-colors flex items-center gap-2 bg-zinc-700/50 text-zinc-800 dark:text-zinc-300 border-zinc-600/50 hover:bg-zinc-700/80"
+              >
+                推演下一轮
+              </button>
             )}
           </div>
         )}
 
-        {!isAnimating && !externalPredictions && (isRoundIncomplete ? (
-          <div className="mt-2 text-[10px] text-rose-400/80 bg-rose-500/10 px-2 py-1 rounded w-max border border-rose-500/20">
-            初始对决尚未完全确定，暂不支持模拟
-          </div>
-        ) : (
-          simulationMode && (
-            <div className="mt-2 text-[10px] text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 bg-zinc-200/50 dark:bg-black/50 px-2 py-1 rounded w-max border border-black/5 dark:border-white/5">
-              点击队伍标识切换胜负关系
+        {!isAnimating &&
+          !externalPredictions &&
+          (isRoundIncomplete ? (
+            <div className="mt-2 text-[0.625rem] text-rose-400/80 bg-rose-500/10 px-2 py-1 rounded w-max border border-rose-500/20">
+              初始对决尚未完全确定，暂不支持模拟
             </div>
-          )
-        ))}
+          ) : (
+            simulationMode && (
+              <div className="mt-2 text-[0.625rem] text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 bg-zinc-200/50 dark:bg-black/50 px-2 py-1 rounded w-max border border-black/5 dark:border-white/5">
+                点击队伍标识切换胜负关系
+              </div>
+            )
+          ))}
       </div>
 
-      <TournamentBracketRenderer 
-        config={SWISS_CONFIG} 
-        renderNode={renderNode} 
+      <TournamentBracketRenderer
+        config={SWISS_CONFIG}
+        renderNode={renderNode}
         initialScale={calculatedScale}
-        svgDefs={(
+        svgDefs={
           <defs>
             <linearGradient id="win-grad" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="#10b981" stopOpacity="0" />
@@ -842,7 +927,7 @@ export const SwissBracket = ({
               <stop offset="100%" stopColor="#f43f5e" stopOpacity="1" />
             </linearGradient>
           </defs>
-        )}
+        }
       />
 
       <MatchDialog

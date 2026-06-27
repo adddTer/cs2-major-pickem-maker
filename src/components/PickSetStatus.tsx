@@ -49,11 +49,11 @@ export const PickSetStatusText = ({
   else if (statusId === "failed") finalProb = 0;
 
   const getCountsNode = (colorClasses: string) => showProbability ? (
-    <span className={`flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded-full bg-white/50 dark:bg-black/20 text-[10px] ${colorClasses}`}>
+    <span className={`flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded-full bg-white/50 dark:bg-black/20 text-[0.625rem] ${colorClasses}`}>
       {finalProb !== undefined ? `${(finalProb * 100).toFixed(1)}%` : "-"}
     </span>
   ) : (
-    <span className={`flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded-full bg-white/50 dark:bg-black/20 text-[10px]`}>
+    <span className={`flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded-full bg-white/50 dark:bg-black/20 text-[0.625rem]`}>
       <span className="text-emerald-600 dark:text-emerald-400">✓ {guaranteed}</span>
       <span className="text-zinc-400/50 dark:text-zinc-500/50">|</span>
       <span className="text-rose-600 dark:text-rose-400">✗ {mathematicallyIncorrect}</span>
@@ -96,7 +96,7 @@ export const PickSetStatusText = ({
 
     return (
       <div className={`flex items-center gap-2 pl-3 pr-1 py-1 rounded-full border shrink-0 ${classes}`}>
-        <span className="text-[11px] font-black tracking-widest">{label}</span>
+        <span className="text-[0.6875rem] font-black tracking-widest">{label}</span>
         {getCountsNode(countsNodeClasses)}
       </div>
     );

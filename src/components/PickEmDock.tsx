@@ -93,7 +93,7 @@ export const PickEmDock: React.FC<{
           <button
             onClick={onToggleResults}
             className={cn(
-              "px-3 py-1.5 border border-black/10 dark:border-white/10 rounded-[3px] transition-colors text-[11px] font-bold",
+              "px-3 py-1.5 border border-black/10 dark:border-white/10 rounded-[3px] transition-colors text-[0.6875rem] font-bold",
               showResults
                 ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
                 : "hover:bg-black/10 dark:bg-white/10 text-zinc-500 dark:text-zinc-600 dark:text-zinc-400",
@@ -105,26 +105,26 @@ export const PickEmDock: React.FC<{
       )}
       <div
         className={cn(
-          "grid w-full max-w-[1400px] mx-auto gap-3 sm:gap-4",
+          "grid w-full max-w-[1400px] mx-auto gap-2 sm:gap-3",
           "grid-cols-2",
         )}
       >
         {/* 3:0 (2 Slots) */}
         <div
           className={cn(
-            "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-emerald-500/20 shadow-lg shadow-emerald-500/5 relative",
+            "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-emerald-500/20 shadow-sm relative",
             "w-full col-span-1",
           )}
         >
-          <div className="px-2 py-2 sm:py-3 bg-emerald-500/10 border-b border-emerald-500/20 flex flex-col items-center rounded-t-xl">
-            <span className="text-emerald-400 font-black tracking-widest text-[14px] sm:text-[16px] leading-tight">
+          <div className="px-2 py-1.5 sm:py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex flex-col items-center rounded-t-xl">
+            <span className="text-emerald-400 font-black tracking-widest text-[0.8125rem] sm:text-sm leading-tight">
               3:0
             </span>
-            <span className="text-emerald-500/70 text-[10px] sm:text-[11px] font-bold">
+            <span className="text-emerald-500/70 text-[9px] sm:text-[0.625rem] font-bold">
               全胜晋级
             </span>
           </div>
-          <div className="p-3 sm:p-5 flex gap-2 sm:gap-5 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl flex-wrap">
+          <div className="p-3 sm:p-4 flex gap-2 sm:gap-4 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl flex-wrap">
             {slots30.map((s) => (
               <SlotBox
                 key={s.id}
@@ -141,19 +141,19 @@ export const PickEmDock: React.FC<{
         {/* 0:3 (2 Slots) */}
         <div
           className={cn(
-            "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-rose-500/20 shadow-lg shadow-rose-500/5 relative",
+            "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-rose-500/20 shadow-sm relative",
             "w-full col-span-1 order-none",
           )}
         >
-          <div className="px-2 py-2 sm:py-3 bg-rose-500/10 border-b border-rose-500/20 flex flex-col items-center rounded-t-xl">
-            <span className="text-rose-400 font-black tracking-widest text-[14px] sm:text-[16px] leading-tight">
+          <div className="px-2 py-1.5 sm:py-2 bg-rose-500/10 border-b border-rose-500/20 flex flex-col items-center rounded-t-xl">
+            <span className="text-rose-400 font-black tracking-widest text-[0.8125rem] sm:text-sm leading-tight">
               0:3
             </span>
-            <span className="text-rose-500/70 text-[10px] sm:text-[11px] font-bold">
+            <span className="text-rose-500/70 text-[9px] sm:text-[0.625rem] font-bold">
               全败淘汰
             </span>
           </div>
-          <div className="p-3 sm:p-5 flex gap-2 sm:gap-5 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl flex-wrap">
+          <div className="p-3 sm:p-4 flex gap-2 sm:gap-4 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl flex-wrap">
             {slots03.map((s) => (
               <SlotBox
                 key={s.id}
@@ -170,19 +170,19 @@ export const PickEmDock: React.FC<{
         {/* Advance (6 Slots) */}
         <div
           className={cn(
-            "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-blue-500/20 shadow-lg shadow-blue-500/5 relative",
+            "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-blue-500/20 shadow-sm relative",
             "w-full col-span-2",
           )}
         >
-          <div className="px-2 py-2 sm:py-3 bg-blue-500/10 border-b border-blue-500/20 flex flex-col items-center rounded-t-xl">
-            <span className="text-blue-400 font-black tracking-widest text-[14px] sm:text-[16px] leading-tight">
+          <div className="px-2 py-1.5 sm:py-2 bg-blue-500/10 border-b border-blue-500/20 flex flex-col items-center rounded-t-xl">
+            <span className="text-blue-400 font-black tracking-widest text-[0.8125rem] sm:text-sm leading-tight">
               3:1 / 3:2
             </span>
-            <span className="text-blue-500/70 text-[10px] sm:text-[11px] font-bold">
+            <span className="text-blue-500/70 text-[9px] sm:text-[0.625rem] font-bold">
               晋级
             </span>
           </div>
-          <div className="p-3 sm:p-5 flex flex-wrap gap-2 sm:gap-5 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl">
+          <div className="p-3 sm:p-4 flex flex-wrap gap-2 sm:gap-4 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl">
             {slotsAdv.map((s) => (
               <SlotBox
                 key={s.id}

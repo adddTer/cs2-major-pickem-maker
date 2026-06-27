@@ -30,7 +30,7 @@ export const TestBracket = ({ format, onMatchClick, activeGroupId = 0 }: { forma
     if (node.type === "playoffsHeader") {
       return (
         <div
-          className="absolute text-[12px] text-zinc-900 dark:text-zinc-200 bg-zinc-200/60 dark:bg-black/60 rounded-sm px-1 py-0.5 font-bold tracking-wider flex items-center justify-center pointer-events-auto cursor-default w-[180px] z-50 shadow-md transition-colors"
+          className="absolute text-[0.6875rem] text-zinc-600 dark:text-zinc-400 bg-white/60 dark:bg-zinc-900/60 rounded-full px-4 py-1.5 font-display font-semibold tracking-widest uppercase flex items-center justify-center pointer-events-auto cursor-default w-[190px] z-50 shadow-sm border border-black/5 dark:border-white/5 backdrop-blur-md -mt-8"
         >
           {node.title}
         </div>

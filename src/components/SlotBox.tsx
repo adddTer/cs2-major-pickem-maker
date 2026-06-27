@@ -49,35 +49,35 @@ export const SlotBox: React.FC<{
           : () => onClick && onClick(slot.id, slot.teamId)
       }
       className={cn(
-        "rounded-[12px] bg-zinc-100/60 dark:bg-zinc-900/60 flex items-center justify-center transition-all duration-300 group relative border shrink-0",
+        "bg-white/40 dark:bg-zinc-900/40 flex items-center justify-center transition-all duration-300 group relative border shrink-0",
         !isExport &&
           !isTbd &&
-          "backdrop-blur-md shadow-[inset_0_1px_4px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]",
-        isExport && isTbd && "bg-zinc-100 dark:bg-zinc-900",
+          "backdrop-blur-xl shadow-[inset_0_1px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_4px_rgba(255,255,255,0.05)]",
+        isExport && isTbd && "bg-white dark:bg-zinc-900",
         isXs
-          ? "w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg"
+          ? "w-7 h-7 sm:w-8 sm:h-8 rounded-lg"
           : isSm
-            ? "w-9 h-9 sm:w-11 sm:h-11 rounded-[10px] sm:rounded-xl"
-            : "w-[3.25rem] h-[3.25rem] md:w-[68px] md:h-[68px] rounded-xl lg:rounded-2xl z-10",
+            ? "w-9 h-9 sm:w-11 sm:h-11 rounded-[10px]"
+            : "w-[3rem] h-[3rem] md:w-[60px] md:h-[60px] rounded-xl z-10",
         readOnly && !slot.resultStatus
           ? ""
           : !readOnly && !isTbd
-            ? "hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
+            ? "hover:bg-white/60 dark:hover:bg-zinc-800/60 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_8px_16px_rgba(0,0,0,0.4)]"
             : "",
         slot.resultStatus === "correct"
           ? cn(
-              "border-emerald-500/60 bg-emerald-500/15",
+              "border-emerald-500/60 bg-emerald-500/10",
               !isExport && "shadow-[0_0_15px_rgba(16,185,129,0.2)]",
             )
           : slot.resultStatus === "incorrect"
             ? "border-rose-500/40 bg-rose-500/10"
             : team && !isTbd
               ? cn(
-                  "border-black/15 dark:border-white/15 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700/80",
-                  !isExport && "shadow-md dark:shadow-md",
+                  "border-black/10 dark:border-white/10 bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700/80",
+                  !isExport && "shadow-sm dark:shadow-sm",
                   border,
                 )
-              : "border-black/10 dark:border-white/20 hover:border-black/20 dark:border-white/40 border-dashed bg-zinc-200/50 dark:bg-zinc-800/40 shadow-inner",
+              : "border-black/5 dark:border-white/5 hover:border-black/20 dark:hover:border-white/20 border-dashed bg-black/5 dark:bg-white/5 shadow-inner",
         slot.clashType === "x-one" &&
           slot.resultStatus === "unknown" &&
           "border-amber-500/30 bg-amber-500/5",
@@ -139,7 +139,7 @@ export const SlotBox: React.FC<{
             team={team}
             fallbackClasses={cn(
               "rounded-[8px]",
-              isXs ? "text-[5px] sm:text-[6px]" : "text-[8px] sm:text-[10px]",
+              isXs ? "text-[5px] sm:text-[6px]" : "text-[8px] sm:text-[0.625rem]",
             )}
           />
         </div>
@@ -163,7 +163,7 @@ export const SlotBox: React.FC<{
             isXs
               ? "text-[6px] sm:text-[8px]"
               : isSm
-                ? "text-[10px] sm:text-xs"
+                ? "text-[0.625rem] sm:text-xs"
                 : "text-sm",
           )}
         >

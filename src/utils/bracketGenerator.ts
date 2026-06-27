@@ -1,7 +1,7 @@
 import { BracketConfig, BracketNode, BracketEdge, BracketNodeType, SWISS_CONFIG } from "../data/bracketConfigs";
 
 export interface BracketGenerationParams {
-  type: "single_elim" | "double_elim" | "swiss" | "gsl" | "gauntlet" | "round_robin" | "double_round_robin";
+  type: "single_elim" | "double_elim" | "swiss" | "gsl" | "gauntlet" | "round_robin" | "double_round_robin" | "playoffs";
   teamsCount: number;
   advanceCount: number;
   thirdPlaceMatch?: boolean;
@@ -13,6 +13,7 @@ export function parseFormatString(formatStr: string): BracketGenerationParams {
   if (parts.length > 2 && parts[0] === "double" && parts[1] === "round" && parts[2] === "robin") {
     type = "double_round_robin";
   }
+  if (parts[0] === "playoffs") type = "playoffs";
   
   const typeStrLength = type.split("_").length;
   const teamsCount = parseInt(parts[typeStrLength]) || 4;
@@ -40,6 +41,9 @@ export function generateBracketConfig(formatStr: string): BracketConfig {
       return generateSwiss(teamsCount);
     case "double_elim":
       return generateDoubleElim(teamsCount, advanceCount);
+    case "playoffs":
+      if (teamsCount === 6) return generatePlayoffs6();
+      return generateSingleElim(teamsCount, thirdPlaceMatch);
     default:
       return generateSingleElim(teamsCount, thirdPlaceMatch);
   }
@@ -212,6 +216,9 @@ function generateSingleElim(teamsCount: number, thirdPlaceMatch: boolean = false
 }
 
 function generateDoubleElim(teamsCount: number, advanceCount: number = 1): BracketConfig {
+  if (teamsCount === 8 && advanceCount === 6) {
+    return generateDoubleElim8to6();
+  }
   if (teamsCount === 16 && advanceCount === 1) {
     const nodes: BracketNode[] = [];
     const edges: BracketEdge[] = [];
@@ -593,4 +600,162 @@ function generateGSL(teamsCount: number): BracketConfig {
 
 function generateSwiss(teamsCount: number): BracketConfig {
   return SWISS_CONFIG;
+}
+
+function generateDoubleElim8to6(): BracketConfig {
+  const nodes: BracketNode[] = [];
+  const edges: BracketEdge[] = [];
+  const w = 200;
+  const gapX = 80;
+  const c1 = 100;
+  const c2 = c1 + w + gapX;
+  const c3 = c2 + w + gapX;
+
+  // UB R1
+  nodes.push(
+    { id: "ub-r1-1", x: c1, y: 100, type: "playoffsSlot", disableDragDrop: false },
+    { id: "ub-r1-2", x: c1, y: 160, type: "playoffsSlot", disableDragDrop: false },
+    { id: "ub-r1-3", x: c1, y: 250, type: "playoffsSlot", disableDragDrop: false },
+    { id: "ub-r1-4", x: c1, y: 310, type: "playoffsSlot", disableDragDrop: false },
+    { id: "ub-r1-5", x: c1, y: 400, type: "playoffsSlot", disableDragDrop: false },
+    { id: "ub-r1-6", x: c1, y: 460, type: "playoffsSlot", disableDragDrop: false },
+    { id: "ub-r1-7", x: c1, y: 550, type: "playoffsSlot", disableDragDrop: false },
+    { id: "ub-r1-8", x: c1, y: 610, type: "playoffsSlot", disableDragDrop: false },
+  );
+
+  // UB R2
+  nodes.push(
+    { id: "ub-r2-1", x: c2, y: 130, type: "playoffsSlot", disableDragDrop: true },
+    { id: "ub-r2-2", x: c2, y: 280, type: "playoffsSlot", disableDragDrop: true },
+    { id: "ub-r2-3", x: c2, y: 430, type: "playoffsSlot", disableDragDrop: true },
+    { id: "ub-r2-4", x: c2, y: 580, type: "playoffsSlot", disableDragDrop: true },
+  );
+
+  edges.push(
+    { from: "ub-r1-1", to: "ub-r2-1", type: "playoffs" },
+    { from: "ub-r1-2", to: "ub-r2-1", type: "playoffs" },
+    { from: "ub-r1-3", to: "ub-r2-2", type: "playoffs" },
+    { from: "ub-r1-4", to: "ub-r2-2", type: "playoffs" },
+    { from: "ub-r1-5", to: "ub-r2-3", type: "playoffs" },
+    { from: "ub-r1-6", to: "ub-r2-3", type: "playoffs" },
+    { from: "ub-r1-7", to: "ub-r2-4", type: "playoffs" },
+    { from: "ub-r1-8", to: "ub-r2-4", type: "playoffs" },
+  );
+
+  // UB Advancers (Winners of UB R2) - 2 teams
+  nodes.push(
+    { id: "ub-adv-1", x: c3, y: 205, type: "playoffsSlot", disableDragDrop: true },
+    { id: "ub-adv-2", x: c3, y: 505, type: "playoffsSlot", disableDragDrop: true },
+  );
+
+  edges.push(
+    { from: "ub-r2-1", to: "ub-adv-1", type: "playoffs" },
+    { from: "ub-r2-2", to: "ub-adv-1", type: "playoffs" },
+    { from: "ub-r2-3", to: "ub-adv-2", type: "playoffs" },
+    { from: "ub-r2-4", to: "ub-adv-2", type: "playoffs" },
+  );
+
+  // LB R1 (Losers of UB R1)
+  const lbY = 750;
+  nodes.push(
+    { id: "lb-r1-1", x: c1, y: lbY, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+    { id: "lb-r1-2", x: c1, y: lbY + 60, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+    { id: "lb-r1-3", x: c1, y: lbY + 150, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+    { id: "lb-r1-4", x: c1, y: lbY + 210, type: "playoffsSlot", disableDragDrop: true, hasDropStub: true },
+  );
+
+  // LB Advancers (Winners of LB R1)
+  nodes.push(
+    { id: "lb-adv-1", x: c2, y: lbY + 30, type: "playoffsSlot", disableDragDrop: true },
+    { id: "lb-adv-2", x: c2, y: lbY + 180, type: "playoffsSlot", disableDragDrop: true },
+  );
+
+  edges.push(
+    { from: "lb-r1-1", to: "lb-adv-1", type: "playoffs" },
+    { from: "lb-r1-2", to: "lb-adv-1", type: "playoffs" },
+    { from: "lb-r1-3", to: "lb-adv-2", type: "playoffs" },
+    { from: "lb-r1-4", to: "lb-adv-2", type: "playoffs" },
+  );
+  
+  // Headers
+  nodes.push(
+    { id: "header-ub-r1", x: c1, y: 70, type: "playoffsHeader", title: "胜者组第一轮", matchIndex: 0 },
+    { id: "header-ub-r2", x: c2, y: 100, type: "playoffsHeader", title: "胜者组第二轮", matchIndex: 0 },
+    { id: "header-lb-r1", x: c1, y: lbY - 30, type: "playoffsHeader", title: "败者组第一轮", matchIndex: 0 }
+  );
+
+  return { width: 1000, height: 1100, nodes, edges };
+}
+
+function generatePlayoffs6(): BracketConfig {
+  const nodes: BracketNode[] = [];
+  const edges: BracketEdge[] = [];
+  
+  const w = 200;
+  const gapX = 80;
+  const c1 = 100;
+  const c2 = c1 + w + gapX;
+  const c3 = c2 + w + gapX;
+  const c4 = c3 + w + gapX;
+  
+  // Quarterfinals (4 teams, 2 matches)
+  nodes.push(
+    { id: "qf-1", x: c1, y: 150, type: "playoffsSlot", disableDragDrop: false },
+    { id: "qf-2", x: c1, y: 210, type: "playoffsSlot", disableDragDrop: false },
+    { id: "qf-3", x: c1, y: 450, type: "playoffsSlot", disableDragDrop: false },
+    { id: "qf-4", x: c1, y: 510, type: "playoffsSlot", disableDragDrop: false },
+  );
+  
+  // Semifinals (4 teams, 2 matches)
+  nodes.push(
+    // Seed 1 (directly in semi)
+    { id: "sf-seed-1", x: c2, y: 90, type: "playoffsSlot", disableDragDrop: false },
+    // Winner of QF 1
+    { id: "sf-1", x: c2, y: 180, type: "playoffsSlot", disableDragDrop: true },
+    
+    // Seed 2 (directly in semi)
+    { id: "sf-seed-2", x: c2, y: 390, type: "playoffsSlot", disableDragDrop: false },
+    // Winner of QF 2
+    { id: "sf-2", x: c2, y: 480, type: "playoffsSlot", disableDragDrop: true },
+  );
+  
+  edges.push(
+    { from: "qf-1", to: "sf-1", type: "playoffs" },
+    { from: "qf-2", to: "sf-1", type: "playoffs" },
+    { from: "qf-3", to: "sf-2", type: "playoffs" },
+    { from: "qf-4", to: "sf-2", type: "playoffs" },
+  );
+  
+  // Finals (2 teams)
+  nodes.push(
+    { id: "final-1", x: c3, y: 135, type: "playoffsSlot", disableDragDrop: true },
+    { id: "final-2", x: c3, y: 435, type: "playoffsSlot", disableDragDrop: true },
+  );
+  
+  edges.push(
+    { from: "sf-seed-1", to: "final-1", type: "playoffs" },
+    { from: "sf-1", to: "final-1", type: "playoffs" },
+    { from: "sf-seed-2", to: "final-2", type: "playoffs" },
+    { from: "sf-2", to: "final-2", type: "playoffs" },
+  );
+  
+  // Champion
+  nodes.push(
+    { id: "champion", x: c4, y: 285, type: "playoffsSlot", disableDragDrop: true },
+  );
+  
+  edges.push(
+    { from: "final-1", to: "champion", type: "playoffs" },
+    { from: "final-2", to: "champion", type: "playoffs" },
+  );
+  
+  // Headers
+  nodes.push(
+    { id: "header-qf", x: c1, y: 120, type: "playoffsHeader", title: "1/4决赛", matchIndex: 0 },
+    { id: "header-sf", x: c2, y: 60, type: "playoffsHeader", title: "半决赛", matchIndex: 0 },
+    { id: "header-final", x: c3, y: 105, type: "playoffsHeader", title: "决 赛", matchIndex: 0 },
+    { id: "header-champ", x: c4, y: 255, type: "playoffsHeader", title: "冠军", matchIndex: 0 },
+  );
+
+  return { width: 1200, height: 700, nodes, edges };
 }

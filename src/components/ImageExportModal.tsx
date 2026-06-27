@@ -190,7 +190,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
           正在生成概率分布...
         </h2>
         <div className="flex items-center gap-3 w-[320px] max-w-[80vw] mt-1">
-           <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-500 w-10 text-right">
+           <span className="text-[0.625rem] font-mono text-zinc-500 dark:text-zinc-500 w-10 text-right">
              {Math.floor((simulationProgress / 100) * imageExportSimCount).toLocaleString()}
            </span>
            <div className="flex-1 h-1 bg-white dark:bg-zinc-800 rounded-full overflow-hidden relative">
@@ -199,7 +199,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                 style={{ width: `${Math.max(1, simulationProgress)}%` }}
              />
            </div>
-           <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-500 w-10 text-left">
+           <span className="text-[0.625rem] font-mono text-zinc-500 dark:text-zinc-500 w-10 text-left">
              {imageExportSimCount.toLocaleString()}
            </span>
         </div>
@@ -341,7 +341,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                          onChange={(e) => setImageExportSimCount(Number(e.target.value))}
                          className="w-full h-1.5 bg-zinc-700/80 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                        />
-                       <div className="flex justify-between text-[10px] text-zinc-500 dark:text-zinc-500 px-1 font-mono font-bold">
+                       <div className="flex justify-between text-[0.625rem] text-zinc-500 dark:text-zinc-500 px-1 font-mono font-bold">
                          <span>10K (极速)</span>
                          <span>5M (精确)</span>
                        </div>
@@ -701,7 +701,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                               {imageExportShowPrevStage &&
                               activeStage !== "stage1" ? (
                                 <div className="flex flex-col gap-1 items-start">
-                                  <span className="text-[10px] text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 font-bold bg-black/80 dark:bg-white/80 dark:bg-zinc-800/80 px-1 py-0.5 rounded leading-none shrink-0 border border-zinc-300 dark:border-zinc-700 shadow-sm w-max">
+                                  <span className="text-[0.625rem] text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 font-bold bg-black/80 dark:bg-white/80 dark:bg-zinc-800/80 px-1 py-0.5 rounded leading-none shrink-0 border border-zinc-300 dark:border-zinc-700 shadow-sm w-max">
                                     上阶段
                                   </span>
                                   <div className="transform origin-top-left scale-90">
@@ -752,7 +752,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                             {imageExportShowPrevStage &&
                             activeStage !== "stage1" ? (
                               <div className="flex items-center max-w-[200px] overflow-hidden whitespace-nowrap">
-                                <span className="text-[10px] text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 font-bold bg-black/80 dark:bg-white/80 dark:bg-zinc-800/80 px-1 py-0.5 rounded leading-none shrink-0 border border-zinc-300 dark:border-zinc-700 mr-1 shadow-sm opacity-90">
+                                <span className="text-[0.625rem] text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 font-bold bg-black/80 dark:bg-white/80 dark:bg-zinc-800/80 px-1 py-0.5 rounded leading-none shrink-0 border border-zinc-300 dark:border-zinc-700 mr-1 shadow-sm opacity-90">
                                   上阶段
                                 </span>
                                 <PickSetStatusText

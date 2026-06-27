@@ -68,7 +68,7 @@ export const MiniPlayoffsBracket: React.FC<{
             <>
               {!compact && (
                 <span
-                  className={`font-bold text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 whitespace-nowrap ${isExport ? "text-[10px] text-left" : "text-[9px] sm:text-[10px] text-center sm:text-left"}`}
+                  className={`font-bold text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 whitespace-nowrap ${isExport ? "text-[0.625rem] text-left" : "text-[9px] sm:text-[0.625rem] text-center sm:text-left"}`}
                 >
                   1/4 决赛胜者
                 </span>
@@ -80,7 +80,7 @@ export const MiniPlayoffsBracket: React.FC<{
               </div>
             </>
           ) : (
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
+            <span className="text-[0.625rem] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
               暂无
             </span>
           )}
@@ -98,7 +98,7 @@ export const MiniPlayoffsBracket: React.FC<{
             <>
               {!compact && (
                 <span
-                  className={`font-bold text-blue-500 dark:text-blue-400 whitespace-nowrap ${isExport ? "text-[10px] text-left" : "text-[9px] sm:text-[10px] text-center sm:text-left"}`}
+                  className={`font-bold text-blue-500 dark:text-blue-400 whitespace-nowrap ${isExport ? "text-[0.625rem] text-left" : "text-[9px] sm:text-[0.625rem] text-center sm:text-left"}`}
                 >
                   半决赛胜者
                 </span>
@@ -110,7 +110,7 @@ export const MiniPlayoffsBracket: React.FC<{
               </div>
             </>
           ) : (
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
+            <span className="text-[0.625rem] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
               暂无
             </span>
           )}
@@ -128,7 +128,7 @@ export const MiniPlayoffsBracket: React.FC<{
             <>
               {!compact && (
                 <span
-                  className={`font-bold text-yellow-500 whitespace-nowrap ${isExport ? "text-[10px] text-left" : "text-[9px] sm:text-[10px] text-center sm:text-left"}`}
+                  className={`font-bold text-yellow-500 whitespace-nowrap ${isExport ? "text-[0.625rem] text-left" : "text-[9px] sm:text-[0.625rem] text-center sm:text-left"}`}
                 >
                   冠军
                 </span>
@@ -140,7 +140,7 @@ export const MiniPlayoffsBracket: React.FC<{
               </div>
             </>
           ) : (
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
+            <span className="text-[0.625rem] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
               暂无
             </span>
           )}

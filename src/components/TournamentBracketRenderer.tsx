@@ -126,7 +126,7 @@ export const TournamentBracketRenderer: React.FC<{
                   }, 50);
                 }}
                 title="复位并居中"
-                className="px-2 lg:px-3.5 h-6 lg:h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white flex items-center justify-center gap-1.5 cursor-pointer transition-all text-[10px] lg:text-xs font-semibold active:scale-95 shadow-sm"
+                className="px-2 lg:px-3.5 h-6 lg:h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white flex items-center justify-center gap-1.5 cursor-pointer transition-all text-[0.625rem] lg:text-xs font-semibold active:scale-95 shadow-sm"
               >
                 <RotateCcw className="w-3 h-3 lg:w-3.5 lg:h-3.5" />
                 <span className="hidden sm:inline">复位居中</span>
@@ -136,7 +136,7 @@ export const TournamentBracketRenderer: React.FC<{
                 onClick={handleExport}
                 disabled={isExporting}
                 title="导出对阵图"
-                className="px-2 lg:px-3.5 h-6 lg:h-8 rounded-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed active:bg-blue-700 text-white flex items-center justify-center gap-1.5 cursor-pointer transition-all text-[10px] lg:text-xs font-semibold active:scale-95 shadow-sm"
+                className="px-2 lg:px-3.5 h-6 lg:h-8 rounded-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed active:bg-blue-700 text-white flex items-center justify-center gap-1.5 cursor-pointer transition-all text-[0.625rem] lg:text-xs font-semibold active:scale-95 shadow-sm"
               >
                 {isExporting ? <Loader2 className="w-3 h-3 lg:w-3.5 lg:h-3.5 animate-spin" /> : <Download className="w-3 h-3 lg:w-3.5 lg:h-3.5" />}
                 <span className="hidden sm:inline">{isExporting ? "导出中..." : "导出对阵图"}</span>
@@ -200,8 +200,8 @@ export const TournamentBracketRenderer: React.FC<{
                       );
                     } else if (edge.type === "playoffs") {
                       // Playoffs uses piecewise orthogonal curves
-                      const W = 180;
-                      const H = 40;
+                      const W = 190;
+                      const H = 48;
                       const sx = p1.x + W;
                       const sy = p1.y + H / 2;
                       const ex = p2.x;
@@ -228,7 +228,7 @@ export const TournamentBracketRenderer: React.FC<{
 
                       let strokeProps = {
                         stroke: "currentColor",
-                        className: "text-black/15 dark:text-white/15",
+                        className: "text-black/15 dark:text-white/15 drop-shadow-sm",
                         strokeDasharray: "none"
                       };
                       if (edge.win === false) {
@@ -244,7 +244,7 @@ export const TournamentBracketRenderer: React.FC<{
                           key={i}
                           d={d}
                           {...strokeProps}
-                          strokeWidth="1.5"
+                          strokeWidth="2"
                           fill="none"
                           strokeLinecap="round"
                           strokeLinejoin="round"

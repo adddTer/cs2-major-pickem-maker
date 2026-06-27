@@ -328,36 +328,40 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
 
   return (
     <div className="flex flex-col h-full overflow-hidden text-sm relative z-20">
-      <div className="flex border-b border-black/5 dark:border-white/5 items-center px-4 py-2 shrink-0 z-10 w-full bg-zinc-50/80 dark:bg-[#070b09]/80 backdrop-blur">
-        {[
-          { id: "stage1", label: "第一阶段" },
-          { id: "stage2", label: "第二阶段" },
-          { id: "stage3", label: "第三阶段" },
-        ].map((tab) => {
-          const isActive = activeStage === tab.id;
-          return (
-            <div
-              key={tab.id}
-              onClick={() => setActiveStage(tab.id as StageKey)}
-              className={cn(
-                "px-4 py-1.5 rounded-[2px] text-[13px] font-bold cursor-pointer transition-colors flex items-center whitespace-nowrap",
-                isActive
-                  ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm border-b-2 border-emerald-500"
-                  : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-300",
-              )}
-            >
-              {tab.label}
-            </div>
-          );
-        })}
+      <div className="flex items-center justify-center gap-2 py-4 shrink-0 z-10 w-full bg-transparent overflow-x-auto hide-scrollbar">
+        <div className="flex p-1.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md rounded-2xl border border-black/5 dark:border-white/5 shadow-sm max-w-full">
+          {[
+            { id: "stage1", label: "第一阶段" },
+            { id: "stage2", label: "第二阶段" },
+            { id: "stage3", label: "第三阶段" },
+          ].map((tab) => {
+            const isActive = activeStage === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveStage(tab.id as StageKey)}
+                className={cn(
+                  "px-6 py-2.5 rounded-xl text-[0.8125rem] font-display font-bold cursor-pointer transition-all duration-300 flex items-center whitespace-nowrap",
+                  isActive
+                    ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-md ring-1 ring-black/5 dark:ring-white/10"
+                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5"
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden relative">
-        {/* Sidebar - Desktop & Mobile Drawer */}
-        <div className={cn(
-          "absolute inset-y-0 left-0 z-50 w-64 md:w-56 border-r border-black/5 dark:border-white/5 bg-zinc-50 dark:bg-zinc-950 flex flex-col shrink-0 transition-transform duration-200 ease-in-out md:relative md:translate-x-0",
-          showMobileMenu ? "translate-x-0" : "-translate-x-full"
-        )}>
+      <div className="flex flex-1 overflow-hidden relative px-2 sm:px-4 pb-4">
+        <div className="w-full h-full flex flex-row overflow-hidden bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative">
+          
+          {/* Sidebar - Desktop & Mobile Drawer */}
+          <div className={cn(
+            "absolute inset-y-0 left-0 z-50 w-64 md:w-56 border-r border-black/5 dark:border-white/5 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl flex flex-col shrink-0 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 rounded-l-[2rem] md:rounded-l-[2rem]",
+            showMobileMenu ? "translate-x-0 shadow-2xl" : "-translate-x-full md:shadow-none"
+          )}>
           <div className="p-4 border-b border-black/5 dark:border-white/5 shrink-0 flex items-center justify-between">
              <div className="flex items-center gap-2">
                <h2 className="font-bold text-zinc-800 dark:text-zinc-300">概率矩阵</h2>
@@ -418,66 +422,63 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
         )}
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col bg-zinc-100/50 dark:bg-zinc-900/50 overflow-hidden relative">
+        <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative">
           {activeMatrix ? (
-             <div className="flex flex-col h-full p-2 md:p-4 relative z-20">
-               <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 md:mb-4 gap-2 md:gap-4 shrink-0">
+             <div className="flex flex-col h-full p-4 relative z-20">
+               <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4 shrink-0">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 max-w-full">
-                       <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-1.5 -ml-1 hover:bg-black/10 dark:bg-white/10 rounded flex items-center justify-center shrink-0">
+                    <div className="flex items-center gap-3 max-w-full">
+                       <button onClick={() => setShowMobileMenu(true)} className="md:hidden p-2 -ml-2 hover:bg-black/10 dark:bg-white/10 rounded-xl flex items-center justify-center shrink-0">
                          <Menu className="w-5 h-5 text-zinc-800 dark:text-zinc-300" />
                        </button>
-                       <h1 className="text-base md:text-lg font-bold text-black dark:text-white flex items-center gap-2 truncate">
+                       <h1 className="text-lg md:text-xl font-display font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-3 truncate">
                          {activeMatrix.name}
-                         {activeMatrix.isDefault && <span className="px-1.5 py-0.5 bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 text-[9px] md:text-[10px] rounded border border-sky-500/30 shrink-0">系统只读</span>}
+                         {activeMatrix.isDefault && <span className="px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[0.625rem] rounded border border-blue-500/20 shrink-0 font-medium">系统预设</span>}
                        </h1>
                     </div>
-                    <p className="text-[10px] md:text-xs text-zinc-500 dark:text-zinc-500 mt-1 pl-7 md:pl-0">
-                       此矩阵定义了BO1对决时的单图胜率。推演不含 "特定图elo+150" 机制，BO3会自动乘算。
-                    </p>
                   </div>
-                     <div className="flex items-center justify-end gap-2 shrink-0">
-                       <select 
-                         value={numSimulations} 
-                         onChange={(e) => setNumSimulations(Number(e.target.value))}
-                         disabled={aiPickemState.isGenerating}
-                         className="bg-zinc-200 dark:bg-zinc-800 border-none outline-none text-[10px] md:text-xs text-zinc-800 dark:text-zinc-200 rounded px-2 py-1.5 md:py-2 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                       >
-                         <option value={10000}>1万次模拟</option>
-                         <option value={50000}>5万次模拟</option>
-                         <option value={100000}>10万次模拟</option>
-                         <option value={200000}>20万次模拟</option>
-                         <option value={500000}>50万次模拟</option>
-                       </select>
-                       <button onClick={handleAIPickem} disabled={aiPickemState.isGenerating} className="px-3 md:px-4 py-1.5 md:py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-wait text-black dark:text-white rounded text-[10px] md:text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors shrink-0">
-                          <Calculator className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                          {aiPickemState.isGenerating ? "计算中..." : "计算最优作业"}
-                       </button>
-                       {!activeMatrix.isDefault && (
-                         <button onClick={handleSaveLocal} className="px-3 md:px-4 py-1.5 md:py-2 bg-emerald-600 hover:bg-emerald-500 text-black dark:text-white rounded text-[10px] md:text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors shrink-0">
-                            <Save className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                            保存修改
-                         </button>
-                       )}
-                     </div>
+                  <div className="flex items-center justify-end gap-2 shrink-0 bg-white/60 dark:bg-black/40 p-1.5 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-sm">
+                    <select 
+                      value={numSimulations} 
+                      onChange={(e) => setNumSimulations(Number(e.target.value))}
+                      disabled={aiPickemState.isGenerating}
+                      className="bg-transparent border-none outline-none text-xs text-zinc-600 dark:text-zinc-300 px-2 py-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 font-medium"
+                    >
+                      <option value={10000}>1万次推演</option>
+                      <option value={50000}>5万次推演</option>
+                      <option value={100000}>10万次推演</option>
+                      <option value={200000}>20万次推演</option>
+                      <option value={500000}>50万次推演</option>
+                    </select>
+                    <button onClick={handleAIPickem} disabled={aiPickemState.isGenerating} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-wait text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors shrink-0">
+                       <Calculator className="w-4 h-4" />
+                       {aiPickemState.isGenerating ? "计算中..." : "推演最优作业"}
+                    </button>
+                    {!activeMatrix.isDefault && (
+                      <button onClick={handleSaveLocal} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-white text-white dark:text-black rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors shrink-0">
+                         <Save className="w-4 h-4" />
+                         保存修改
+                      </button>
+                    )}
+                  </div>
                </div>
 
-               <div className="flex-1 overflow-auto border border-black/10 dark:border-white/10 rounded bg-zinc-50 dark:bg-[#070b09] custom-scrollbar">
+               <div className="flex-1 overflow-auto rounded-2xl bg-white/60 dark:bg-zinc-950/60 custom-scrollbar border border-black/5 dark:border-white/5 shadow-inner">
                  <table className="w-full text-center border-collapse min-w-max">
-                   <thead className="sticky top-0 z-20 bg-zinc-50 dark:bg-zinc-950 shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
+                   <thead className="sticky top-0 z-20 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
                      <tr>
-                       <th className="w-16 min-w-[64px] md:w-20 md:min-w-[80px] sticky left-0 z-30 bg-zinc-50 dark:bg-zinc-950 border-r border-b border-black/5 dark:border-white/5 text-[10px] text-zinc-500 dark:text-zinc-500 p-1 font-bold">
-                         横(胜率) \ 纵
+                       <th className="w-16 min-w-[64px] md:w-20 md:min-w-[80px] sticky left-0 z-30 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-r border-b border-black/5 dark:border-white/5 text-[0.625rem] text-zinc-500 dark:text-zinc-500 p-1 font-bold">
+                         横(胜) \ 纵
                        </th>
                        {stageTeams.map(t => (
-                         <th key={`col-${t.id}`} className="min-w-[48px] md:min-w-[52px] lg:min-w-[60px] border-r border-b border-black/5 dark:border-white/5 p-1 md:px-1.5 md:py-1 font-normal bg-zinc-50 dark:bg-zinc-950" title={t.name}>
+                         <th key={`col-${t.id}`} className="min-w-[48px] md:min-w-[52px] lg:min-w-[60px] border-r border-b border-black/5 dark:border-white/5 p-1 md:px-1.5 md:py-1 font-normal bg-transparent" title={t.name}>
                            <div className="flex items-center justify-center">
                              {t.logo ? (
                                <div className="w-4 h-4 md:w-5 md:h-5 shrink-0">
-                                 <TeamLogo team={t} fallbackClasses="text-[10px]" />
+                                 <TeamLogo team={t} fallbackClasses="text-[0.625rem]" />
                                </div>
                              ) : (
-                               <span className="truncate text-[10px] md:text-xs">{t.shortName}</span>
+                               <span className="truncate text-[0.625rem] md:text-xs">{t.shortName}</span>
                              )}
                            </div>
                          </th>
@@ -487,7 +488,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
                    <tbody>
                      {stageTeams.map((rowTeam) => (
                        <tr key={`row-${rowTeam.id}`} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group">
-                         <th className="w-16 min-w-[64px] md:w-20 md:min-w-[80px] sticky left-0 z-10 bg-zinc-50 dark:bg-zinc-950 group-hover:bg-zinc-100 dark:group-hover:bg-[#111613] border-r border-b border-black/5 dark:border-white/5 font-normal transition-colors p-1 md:px-1.5">
+                         <th className="w-16 min-w-[64px] md:w-20 md:min-w-[80px] sticky left-0 z-10 bg-white dark:bg-zinc-950 group-hover:bg-zinc-50 dark:group-hover:bg-[#111613] border-r border-b border-black/5 dark:border-white/5 font-normal transition-colors p-1 md:px-1.5">
                            <div className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1.5 h-full">
                              {rowTeam.logo && (
                                <div className="w-4 h-4 md:w-5 md:h-5 shrink-0">
@@ -519,13 +520,13 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
                                  <span className="text-zinc-400 dark:text-zinc-700 flex items-center justify-center h-full">-</span>
                                ) : (
                                  activeMatrix.isDefault ? (
-                                   <div className={cn("flex items-center justify-center w-full h-full text-[10px] md:text-xs cursor-default selection:bg-transparent", valColor)}>
+                                   <div className={cn("flex items-center justify-center w-full h-full text-[0.625rem] md:text-xs cursor-default selection:bg-transparent", valColor)}>
                                      {probPct}%
                                    </div>
                                  ) : (
                                    <input 
                                      className={cn(
-                                        "w-full h-full bg-transparent text-center text-[10px] md:text-xs outline-none focus:bg-black/10 dark:focus:bg-white/10 transition-colors absolute inset-0",
+                                        "w-full h-full bg-transparent text-center text-[0.625rem] md:text-xs outline-none focus:bg-black/10 dark:focus:bg-white/10 transition-colors absolute inset-0",
                                         valColor
                                      )}
                                      type="text"
@@ -553,6 +554,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
              </div>
           )}
         </div>
+        </div>
       </div>
       <Modal
         isOpen={isQuickCreateOpen}
@@ -560,7 +562,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
         title="通过实力值快速创建"
         maxWidthClass="max-w-xl"
       >
-        <div className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 text-[11px] md:text-sm mb-4 leading-relaxed">
+        <div className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 text-[0.6875rem] md:text-sm mb-4 leading-relaxed">
           通过调整以下队伍的实力值 (Elo) 来快速生成对应的概率矩阵。系统默认采用队伍此时的 VRS / HLTV 等效积分。如果该队伍没有找到相关积分，则会根据种子顺位进行分配。
         </div>
 
@@ -647,35 +649,35 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
             </div>
           ) : aiPickemState.result ? (
             <div className="flex flex-col gap-6">
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex flex-col items-center justify-center gap-2">
-                <span className="text-emerald-400 font-bold text-lg">保 5 分概率: {(aiPickemState.result.score * 100).toFixed(2)}%</span>
-                <span className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 text-xs text-center">此概率基于当前选择的胜率矩阵进行{numSimulations / 10000}万次模拟并进行启发式搜索得出。</span>
+              <div className="p-5 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl flex flex-col items-center justify-center gap-3">
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold text-2xl font-display">保 5 分概率: {(aiPickemState.result.score * 100).toFixed(2)}%</span>
+                <span className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 text-xs text-center font-medium max-w-sm">基于当前矩阵推演 {numSimulations / 10000} 万次，并通过启发式算法搜索得出的最优解。</span>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest pl-2">3-0 晋级</div>
+                <div className="flex flex-col gap-3">
+                  <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1 font-display">3-0 晋级</div>
                   <div className="grid grid-cols-1 gap-2">
                     {aiPickemState.result.t30.map((tid: string) => {
                       const t = TEAMS.find(x => x.id === tid);
                       return t ? (
-                        <div key={t.id} className="flex items-center gap-3 p-2 bg-zinc-200/20 dark:bg-black/20 border border-black/5 dark:border-white/5 rounded">
-                          <div className="w-5 h-5 shrink-0"><TeamLogo team={t} fallbackClasses="text-xs" /></div>
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-200">{t.name}</span>
+                        <div key={t.id} className="flex items-center gap-3 p-2.5 bg-white/60 dark:bg-zinc-800/60 border border-black/5 dark:border-white/5 rounded-xl shadow-sm">
+                          <div className="w-6 h-6 shrink-0 bg-black/5 dark:bg-white/5 rounded-full p-1"><TeamLogo team={t} fallbackClasses="text-xs" /></div>
+                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{t.name}</span>
                         </div>
                       ) : null;
                     })}
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest pl-2">0-3 淘汰</div>
+                <div className="flex flex-col gap-3">
+                  <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1 font-display">0-3 淘汰</div>
                   <div className="grid grid-cols-1 gap-2">
                     {aiPickemState.result.t03.map((tid: string) => {
                       const t = TEAMS.find(x => x.id === tid);
                       return t ? (
-                        <div key={t.id} className="flex items-center gap-3 p-2 bg-zinc-200/20 dark:bg-black/20 border border-black/5 dark:border-white/5 rounded">
-                          <div className="w-5 h-5 shrink-0"><TeamLogo team={t} fallbackClasses="text-xs" /></div>
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-200">{t.name}</span>
+                        <div key={t.id} className="flex items-center gap-3 p-2.5 bg-white/60 dark:bg-zinc-800/60 border border-black/5 dark:border-white/5 rounded-xl shadow-sm">
+                          <div className="w-6 h-6 shrink-0 bg-black/5 dark:bg-white/5 rounded-full p-1"><TeamLogo team={t} fallbackClasses="text-xs" /></div>
+                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{t.name}</span>
                         </div>
                       ) : null;
                     })}
@@ -683,25 +685,25 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
                 </div>
               </div>
               
-              <div className="flex flex-col gap-2">
-                <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest pl-2">其余晋级队伍</div>
+              <div className="flex flex-col gap-3">
+                <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1 font-display">其余晋级队伍</div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {aiPickemState.result.tAdv.map((tid: string) => {
                     const t = TEAMS.find(x => x.id === tid);
                     return t ? (
-                      <div key={t.id} className="flex items-center gap-3 p-2 bg-zinc-200/20 dark:bg-black/20 border border-black/5 dark:border-white/5 rounded">
-                        <div className="w-5 h-5 shrink-0"><TeamLogo team={t} fallbackClasses="text-xs" /></div>
-                        <span className="text-sm font-bold text-zinc-900 dark:text-zinc-200">{t.name}</span>
+                      <div key={t.id} className="flex items-center gap-3 p-2.5 bg-white/60 dark:bg-zinc-800/60 border border-black/5 dark:border-white/5 rounded-xl shadow-sm">
+                        <div className="w-6 h-6 shrink-0 bg-black/5 dark:bg-white/5 rounded-full p-1"><TeamLogo team={t} fallbackClasses="text-xs" /></div>
+                        <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{t.shortName}</span>
                       </div>
                     ) : null;
                   })}
                 </div>
               </div>
 
-              <div className="flex justify-end mt-4">
+              <div className="flex justify-end mt-2 pt-4 border-t border-black/5 dark:border-white/5">
                 <button
                   onClick={() => setAiPickemState({ isGenerating: false, progress: 0, phase: '', result: null })}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-black dark:text-white rounded font-bold transition-colors"
+                  className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-sm active:scale-95"
                 >
                   确定
                 </button>

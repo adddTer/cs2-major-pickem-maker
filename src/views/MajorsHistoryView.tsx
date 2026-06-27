@@ -38,10 +38,10 @@ export const MajorsHistoryView: React.FC = () => {
   const updatedMajorHistory = useMemo(() => {
     return MAJOR_HISTORY.map((major) => {
       if (major.name === "IEM Cologne Major 2026") {
-        let champion = "tbd";
-        let runnerUp = "tbd";
-        let thirdFourth = ["tbd", "tbd"];
-        let fifthEighth = ["tbd", "tbd", "tbd", "tbd"];
+        let champion = major.champion;
+        let runnerUp = major.runnerUp;
+        let thirdFourth = [...major.thirdFourth];
+        let fifthEighth = [...major.fifthEighth];
 
         const playoffs = MATCHES.playoffs || {};
         
@@ -62,7 +62,7 @@ export const MajorsHistoryView: React.FC = () => {
             }
           });
           if (losers.length > 0) {
-            fifthEighth = [...losers, ...Array(4 - losers.length).fill("tbd")];
+            fifthEighth = [...losers, ...major.fifthEighth.slice(losers.length)];
           }
         }
 
@@ -74,7 +74,7 @@ export const MajorsHistoryView: React.FC = () => {
             }
           });
           if (losers.length > 0) {
-            thirdFourth = [...losers, ...Array(2 - losers.length).fill("tbd")];
+            thirdFourth = [...losers, ...major.thirdFourth.slice(losers.length)];
           }
         }
 
@@ -99,68 +99,68 @@ export const MajorsHistoryView: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full h-full p-4 lg:p-8 overflow-y-auto custom-scrollbar flex flex-col gap-6 text-zinc-900 dark:text-zinc-200">
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-20">
+    <div className="w-full h-full p-4 lg:p-10 overflow-y-auto custom-scrollbar flex flex-col gap-8 text-zinc-900 dark:text-zinc-200">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 pb-20">
         {updatedMajorHistory.map((major, index) => (
           <div
             key={index}
-            className="flex flex-col rounded-xl overflow-hidden bg-white/80 dark:bg-[#0a0f0d]/80 border border-black/10 dark:border-white/5 shadow-md dark:shadow-2xl backdrop-blur-md"
+            className="flex flex-col rounded-[2rem] overflow-hidden bg-white/40 dark:bg-zinc-900/40 border border-black/5 dark:border-white/5 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-300 hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.6)] hover:-translate-y-1"
           >
-            <div className="px-5 py-4 border-b border-black/5 dark:border-white/10 bg-zinc-100/50 dark:bg-black/40 flex flex-col gap-3">
+            <div className="px-8 py-6 border-b border-black/5 dark:border-white/5 bg-white/60 dark:bg-black/20 flex flex-col gap-4">
               <div className="flex items-start justify-between gap-4">
-                <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-tight">
+                <h2 className="text-xl font-display font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400 drop-shadow-sm leading-tight">
                   {major.name}
                 </h2>
                 <span
                   className={cn(
-                    "text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded whitespace-nowrap",
+                    "text-[0.625rem] uppercase tracking-widest font-bold px-3 py-1.5 rounded-full whitespace-nowrap shadow-sm",
                     major.game === "CS2"
-                      ? "bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/20 dark:border-orange-500/30"
-                      : "bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 dark:border-blue-500/30"
+                      ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20"
+                      : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
                   )}
                 >
                   {major.game}
                 </span>
               </div>
-              <div className="flex items-center gap-5 text-xs font-medium text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">
-                <div className="flex items-center gap-1.5" title="举办时间">
-                  <Calendar className="w-3.5 h-3.5 opacity-70" />
+              <div className="flex items-center gap-6 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                <div className="flex items-center gap-2" title="举办时间">
+                  <Calendar className="w-4 h-4 opacity-70" />
                   {major.date}
                 </div>
-                <div className="flex items-center gap-1.5" title="举办地点">
-                  <MapPin className="w-3.5 h-3.5 opacity-70" />
+                <div className="flex items-center gap-2" title="举办地点">
+                  <MapPin className="w-4 h-4 opacity-70" />
                   {major.location}
                 </div>
               </div>
             </div>
 
-            <div className="p-5 flex flex-col gap-5">
+            <div className="p-8 flex flex-col gap-8">
               {/* Champion & Runner-up */}
-              <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-white/10 gap-4 sm:gap-0">
-                <div className="flex-1 flex flex-col gap-2 sm:pr-4">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-yellow-600 dark:text-yellow-500/80 uppercase tracking-widest">
-                    <Trophy className="w-3.5 h-3.5" /> 冠军
+              <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-black/5 dark:divide-white/5 gap-6 sm:gap-0">
+                <div className="flex-1 flex flex-col gap-3 sm:pr-6">
+                  <div className="flex items-center gap-2 text-xs font-display font-bold text-yellow-600 dark:text-yellow-500/80 uppercase tracking-widest bg-yellow-500/10 dark:bg-yellow-500/5 w-max px-2.5 py-1 rounded-md border border-yellow-500/20">
+                    <Trophy className="w-4 h-4" /> 冠军
                   </div>
-                  <div className="text-yellow-600 dark:text-yellow-400">
+                  <div className="text-yellow-700 dark:text-yellow-400 drop-shadow-sm">
                     <TeamDisplay name={major.champion} isLarge={true} />
                   </div>
                 </div>
-                <div className="flex-1 flex flex-col gap-2 pt-4 sm:pt-0 sm:pl-4">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
-                    <Medal className="w-3.5 h-3.5" /> 亚军
+                <div className="flex-1 flex flex-col gap-3 pt-6 sm:pt-0 sm:pl-6">
+                  <div className="flex items-center gap-2 text-xs font-display font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest bg-zinc-200/50 dark:bg-zinc-800/50 w-max px-2.5 py-1 rounded-md border border-black/5 dark:border-white/5">
+                    <Medal className="w-4 h-4" /> 亚军
                   </div>
-                  <div className="text-zinc-900 dark:text-zinc-200">
+                  <div className="text-zinc-900 dark:text-zinc-100 drop-shadow-sm">
                     <TeamDisplay name={major.runnerUp} isLarge={true} />
                   </div>
                 </div>
               </div>
 
               {/* 3rd-4th */}
-              <div className="flex flex-col gap-3 pt-4 border-t border-black/5 dark:border-white/5">
-                <div className="text-xs font-bold text-orange-600 dark:text-orange-400/80 uppercase tracking-widest flex items-center gap-1.5">
-                  <Star className="w-3 h-3" /> 3-4名
+              <div className="flex flex-col gap-4 pt-6 border-t border-black/5 dark:border-white/5">
+                <div className="text-xs font-display font-bold text-orange-600 dark:text-orange-400/80 uppercase tracking-widest flex items-center gap-2 bg-orange-500/10 dark:bg-orange-500/5 w-max px-2.5 py-1 rounded-md border border-orange-500/20">
+                  <Star className="w-4 h-4" /> 3-4名
                 </div>
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-4 px-1">
                   {major.thirdFourth.map((team, idx) => (
                     <TeamDisplay key={idx} name={team} />
                   ))}
@@ -168,11 +168,11 @@ export const MajorsHistoryView: React.FC = () => {
               </div>
 
               {/* 5th-8th */}
-              <div className="flex flex-col gap-3 pt-4 border-t border-black/5 dark:border-white/5">
-                <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest">
+              <div className="flex flex-col gap-4 pt-6 border-t border-black/5 dark:border-white/5">
+                <div className="text-xs font-display font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest bg-zinc-200/50 dark:bg-zinc-800/50 w-max px-2.5 py-1 rounded-md border border-black/5 dark:border-white/5">
                   5-8名
                 </div>
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-4 px-1">
                   {major.fifthEighth.map((team, idx) => (
                     <TeamDisplay key={idx} name={team} />
                   ))}

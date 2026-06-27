@@ -107,18 +107,18 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
     });
 
     return (
-      <div className="flex-1 flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 border border-black/5 dark:border-white/5 rounded-lg shadow-xl relative backdrop-blur-md overflow-hidden p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6 shrink-0">
+      <div className="flex-1 flex flex-col bg-white/40 dark:bg-zinc-900/40 border border-black/5 dark:border-white/5 rounded-[2rem] shadow-[0_8px_32px_-8px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5)] relative backdrop-blur-xl overflow-hidden p-6 sm:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
           <div className="flex flex-col gap-2">
             <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">参赛队伍排名</h2>
             {isDegraded && (
-              <div className="flex items-center gap-1.5 text-amber-600 dark:text-yellow-500/90 text-[11px] bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20 w-fit">
+              <div className="flex items-center gap-1.5 text-amber-600 dark:text-yellow-500/90 text-[0.6875rem] bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20 w-fit">
                 <AlertCircle className="w-3 h-3" />
                 <span>无法获取实时数据，已降级为本地预设排名</span>
               </div>
             )}
           </div>
-          <div className="flex bg-zinc-200/40 dark:bg-black/40 p-1 rounded-md border border-black/5 dark:border-white/5 overflow-x-auto custom-scrollbar shrink-0 max-w-full">
+          <div className="flex bg-zinc-200/50 dark:bg-zinc-900/50 p-1 rounded-xl border border-black/5 dark:border-white/5 shadow-inner overflow-x-auto custom-scrollbar shrink-0 max-w-full">
             {["stage1", "stage2", "stage3", "playoffs"].map((tabId) => {
               const stageLabel =
                 tabId === "stage1"
@@ -133,10 +133,10 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
                   key={`rankings-${tabId}`}
                   onClick={() => setActiveStage(tabId as StageKey)}
                   className={cn(
-                    "px-3 py-1 text-[11px] font-bold rounded-[2px] cursor-pointer transition-colors whitespace-nowrap shrink-0",
+                    "px-4 py-1.5 text-xs font-display font-medium rounded-lg cursor-pointer transition-all duration-300 whitespace-nowrap shrink-0 flex items-center",
                     activeStage === tabId
-                      ? "bg-black/10 dark:bg-white/10 text-black dark:text-white"
-                      : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-300",
+                      ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-md ring-1 ring-black/5 dark:ring-white/10"
+                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5",
                   )}
                 >
                   {stageLabel}
@@ -147,8 +147,8 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
         </div>
 
         <div className="flex-1 overflow-auto bg-zinc-200/20 dark:bg-black/20 rounded-md border border-black/5 dark:border-white/5">
-          <table className="w-full text-left text-[13px] text-zinc-800 dark:text-zinc-300 relative border-collapse">
-            <thead className="text-[11px] uppercase tracking-wider text-zinc-600 dark:text-zinc-400 bg-zinc-200/80 dark:bg-zinc-800/80 sticky top-0 z-10 backdrop-blur-md">
+          <table className="w-full text-left text-[0.8125rem] text-zinc-800 dark:text-zinc-300 relative border-collapse">
+            <thead className="text-[0.6875rem] uppercase tracking-wider text-zinc-600 dark:text-zinc-400 bg-zinc-200/80 dark:bg-zinc-800/80 sticky top-0 z-10 backdrop-blur-md">
               <tr>
                 <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 font-medium w-16 text-center">综合排序</th>
                 <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 text-left font-medium">队伍</th>

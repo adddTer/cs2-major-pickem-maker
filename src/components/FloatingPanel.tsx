@@ -73,7 +73,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
         <div className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 hover:text-black dark:text-white transition-colors p-2 rounded-full hover:bg-black/10 dark:bg-white/10">
           {isExpanded ? (
             <div className="flex items-center gap-1 px-2 lg:px-0">
-              <span className="text-[11px] font-bold lg:hidden">收起</span>
+              <span className="text-[0.6875rem] font-bold lg:hidden">收起</span>
               <ChevronDown className="w-5 h-5 lg:hidden" />
               <Minimize2 className="w-4 h-4 hidden lg:block" />
             </div>

@@ -75,7 +75,7 @@ export const MiniPicksDisplay: React.FC<{
             <>
               {!compact && (
                 <span
-                  className={`font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap ${isExport ? "text-[10px] text-left" : "text-[9px] sm:text-[10px] text-center sm:text-left"}`}
+                  className={`font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap ${isExport ? "text-[0.625rem] text-left" : "text-[9px] sm:text-[0.625rem] text-center sm:text-left"}`}
                 >
                   {title30}
                 </span>
@@ -87,7 +87,7 @@ export const MiniPicksDisplay: React.FC<{
               </div>
             </>
           ) : (
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
+            <span className="text-[0.625rem] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
               暂无
             </span>
           )}
@@ -104,7 +104,7 @@ export const MiniPicksDisplay: React.FC<{
             <>
               {!compact && (
                 <span
-                  className={`font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap ${isExport ? "text-[10px] text-left" : "text-[9px] sm:text-[10px] text-center sm:text-left"}`}
+                  className={`font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap ${isExport ? "text-[0.625rem] text-left" : "text-[9px] sm:text-[0.625rem] text-center sm:text-left"}`}
                 >
                   {titleAdvance}
                 </span>
@@ -116,7 +116,7 @@ export const MiniPicksDisplay: React.FC<{
               </div>
             </>
           ) : (
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
+            <span className="text-[0.625rem] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
               暂无
             </span>
           )}
@@ -131,7 +131,7 @@ export const MiniPicksDisplay: React.FC<{
             <>
               {!compact && (
                 <span
-                  className={`font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap ${isExport ? "text-[10px] text-left" : "text-[9px] sm:text-[10px] text-center sm:text-left"}`}
+                  className={`font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap ${isExport ? "text-[0.625rem] text-left" : "text-[9px] sm:text-[0.625rem] text-center sm:text-left"}`}
                 >
                   {title03}
                 </span>
@@ -143,7 +143,7 @@ export const MiniPicksDisplay: React.FC<{
               </div>
             </>
           ) : (
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
+            <span className="text-[0.625rem] text-zinc-500 dark:text-zinc-600 font-bold py-2 italic opacity-60">
               暂无
             </span>
           )}

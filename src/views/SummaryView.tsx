@@ -76,7 +76,7 @@ export const SummaryView: React.FC<SummaryViewProps> = React.memo(
                 <div>
                   <h2 className="text-base sm:text-lg font-black tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                     社区预测
-                    <span className="px-2 py-0.5 bg-black/5 dark:bg-white/10 rounded-full text-[11px] sm:text-xs font-bold text-zinc-600 dark:text-zinc-300">
+                    <span className="px-2 py-0.5 bg-black/5 dark:bg-white/10 rounded-full text-[0.6875rem] sm:text-xs font-bold text-zinc-600 dark:text-zinc-300">
                       {communityPicks.length} 份
                     </span>
                   </h2>
@@ -85,7 +85,7 @@ export const SummaryView: React.FC<SummaryViewProps> = React.memo(
             </div>
 
             {/* Stage Selector */}
-            <div className="flex bg-black/5 dark:bg-black/40 p-1 rounded-xl overflow-x-auto custom-scrollbar">
+            <div className="flex bg-zinc-200/50 dark:bg-zinc-900/50 p-1 rounded-xl shadow-inner border border-black/5 dark:border-white/5 overflow-x-auto custom-scrollbar">
               {["stage1", "stage2", "stage3", "playoffs"].map((tabId) => {
                 const stageLabel =
                   tabId === "stage1"
@@ -101,10 +101,10 @@ export const SummaryView: React.FC<SummaryViewProps> = React.memo(
                     key={`sum-${tabId}`}
                     onClick={() => setActiveStage(tabId as StageKey)}
                     className={cn(
-                      "flex-1 px-3 py-1.5 text-[11px] sm:text-xs font-bold rounded-lg transition-all whitespace-nowrap",
+                      "flex-1 px-3 py-1.5 text-[0.6875rem] sm:text-xs font-display font-medium rounded-lg transition-all duration-300 whitespace-nowrap",
                       isActive
-                        ? "bg-white dark:bg-zinc-700 text-black dark:text-white shadow-sm"
-                        : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200",
+                        ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-md ring-1 ring-black/5 dark:ring-white/10"
+                        : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5",
                     )}
                   >
                     {stageLabel}

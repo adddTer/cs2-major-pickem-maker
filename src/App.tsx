@@ -7,7 +7,13 @@ import React, {
 } from "react";
 import { TEAMS, INITIAL_SLOTS, PLAYOFFS_SLOTS } from "./data/teams";
 import { MATCHES, ACTUAL_RESULTS } from "./data/matches";
-import { PickSlot, PickSet, StageKey, SlotType, TournamentEvent } from "./types";
+import {
+  PickSlot,
+  PickSet,
+  StageKey,
+  SlotType,
+  TournamentEvent,
+} from "./types";
 import { cn } from "./lib/utils";
 import { TopNav } from "./components/TopNav";
 import { HomeView } from "./views/HomeView";
@@ -34,73 +40,76 @@ export const EVENTS: TournamentEvent[] = [
     id: "iem_cologne_2026",
     name: "IEM Cologne Major 2026",
     shortName: "Cologne 26",
-    logoUrl: "https://img-cdn.hltv.org/eventlogo/ZMmU3y7hAV248CmzgxsohP.png?ixlib=java-2.1.0&w=100&s=4678a6eb60daacfa1b58d33a5026075d",
+    logoUrl:
+      "https://img-cdn.hltv.org/eventlogo/ZMmU3y7hAV248CmzgxsohP.png?ixlib=java-2.1.0&w=100&s=4678a6eb60daacfa1b58d33a5026075d",
     isSwissAllBo3: false,
     steamEventId: 26,
     stages: {
       stage1: { externalId: "csgo_tt_9028" },
       stage2: { externalId: "csgo_tt_9029" },
-      stage3: { externalId: "csgo_tt_8301" }
-    }
+      stage3: { externalId: "csgo_tt_8301" },
+    },
   },
   {
     id: "pgl_singapore_2026",
     name: "PGL Singapore Major 2026",
     shortName: "Singapore 26",
-    logoUrl: "https://img-cdn.hltv.org/eventlogo/u-4VdjFWGYz_GwBxLGrr11.png?ixlib=java-2.1.0&w=50&s=e78a8a6b716fa437cc3cfbb9f6b48ee6",
+    logoUrl:
+      "https://img-cdn.hltv.org/eventlogo/u-4VdjFWGYz_GwBxLGrr11.png?ixlib=java-2.1.0&w=50&s=e78a8a6b716fa437cc3cfbb9f6b48ee6",
     isSwissAllBo3: true,
     steamEventId: 27,
-    stages: {}
+    stages: {},
   },
   {
     id: "the_minor",
     name: "The Minor",
     shortName: "The Minor",
-    logoUrl: "https://img-cdn.hltv.org/eventlogo/u-4VdjFWGYz_GwBxLGrr11.png?ixlib=java-2.1.0&w=50&s=e78a8a6b716fa437cc3cfbb9f6b48ee6",
+    logoUrl:
+      "https://img-cdn.hltv.org/eventlogo/u-4VdjFWGYz_GwBxLGrr11.png?ixlib=java-2.1.0&w=50&s=e78a8a6b716fa437cc3cfbb9f6b48ee6",
     isSwissAllBo3: false,
     stagesInfo: [
-      { id: "stage0", label: "预选赛 (8192进1024)", format: "double_elim_8192_1024", groups: 1 },
-      { id: "stage1", label: "阶段一 (1024进256)", format: "single_elim_64", groups: 16 },
-      { id: "stage2", label: "阶段二 (256进128)", format: "round_robin_8", groups: 32 },
-      { id: "stage3", label: "阶段三 (128进32)", format: "double_elim_16", groups: 8 },
-      { id: "stage4", label: "阶段四 (32进16)", format: "swiss_16", groups: 2 },
-      { id: "stage5", label: "阶段五 (16进8)", format: "gsl_4", groups: 4 },
-      { id: "stage6", label: "阶段六 (8进4)", format: "double_round_robin_4", groups: 2 },
-      { id: "stage7", label: "阶段七 (4进1)", format: "gauntlet_4", groups: 1 },
-    ]
-  }
+      { id: "stage1", label: "第一阶段", format: "double_elim_8_6", groups: 1 },
+      { id: "playoffs", label: "决胜阶段", format: "playoffs_6", groups: 1 },
+    ],
+  },
 ];
 
 export default function App() {
-  const [currentEventId, setCurrentEventId] = useState<string>("iem_cologne_2026");
-  const currentEvent = useMemo(() => EVENTS.find(e => e.id === currentEventId) || EVENTS[0], [currentEventId]);
+  const [currentEventId, setCurrentEventId] =
+    useState<string>("iem_cologne_2026");
+  const currentEvent = useMemo(
+    () => EVENTS.find((e) => e.id === currentEventId) || EVENTS[0],
+    [currentEventId],
+  );
   const [dataLoaded, setDataLoaded] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [dataLoadError, setDataLoadError] = useState(false);
   const [rankingDegraded, setRankingDegraded] = useState(false);
   const [isRefreshingData, setIsRefreshingData] = useState(false);
 
-  const handleRefreshMatchData = useCallback(async (isAutoRefresh: boolean = false) => {
-    setIsRefreshingData(true);
-    try {
-      const res = await import("./utils/fetchE5Data").then((m) =>
-        m.fetchAndPatchCSGOData(currentEvent, isAutoRefresh),
-      );
-      setDataLoadError(!res.matchSuccess);
-      setRankingDegraded(!res.rankingSuccess);
-    } catch {
-      setDataLoadError(true);
-      setRankingDegraded(true);
-    }
-    loadPicks();
-    setRefreshTrigger((prev) => prev + 1);
-    setTimeout(() => {
-      setIsRefreshingData(false);
-    }, 500);
-  }, [currentEvent]);
+  const handleRefreshMatchData = useCallback(
+    async (isAutoRefresh: boolean = false) => {
+      setIsRefreshingData(true);
+      try {
+        const res = await import("./utils/fetchE5Data").then((m) =>
+          m.fetchAndPatchCSGOData(currentEvent, isAutoRefresh),
+        );
+        setDataLoadError(!res.matchSuccess);
+        setRankingDegraded(!res.rankingSuccess);
+      } catch {
+        setDataLoadError(true);
+        setRankingDegraded(true);
+      }
+      loadPicks();
+      setRefreshTrigger((prev) => prev + 1);
+      setTimeout(() => {
+        setIsRefreshingData(false);
+      }, 500);
+    },
+    [currentEvent],
+  );
 
   // The event initialization and refresh logic is moved below getRecommendedStage
-
 
   useEffect(() => {
     const handler = () => {
@@ -111,22 +120,22 @@ export default function App() {
   }, [handleRefreshMatchData]);
 
   type MainViewMode =
-    | "bracket"
-    | "summary"
-    | "history"
-    | "ranking"
-    | "globalSim"
-    | "simulator";
+    "bracket" | "summary" | "history" | "ranking" | "globalSim" | "simulator";
   type PanelViewMode = "home" | "edit";
 
   const [mainView, setMainView] = useState<MainViewMode>("bracket");
   const [panelView, setPanelView] = useState<PanelViewMode>("home");
 
-
-
   const setViewMode = useCallback(
     (
-      mode: "home" | "edit" | "summary" | "history" | "ranking" | "globalSim" | "simulator",
+      mode:
+        | "home"
+        | "edit"
+        | "summary"
+        | "history"
+        | "ranking"
+        | "globalSim"
+        | "simulator",
     ) => {
       if (
         mode === "summary" ||
@@ -221,7 +230,9 @@ export default function App() {
         }
       }
       if (updatedMatch) {
-        if (JSON.stringify(globalSelectedMatch) !== JSON.stringify(updatedMatch)) {
+        if (
+          JSON.stringify(globalSelectedMatch) !== JSON.stringify(updatedMatch)
+        ) {
           setGlobalSelectedMatch({ ...updatedMatch });
         }
       }
@@ -259,40 +270,43 @@ export default function App() {
       const stageGroup = MATCHES[stage] as Record<string, BracketMatch[]>;
       if (!stageGroup) return false;
       for (const roundMatches of Object.values(stageGroup)) {
-        if (roundMatches && roundMatches.some((m: any) => {
-          const s = String(m.status).toLowerCase();
-          return s === "live" || s === "completed" || s === "past";
-        })) {
+        if (
+          roundMatches &&
+          roundMatches.some((m: any) => {
+            const s = String(m.status).toLowerCase();
+            return s === "live" || s === "completed" || s === "past";
+          })
+        ) {
           return true;
         }
       }
       return false;
     };
 
-    const stages: StageKey[] = currentEvent.stagesInfo 
-      ? currentEvent.stagesInfo.map(s => s.id) 
+    const stages: StageKey[] = currentEvent.stagesInfo
+      ? currentEvent.stagesInfo.map((s) => s.id)
       : ["stage1", "stage2", "stage3", "playoffs"];
     let recommended: StageKey = "stage1";
-    
+
     for (let i = 0; i < stages.length; i++) {
-        const stage = stages[i];
-        if (isStageFinished(stage)) {
-            const nextStage = stages[i + 1];
-            if (nextStage && isStageStarted(nextStage)) {
-                recommended = nextStage;
-            } else if (nextStage) {
-                // Next stage hasn't started, but current is finished, recommend the next upcoming stage to let them pick
-                recommended = nextStage;
-            } else {
-                recommended = stage;
-                break;
-            }
+      const stage = stages[i];
+      if (isStageFinished(stage)) {
+        const nextStage = stages[i + 1];
+        if (nextStage && isStageStarted(nextStage)) {
+          recommended = nextStage;
+        } else if (nextStage) {
+          // Next stage hasn't started, but current is finished, recommend the next upcoming stage to let them pick
+          recommended = nextStage;
         } else {
-            recommended = stage;
-            break;
+          recommended = stage;
+          break;
         }
+      } else {
+        recommended = stage;
+        break;
+      }
     }
-    
+
     return recommended;
   }, [getComputedActuals]);
 
@@ -343,13 +357,28 @@ export default function App() {
       },
     };
 
-    if (activeStage === "stage2" && dates.stage2 && now < dates.stage2.start && (getComputedActuals("stage1") || []).length >= 16) {
+    if (
+      activeStage === "stage2" &&
+      dates.stage2 &&
+      now < dates.stage2.start &&
+      (getComputedActuals("stage1") || []).length >= 16
+    ) {
       shouldCheckPrev = true;
     }
-    if (activeStage === "stage3" && dates.stage3 && now < dates.stage3.start && (getComputedActuals("stage2") || []).length >= 16) {
+    if (
+      activeStage === "stage3" &&
+      dates.stage3 &&
+      now < dates.stage3.start &&
+      (getComputedActuals("stage2") || []).length >= 16
+    ) {
       shouldCheckPrev = true;
     }
-    if (activeStage === "playoffs" && dates.playoffs && now < dates.playoffs.start && (getComputedActuals("stage3") || []).length >= 16) {
+    if (
+      activeStage === "playoffs" &&
+      dates.playoffs &&
+      now < dates.playoffs.start &&
+      (getComputedActuals("stage3") || []).length >= 16
+    ) {
       shouldCheckPrev = true;
     }
 
@@ -360,7 +389,7 @@ export default function App() {
     if (!dataLoaded) return;
 
     let hasLiveMatch = false;
-    const stages = currentEvent.stagesInfo 
+    const stages = currentEvent.stagesInfo
       ? currentEvent.stagesInfo.map((s) => s.id)
       : ["stage1", "stage2", "stage3", "playoffs"];
     for (const stage of stages) {
@@ -400,8 +429,6 @@ export default function App() {
 
     return () => clearInterval(timerId);
   }, [dataLoaded, refreshTrigger, mainView, panelView, activeStage]);
-
-
 
   const [detailedFutures, setDetailedFutures] = useState<any>(null);
   const [isSimulatingProbability, setIsSimulatingProbability] = useState(false);
@@ -477,8 +504,12 @@ export default function App() {
       db.getAllPickSets().then((sets) => {
         setCommunityPicks(
           sets
-            .filter((s) => s.eventId === currentEventId || (!s.eventId && currentEventId === "iem_cologne_2026"))
-            .sort((a, b) => b.createdAt - a.createdAt)
+            .filter(
+              (s) =>
+                s.eventId === currentEventId ||
+                (!s.eventId && currentEventId === "iem_cologne_2026"),
+            )
+            .sort((a, b) => b.createdAt - a.createdAt),
         );
       });
     });
@@ -511,9 +542,13 @@ export default function App() {
     });
 
     return [...communityPicks].sort((a, b) => {
-      const aPoints = getSetStatus(a.picks[activeStage] || [], activeStage)?.correctCount || 0;
-      const bPoints = getSetStatus(b.picks[activeStage] || [], activeStage)?.correctCount || 0;
-      
+      const aPoints =
+        getSetStatus(a.picks[activeStage] || [], activeStage)?.correctCount ||
+        0;
+      const bPoints =
+        getSetStatus(b.picks[activeStage] || [], activeStage)?.correctCount ||
+        0;
+
       if (bPoints !== aPoints) {
         return bPoints - aPoints;
       }
@@ -546,7 +581,8 @@ export default function App() {
   const getStageStatus = (stage: string) => {
     const actualsForStage = getComputedActuals(stage) || [];
     const isComplete =
-      (stage === "playoffs" && actualsForStage.filter((a: any) => a.teamId).length >= 15) ||
+      (stage === "playoffs" &&
+        actualsForStage.filter((a: any) => a.teamId).length >= 15) ||
       (stage !== "playoffs" && actualsForStage.length >= 16);
 
     if (isComplete) return `比赛已结束`;
@@ -591,8 +627,8 @@ export default function App() {
   };
 
   const getAvailableTeams = (stage: string) => {
-    if (currentEvent?.id !== 'iem_cologne_2026') return [];
-    
+    if (currentEvent?.id !== "iem_cologne_2026") return [];
+
     if (stage === "playoffs") {
       const s3Actuals = getComputedActuals("stage3");
       const s3Advanced = s3Actuals
@@ -792,8 +828,12 @@ export default function App() {
     const sets = await db.getAllPickSets();
     setCommunityPicks(
       sets
-        .filter((s) => s.eventId === currentEventId || (!s.eventId && currentEventId === "iem_cologne_2026"))
-        .sort((a, b) => b.createdAt - a.createdAt)
+        .filter(
+          (s) =>
+            s.eventId === currentEventId ||
+            (!s.eventId && currentEventId === "iem_cologne_2026"),
+        )
+        .sort((a, b) => b.createdAt - a.createdAt),
     );
 
     dialog.alert("竞猜已保存！");
@@ -875,16 +915,17 @@ export default function App() {
         .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
       `}</style>
 
-      <div className="h-[100dvh] w-full bg-zinc-50 dark:bg-[#070b09] text-zinc-900 dark:text-zinc-200 font-sans flex flex-col relative overflow-hidden select-none">
+      <div className="h-[100dvh] w-full bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-200 font-sans flex flex-col relative overflow-hidden select-none">
         {/* Ambient Glow Lights */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-sky-500/10 rounded-full blur-[150px] pointer-events-none z-0" />
+        <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-[150px] pointer-events-none z-0" />
+        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
 
         {/* Top Navbar */}
         <TopNav
           mainView={mainView}
           setMainView={(view) => {
             setMainView(view);
-            if (view === 'bracket' && window.innerWidth < 1024) {
+            if (view === "bracket" && window.innerWidth < 1024) {
               setIsFloatingPanelExpanded(false);
               setIsSchedulePanelExpanded(false);
             }
@@ -907,32 +948,37 @@ export default function App() {
             mainView !== "bracket" ? "hidden" : "",
           )}
         >
-          <div className="flex border-b border-black/5 dark:border-white/5 items-center justify-center gap-2 pb-2 shrink-0 z-10 w-full bg-zinc-50/80 dark:bg-[#070b09]/80 backdrop-blur sticky top-0 mt-0 overflow-x-auto no-scrollbar">
-            {(currentEvent.stagesInfo || [
-              { id: "stage1", label: "第一阶段" },
-              { id: "stage2", label: "第二阶段" },
-              { id: "stage3", label: "第三阶段" },
-              { id: "playoffs", label: "决胜阶段" },
-            ]).map((tab) => {
-              const isActive = activeStage === tab.id;
-              return (
-                <div
-                  key={tab.id}
-                  onClick={() => setActiveStage(tab.id as StageKey)}
-                  className={cn(
-                    "px-4 py-2 rounded-[2px] text-[13px] font-bold cursor-pointer transition-colors flex items-center whitespace-nowrap",
-                    isActive
-                      ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm border-b-2 border-emerald-500"
-                      : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-300",
-                  )}
-                >
-                  {tab.label}
-                </div>
-              );
-            })}
+          {/* Stage Selector (Absolute positioned over the bracket) */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[50] flex items-center justify-center gap-2 overflow-x-auto hide-scrollbar pointer-events-auto max-w-full px-4 pointer-events-none">
+            <div className="flex p-1 bg-zinc-200/50 dark:bg-zinc-900/50 backdrop-blur-md rounded-xl border border-black/5 dark:border-white/5 shadow-inner pointer-events-auto">
+              {(
+                currentEvent.stagesInfo || [
+                  { id: "stage1", label: "第一阶段" },
+                  { id: "stage2", label: "第二阶段" },
+                  { id: "stage3", label: "第三阶段" },
+                  { id: "playoffs", label: "决胜阶段" },
+                ]
+              ).map((tab) => {
+                const isActive = activeStage === tab.id;
+                return (
+                  <div
+                    key={tab.id}
+                    onClick={() => setActiveStage(tab.id as StageKey)}
+                    className={cn(
+                      "px-5 py-2 rounded-lg text-[0.8125rem] font-display font-medium cursor-pointer transition-all duration-300 flex items-center whitespace-nowrap",
+                      isActive
+                        ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-md ring-1 ring-black/5 dark:ring-white/10"
+                        : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5",
+                    )}
+                  >
+                    {tab.label}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-hidden bg-zinc-50/40 dark:bg-zinc-950/40 relative flex flex-col">
+          <div className="flex-1 w-full h-full min-h-0 overflow-hidden bg-transparent relative flex flex-col">
             {!dataLoaded ? (
               <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-500 gap-3">
                 <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
@@ -940,67 +986,86 @@ export default function App() {
                   正在同步数据...
                 </div>
               </div>
-            ) : (() => {
-              const activeStageConfig = currentEvent.stagesInfo?.find(s => s.id === activeStage);
-              const format = activeStageConfig?.format || (activeStage === "playoffs" ? "playoffs" : "swiss");
-              const hasMultipleGroups = activeStageConfig?.groups && activeStageConfig.groups > 1;
+            ) : (
+              (() => {
+                const activeStageConfig = currentEvent.stagesInfo?.find(
+                  (s) => s.id === activeStage,
+                );
+                const format =
+                  activeStageConfig?.format ||
+                  (activeStage === "playoffs" ? "playoffs" : "swiss");
+                const hasMultipleGroups =
+                  activeStageConfig?.groups && activeStageConfig.groups > 1;
 
-              return (
-                <>
-                  {hasMultipleGroups && (
-                    <div className="w-full border-b border-black/5 dark:border-white/5 bg-zinc-100/50 dark:bg-zinc-900/50 z-20 sticky top-0 backdrop-blur-sm flex justify-center">
-                      <div className="max-w-2xl mx-auto flex justify-center flex-wrap gap-1.5 p-2 max-h-[140px] overflow-y-auto px-8">
-                        {Array.from({ length: activeStageConfig.groups! }).map((_, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setActiveGroupId(idx)}
-                            className={cn(
-                              "px-3 py-1 text-xs font-bold rounded-full transition-colors flex items-center justify-center whitespace-nowrap",
-                              activeGroupId === idx
-                                ? "bg-emerald-500 text-white shadow-sm"
-                                : "bg-zinc-200/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-200"
-                            )}
-                          >
-                            第 {idx + 1} 组
-                          </button>
-                        ))}
+                return (
+                  <>
+                    {hasMultipleGroups && (
+                      <div className="w-full z-20 sticky top-0 flex justify-center pb-4">
+                        <div className="max-w-3xl mx-auto flex justify-center flex-wrap gap-2 p-1.5 bg-zinc-200/40 dark:bg-zinc-900/40 backdrop-blur-md border border-black/5 dark:border-white/5 rounded-2xl max-h-[8.75rem] overflow-y-auto custom-scrollbar shadow-sm">
+                          {Array.from({
+                            length: activeStageConfig.groups!,
+                          }).map((_, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setActiveGroupId(idx)}
+                              className={cn(
+                                "px-4 py-1.5 text-xs font-display font-medium rounded-xl transition-all duration-300 flex items-center justify-center whitespace-nowrap",
+                                activeGroupId === idx
+                                  ? "bg-blue-500 text-white shadow-md ring-1 ring-blue-400/50"
+                                  : "bg-white/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-200",
+                              )}
+                            >
+                              Group {idx + 1}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {format.startsWith("swiss") ? (
-                    <div className="contents" key={activeGroupId}>
-                      <SwissBracket activeStage={activeStage} refreshTrigger={refreshTrigger} currentEvent={currentEvent} />
-                    </div>
-                  ) : format === "playoffs" ? (
-                    <div className="w-full flex-1 min-h-0 relative flex flex-col" key={activeGroupId}>
-                      <PlayoffsBracket
-                        refreshTrigger={refreshTrigger}
-                        slots={PLAYOFFS_SLOTS.map((s) => {
-                          const sTypeIdx = PLAYOFFS_SLOTS.filter(
-                            (x) => x.type === s.type,
-                          ).findIndex((x) => x.id === s.id);
-                          const act = activeStageActuals.filter(
-                            (x) => x.type === s.type,
-                          )[sTypeIdx];
-                          return {
-                            ...s,
-                            id: `playoffs-${s.id}`,
-                            teamId: act?.teamId,
-                          };
-                        })}
-                        readOnly={true}
-                        showResults={false}
-                        onMatchClick={(m) => setGlobalSelectedMatch(m)}
-                      />
-                    </div>
-                  ) : (
-                    <div className="contents" key={activeGroupId}>
-                      <TestBracket format={format} activeGroupId={activeGroupId} />
-                    </div>
-                  )}
-                </>
-              );
-            })()}
+                    )}
+                    {format.startsWith("swiss") ? (
+                      <div className="contents" key={activeGroupId}>
+                        <SwissBracket
+                          activeStage={activeStage}
+                          refreshTrigger={refreshTrigger}
+                          currentEvent={currentEvent}
+                        />
+                      </div>
+                    ) : format === "playoffs" ? (
+                      <div
+                        className="w-full flex-1 min-h-0 relative flex flex-col"
+                        key={activeGroupId}
+                      >
+                        <PlayoffsBracket
+                          refreshTrigger={refreshTrigger}
+                          slots={PLAYOFFS_SLOTS.map((s) => {
+                            const sTypeIdx = PLAYOFFS_SLOTS.filter(
+                              (x) => x.type === s.type,
+                            ).findIndex((x) => x.id === s.id);
+                            const act = activeStageActuals.filter(
+                              (x) => x.type === s.type,
+                            )[sTypeIdx];
+                            return {
+                              ...s,
+                              id: `playoffs-${s.id}`,
+                              teamId: act?.teamId,
+                            };
+                          })}
+                          readOnly={true}
+                          showResults={false}
+                          onMatchClick={(m) => setGlobalSelectedMatch(m)}
+                        />
+                      </div>
+                    ) : (
+                      <div className="contents" key={activeGroupId}>
+                        <TestBracket
+                          format={format}
+                          activeGroupId={activeGroupId}
+                        />
+                      </div>
+                    )}
+                  </>
+                );
+              })()
+            )}
           </div>
         </div>
 
@@ -1120,7 +1185,9 @@ export default function App() {
                   setShowResults={setShowResults}
                   getStageStatus={getStageStatus}
                   currentEventId={currentEvent.id}
-                  currentEventExternalId={currentEvent.stages?.[activeStage]?.externalId}
+                  currentEventExternalId={
+                    currentEvent.stages?.[activeStage]?.externalId
+                  }
                   steamEventId={currentEvent.steamEventId}
                   setPicks={setPicks}
                 />
@@ -1180,7 +1247,7 @@ export default function App() {
           stage1: getComputedActuals("stage1"),
           stage2: getComputedActuals("stage2"),
           stage3: getComputedActuals("stage3"),
-          playoffs: getComputedActuals("playoffs")
+          playoffs: getComputedActuals("playoffs"),
         }}
         getSetStatus={getSetStatus}
         itemFreq={itemFreq}

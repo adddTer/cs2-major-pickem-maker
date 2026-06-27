@@ -7,6 +7,7 @@ import {
   CheckSquare,
   Square,
   Trash2,
+  AlertCircle,
 } from "lucide-react";
 import { Modal } from "../components/Modal";
 import { savePickSet, deletePickSet } from "../lib/db";
@@ -51,7 +52,9 @@ const CheckboxList: React.FC<{
                 <span className="font-bold text-sm text-zinc-900 dark:text-zinc-200">
                   {item.name}
                 </span>
-                <span className="text-[10px] text-zinc-500 dark:text-zinc-500">{item.date}</span>
+                <span className="text-[0.625rem] text-zinc-500 dark:text-zinc-500">
+                  {item.date}
+                </span>
               </div>
             </div>
           );
@@ -160,105 +163,130 @@ export const HomeView: React.FC<{
   };
 
   return (
-    <div className="flex-1 w-full flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 border border-black/5 dark:border-white/5 rounded-lg shadow-xl relative backdrop-blur-md overflow-hidden max-w-2xl mx-auto p-4 sm:p-6 lg:p-4 lg:bg-transparent lg:shadow-none lg:border-none">
-      <div className="text-center space-y-2 mb-6 sm:mb-8 mt-2 sm:mt-4">
-        <h1 className="text-xl sm:text-2xl font-black tracking-wide text-zinc-900 dark:text-zinc-100">
-          选择或创建预测 ID
+    <div className="flex-1 w-full flex flex-col relative overflow-hidden min-h-0 bg-transparent">
+      {/* Header */}
+      <div className="text-center space-y-2 mb-6 mt-2 px-4 shrink-0">
+        <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-400 drop-shadow-sm">
+          预测中心
         </h1>
-        <p className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 text-xs sm:text-sm">
-          创建的竞猜将保存在本地。
+        <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm font-medium">
+          您的竞猜数据将安全地保存在本地设备中
         </p>
       </div>
 
-      <div className="bg-zinc-50/50 dark:bg-zinc-950/50 p-4 sm:p-6 rounded-lg border border-black/5 dark:border-white/5 shadow-inner mb-6 sm:mb-8 shrink-0">
-        <h3 className="text-[10px] sm:text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest mb-3 sm:mb-4">
-          创建新预测
-        </h3>
-        <div className="flex flex-col gap-3">
-          <input
-            type="text"
-            value={newNickname}
-            onChange={(e) => setNewNickname(e.target.value)}
-            placeholder="输入预测 ID 或昵称"
-            className="w-full bg-zinc-200/40 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:border-blue-500/50 transition-colors"
-          />
-          <button
-            onClick={handleCreateNew}
-            className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 whitespace-nowrap"
-          >
-            <Plus className="w-4 h-4 shrink-0" /> 创建竞猜
-          </button>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto flex flex-col custom-scrollbar min-w-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shrink-0">
-          <h3 className="text-[10px] sm:text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest">
-            已有竞猜
+      {/* Main Scrollable Content */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-6 pb-6 space-y-6">
+        {/* Create New Section */}
+        <div className="bg-white/60 dark:bg-zinc-900/60 p-5 rounded-3xl border border-black/5 dark:border-white/5 shadow-[inset_0_0_20px_rgba(0,0,0,0.02)] dark:shadow-[inset_0_0_20px_rgba(255,255,255,0.02)] backdrop-blur-md relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+          <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-4 font-display flex items-center gap-2 relative z-10">
+            <div className="w-7 h-7 rounded-full bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+              <Plus className="w-3.5 h-3.5" />
+            </div>
+            创建新预测
           </h3>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex-1 sm:flex-none justify-center px-3 py-1.5 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 text-zinc-800 dark:text-zinc-300 text-xs font-bold rounded flex items-center gap-1.5 transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5 mt-[1px]" /> 导入数据
-            </button>
+          <div className="flex flex-col gap-3 relative z-10">
             <input
-              type="file"
-              accept=".json"
-              className="hidden"
-              ref={fileInputRef}
-              onChange={handleFileChange}
+              type="text"
+              value={newNickname}
+              onChange={(e) => setNewNickname(e.target.value)}
+              placeholder="输入预测 ID 或昵称"
+              className="w-full bg-white dark:bg-black/50 border border-black/10 dark:border-white/10 rounded-2xl px-4 py-3.5 text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium placeholder:text-zinc-400 shadow-sm"
             />
             <button
-              onClick={handleOpenExport}
-              disabled={communityPicks.length === 0}
-              className="flex-1 sm:flex-none justify-center px-3 py-1.5 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 text-zinc-800 dark:text-zinc-300 text-xs font-bold rounded flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleCreateNew}
+              className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm transition-all rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 whitespace-nowrap"
             >
-              <Download className="w-3.5 h-3.5 mt-[1px]" /> 导出数据
+              开始预测
             </button>
           </div>
         </div>
 
-        {communityPicks.length === 0 ? (
-          <div className="p-4 sm:p-8 text-center border border-black/5 dark:border-white/5 border-dashed rounded-lg text-zinc-500 dark:text-zinc-500 text-xs sm:text-sm mx-1">
-            还没有保存任何预测，请输入昵称创建，或者导入已有数据。
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2 sm:gap-3 px-1 min-w-0">
-            {communityPicks.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-zinc-100/80 dark:bg-zinc-900/80 border border-black/5 dark:border-white/5 hover:border-black/20 dark:border-white/20 transition-colors min-w-0 w-full"
+        {/* Existing Picks Section */}
+        <div className="flex flex-col min-h-0 bg-white/40 dark:bg-black/20 rounded-3xl border border-black/5 dark:border-white/5 p-5 backdrop-blur-sm relative">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 font-display flex items-center gap-2">
+              已有记录
+              <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full text-xs font-mono">
+                {communityPicks.length}
+              </span>
+            </h3>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-2.5 py-1.5 bg-white/50 dark:bg-zinc-800/50 hover:bg-white/80 dark:hover:bg-zinc-800/80 text-zinc-800 dark:text-zinc-300 text-[0.6875rem] font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-sm border border-black/5 dark:border-white/5"
+                title="导入数据"
               >
-                <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 pr-2">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-zinc-900 dark:text-zinc-100 text-sm sm:text-base truncate">
+                <Upload className="w-3.5 h-3.5" /> 导入
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept=".json"
+              />
+              <button
+                onClick={handleOpenExport}
+                disabled={communityPicks.length === 0}
+                className="px-2.5 py-1.5 bg-white/50 dark:bg-zinc-800/50 hover:bg-white/80 dark:hover:bg-zinc-800/80 text-zinc-800 dark:text-zinc-300 text-[0.6875rem] font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-sm border border-black/5 dark:border-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="导出全部数据"
+              >
+                <Download className="w-3.5 h-3.5" /> 导出
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {communityPicks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center border-2 border-black/5 dark:border-white/5 border-dashed rounded-2xl p-6 min-h-[160px]">
+                <div className="w-12 h-12 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mb-3">
+                  <AlertCircle className="w-6 h-6 text-zinc-400 dark:text-zinc-500" />
+                </div>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">
+                  暂无预测记录
+                </p>
+              </div>
+            ) : (
+              communityPicks.map((p) => (
+                <div
+                  key={p.id}
+                  className="group flex flex-col p-4 rounded-2xl bg-white/80 dark:bg-zinc-800/80 border border-black/5 dark:border-white/5 hover:border-blue-500/30 dark:hover:border-blue-500/30 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 relative overflow-hidden backdrop-blur-xl"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                  <div className="relative z-10 flex flex-col mb-3">
+                    <h4
+                      className="font-display font-bold text-zinc-900 dark:text-zinc-100 text-base truncate"
+                      title={p.name}
+                    >
                       {p.name}
                     </h4>
-                    <p className="text-[9px] sm:text-[10px] text-zinc-500 dark:text-zinc-500 mt-0.5 truncate">
-                      保存时间：{new Date(p.createdAt).toLocaleString()}
+                    <p className="text-[0.625rem] text-zinc-500 dark:text-zinc-400 font-mono uppercase tracking-wider mt-0.5">
+                      {new Date(p.createdAt).toLocaleString()}
                     </p>
                   </div>
+                  <div className="flex items-center gap-2 relative z-10">
+                    <button
+                      onClick={() => handleEditExisting(p)}
+                      className="flex-1 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl transition-all text-center"
+                    >
+                      进入预测
+                    </button>
+                    <button
+                      onClick={() => setDeleteTargetId(p.id)}
+                      className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl transition-all"
+                      title="删除"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0 pl-2">
-                  <button
-                    onClick={() => handleEditExisting(p)}
-                    className="shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 text-black dark:text-white text-[10px] sm:text-xs font-bold rounded transition-colors whitespace-nowrap"
-                  >
-                    进入
-                  </button>
-                  <button
-                    onClick={() => setDeleteTargetId(p.id)}
-                    className="shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 text-[10px] sm:text-xs font-bold rounded transition-colors flex items-center gap-1.5"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       <Modal
@@ -375,7 +403,9 @@ export const HomeView: React.FC<{
         title="提示"
       >
         <div className="py-4">
-          <p className="text-sm text-zinc-800 dark:text-zinc-300">{alertMessage}</p>
+          <p className="text-sm text-zinc-800 dark:text-zinc-300">
+            {alertMessage}
+          </p>
         </div>
         <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5 flex justify-end shrink-0">
           <button

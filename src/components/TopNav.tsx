@@ -24,6 +24,15 @@ interface TopNavProps {
   setCurrentEventId: (id: string) => void;
 }
 
+const navItems = [
+  { id: "bracket", label: "赛程图", icon: ListTree },
+  { id: "globalSim", label: "全局模拟", icon: Activity },
+  { id: "simulator", label: "单局预测", icon: BarChart },
+  { id: "ranking", label: "战队排名", icon: BarChart },
+  { id: "summary", label: "社区预测", icon: Users },
+  { id: "history", label: "历史赛事", icon: Trophy },
+] as const;
+
 export const TopNav: React.FC<TopNavProps> = ({
   mainView,
   setMainView,
@@ -35,7 +44,9 @@ export const TopNav: React.FC<TopNavProps> = ({
   const [useProxy, setUseProxy] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [isEventMenuOpen, setIsEventMenuOpen] = useState(false);
+  const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
   const eventMenuRef = useRef<HTMLDivElement>(null);
+  const navMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
@@ -51,6 +62,9 @@ export const TopNav: React.FC<TopNavProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (eventMenuRef.current && !eventMenuRef.current.contains(event.target as Node)) {
         setIsEventMenuOpen(false);
+      }
+      if (navMenuRef.current && !navMenuRef.current.contains(event.target as Node)) {
+        setIsNavMenuOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -71,37 +85,43 @@ export const TopNav: React.FC<TopNavProps> = ({
     : currentEvent.logoUrl;
 
   return (
-    <div className="h-14 border-b border-black/5 dark:border-white/5 bg-zinc-100/40 dark:bg-zinc-900/40 backdrop-blur-md flex items-center px-2 sm:px-6 justify-between shrink-0 z-[300] relative">
+    <div className="h-16 border-b border-white/5 bg-white/50 dark:bg-zinc-950/60 backdrop-blur-xl flex items-center px-4 sm:px-8 justify-between shrink-0 z-[300] relative">
       <div 
         ref={eventMenuRef}
-        className="flex items-center gap-1.5 sm:gap-2 mr-4 min-w-max relative cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 p-1 rounded transition-colors"
+        className="flex items-center gap-2 sm:gap-3 mr-2 sm:mr-4 min-w-0 relative cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 py-1.5 px-1 sm:px-2 rounded-lg transition-all duration-300"
         onClick={() => setIsEventMenuOpen(!isEventMenuOpen)}
       >
-        <img
-          src={logoUrl}
-          referrerPolicy="no-referrer"
-          className="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0"
-          alt={currentEvent.name}
-          onError={() => {
-            if (!useProxy) setUseProxy(true);
-          }}
-        />
-        <span className="text-[10px] sm:text-sm font-bold tracking-widest text-zinc-900 dark:text-zinc-100 hidden sm:block">
-          {currentEvent.name}
-        </span>
-        <span className="text-[10px] sm:hidden font-bold tracking-widest text-zinc-900 dark:text-zinc-100">
-          {currentEvent.shortName}
-        </span>
-        <ChevronDown className="w-3 h-3 text-zinc-500" />
+        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center p-1 shadow-inner border border-white/10">
+          <img
+            src={logoUrl}
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-contain shrink-0 drop-shadow-md"
+            alt={currentEvent.name}
+            onError={() => {
+              if (!useProxy) setUseProxy(true);
+            }}
+          />
+        </div>
+        <div className="flex flex-col min-w-0">
+          <span className="text-[0.625rem] uppercase text-zinc-500 font-bold tracking-widest leading-none mb-1">
+            赛事
+          </span>
+          <span className="text-[0.8125rem] sm:text-[15px] font-display font-semibold tracking-wide text-zinc-900 dark:text-zinc-100 leading-none truncate max-w-[100px] sm:max-w-[200px]">
+            {currentEvent.name}
+          </span>
+        </div>
+        <ChevronDown className={cn("w-4 h-4 text-zinc-500 transition-transform duration-300 ml-1 sm:ml-2 shrink-0", isEventMenuOpen && "rotate-180")} />
         
         {isEventMenuOpen && (
-          <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-zinc-800 border border-black/10 dark:border-white/10 rounded-md shadow-lg py-1 z-50">
+          <div className="absolute top-full left-0 mt-2 w-64 bg-white/90 dark:bg-zinc-900/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-xl shadow-2xl py-2 z-50 overflow-hidden">
             {EVENTS.filter(e => !e.id.includes('test')).map(event => (
               <div 
                 key={event.id}
                 className={cn(
-                  "px-3 py-2 text-[11px] sm:text-xs font-bold cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2",
-                  currentEvent.id === event.id ? "text-blue-500" : "text-zinc-700 dark:text-zinc-300"
+                  "px-4 py-3 text-[0.8125rem] font-display font-medium cursor-pointer transition-all flex items-center gap-3",
+                  currentEvent.id === event.id 
+                    ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-l-2 border-blue-500" 
+                    : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 border-l-2 border-transparent"
                 )}
                 onClick={() => {
                   setCurrentEventId(event.id);
@@ -112,7 +132,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                 <img 
                   src={useProxy ? `https://wsrv.nl/?url=${encodeURIComponent(event.logoUrl)}` : event.logoUrl} 
                   referrerPolicy="no-referrer"
-                  className="w-4 h-4 object-contain shrink-0" 
+                  className="w-5 h-5 object-contain shrink-0" 
                   alt={event.name} 
                   onError={() => {
                     if (!useProxy) setUseProxy(true);
@@ -125,104 +145,102 @@ export const TopNav: React.FC<TopNavProps> = ({
         )}
       </div>
 
-      <div className="overflow-x-auto custom-scrollbar min-w-0 flex-1 flex justify-start sm:justify-end">
-        <div className="flex bg-zinc-200/40 dark:bg-black/40 p-0.5 sm:p-1 rounded-md border border-black/5 dark:border-white/5 shrink-0 w-max">
+      <div className="flex-1 flex justify-end items-center min-w-0">
+        {/* Mobile Dropdown Nav */}
+        <div ref={navMenuRef} className="relative lg:hidden block mr-auto">
+          <div 
+            className="flex items-center gap-1.5 bg-white/50 dark:bg-zinc-800/50 hover:bg-white dark:hover:bg-zinc-700 p-2 px-2.5 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer shadow-sm transition-all shrink-0 whitespace-nowrap"
+            onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
+          >
+            {(() => {
+              const currentItem = navItems.find(item => item.id === mainView) || navItems[0];
+              const Icon = currentItem.icon;
+              return (
+                <>
+                  <Icon className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                  <span className="text-[0.8125rem] font-medium text-zinc-800 dark:text-zinc-200">{currentItem.label}</span>
+                  <ChevronDown className={cn("w-3.5 h-3.5 text-zinc-500 transition-transform duration-300 shrink-0", isNavMenuOpen && "rotate-180")} />
+                </>
+              );
+            })()}
+          </div>
+
+          {isNavMenuOpen && (
+            <div className="absolute top-full left-0 mt-2 w-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-xl shadow-2xl py-2 z-50 overflow-hidden flex flex-col">
+              {navItems.map(item => {
+                const Icon = item.icon;
+                const isActive = mainView === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => {
+                      setMainView(item.id as any);
+                      setIsNavMenuOpen(false);
+                    }}
+                    className={cn(
+                      "px-4 py-3 text-[0.875rem] font-medium cursor-pointer transition-all flex items-center gap-3",
+                      isActive
+                        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-l-2 border-blue-500"
+                        : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 border-l-2 border-transparent"
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {item.label}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Horizontal Nav */}
+        <div className="hidden lg:flex items-center bg-zinc-200/50 dark:bg-black/30 p-1 rounded-xl border border-black/5 dark:border-white/5 shrink-0 w-max shadow-inner">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = mainView === item.id;
+            return (
+              <div
+                key={item.id}
+                onClick={() => setMainView(item.id as any)}
+                className={cn(
+                  "px-4 py-2 text-xs font-medium rounded-lg cursor-pointer transition-all duration-300 flex items-center gap-2",
+                  isActive
+                    ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-md ring-1 ring-black/5 dark:ring-white/10"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{item.label}</span>
+              </div>
+            );
+          })}
+        </div>
+        
+        <div className="flex items-center gap-1.5 sm:gap-2 ml-2 sm:ml-4 shrink-0">
           <div
-            onClick={() => setMainView("bracket")}
-          className={cn(
-            "px-3 sm:px-5 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-sm cursor-pointer transition-colors flex items-center gap-1.5 sm:gap-2",
-            mainView === "bracket"
-              ? "bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm"
-              : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-300",
-          )}
-        >
-          <ListTree className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-          <span>对阵图</span>
-        </div>
-        <div
-          onClick={() => setMainView("globalSim")}
-          className={cn(
-            "px-3 sm:px-5 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-sm cursor-pointer transition-colors flex items-center gap-1.5 sm:gap-2",
-            mainView === "globalSim"
-              ? "bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm"
-              : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-300",
-          )}
-        >
-          <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-          <span>全局模拟</span>
-        </div>
-        <div
-          onClick={() => setMainView("simulator")}
-          className={cn(
-            "px-3 sm:px-5 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-sm cursor-pointer transition-colors flex items-center gap-1.5 sm:gap-2",
-            mainView === "simulator"
-              ? "bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm"
-              : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-300",
-          )}
-        >
-          <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-          <span>竞猜推演器</span>
-        </div>
-        <div
-          onClick={() => setMainView("ranking")}
-          className={cn(
-            "px-3 sm:px-5 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-sm cursor-pointer transition-colors flex items-center gap-1.5 sm:gap-2",
-            mainView === "ranking"
-              ? "bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm"
-              : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-300",
-          )}
-        >
-          <BarChart className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-          <span>队伍排名</span>
-        </div>
-        <div
-          onClick={() => setMainView("summary")}
-          className={cn(
-            "px-3 sm:px-5 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-sm cursor-pointer transition-colors flex items-center gap-1.5 sm:gap-2",
-            mainView === "summary"
-              ? "bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm"
-              : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-300",
-          )}
-        >
-          <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-          <span>社区汇总</span>
-        </div>
-        <div
-          onClick={() => setMainView("history")}
-          className={cn(
-            "px-3 sm:px-5 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-sm cursor-pointer transition-colors flex items-center gap-1.5 sm:gap-2",
-            mainView === "history"
-              ? "bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm"
-              : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-300",
-          )}
-        >
-          <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-          <span>Major</span>
-        </div>
-        <div
-          onClick={() => handleRefresh(false)}
-          className="px-2 sm:px-4 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-sm cursor-pointer transition-colors flex items-center gap-1.5 sm:gap-2 text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-300 ml-1 border-l border-black/10 dark:border-white/10"
-          title="刷新比赛数据"
-        >
-          <RefreshCw
-            className={cn(
-              "w-3 h-3 sm:w-3.5 sm:h-3.5",
-              isRefreshing && "animate-spin",
+            onClick={() => handleRefresh(false)}
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-300 bg-white/50 dark:bg-zinc-800/50 hover:bg-white dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 shadow-sm border border-black/5 dark:border-white/5 shrink-0"
+            title="刷新数据"
+          >
+            <RefreshCw
+              className={cn(
+                "w-3.5 h-3.5 sm:w-4 sm:h-4",
+                isRefreshing && "animate-spin text-blue-500",
+              )}
+            />
+          </div>
+          <div
+            onClick={toggleTheme}
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-300 bg-white/50 dark:bg-zinc-800/50 hover:bg-white dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 shadow-sm border border-black/5 dark:border-white/5 shrink-0"
+            title="切换主题"
+          >
+            {theme === "dark" ? (
+              <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            ) : (
+              <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             )}
-          />
+          </div>
         </div>
-        <div
-          onClick={toggleTheme}
-          className="px-2 sm:px-4 py-1.5 text-[10px] sm:text-[11px] font-bold rounded-sm cursor-pointer transition-colors flex items-center gap-1.5 sm:gap-2 text-zinc-500 dark:text-zinc-500 hover:text-zinc-800 dark:text-zinc-300 ml-1 border-l border-black/10 dark:border-white/10"
-          title="切换主题"
-        >
-          {theme === "dark" ? (
-            <Sun className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-          ) : (
-            <Moon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-          )}
-        </div>
-      </div>
       </div>
     </div>
   );
