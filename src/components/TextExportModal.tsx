@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { PickSet, StageKey, SlotType, PickSlot, BracketMatch } from "../types";
-import { Modal } from "./Modal";
-import { Copy, Download, CheckSquare, Square, FileText } from "lucide-react";
+import { Copy, Download, FileText } from "lucide-react";
 import { TEAMS } from "../data/teams";
 import { MATCHES } from "../data/matches";
 import { dialog } from "./DialogManager";
+import { PopupUI } from "./PopupUI";
 
 interface TextExportModalProps {
   showModal: boolean;
@@ -260,7 +260,7 @@ export const TextExportModal: React.FC<TextExportModalProps> = ({
   };
 
   return (
-    <Modal
+    <PopupUI.Modal
       isOpen={showModal}
       onClose={() => {
         setShowModal(false);
@@ -276,139 +276,93 @@ export const TextExportModal: React.FC<TextExportModalProps> = ({
             value={previewText}
           />
           <div className="flex justify-end gap-3 mt-2">
-            <button
+            <PopupUI.ActionButton
+              label="返回修改"
+              variant="secondary"
               onClick={() => setPreviewText(null)}
-              className="px-4 py-2 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:bg-white/5 text-zinc-800 dark:text-zinc-300 font-bold text-sm transition-colors rounded-md"
-            >
-              返回修改
-            </button>
-            <button
+            />
+            <PopupUI.ActionButton
+              label="复制文本"
+              icon={Copy}
               onClick={handleCopy}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20 flex items-center gap-2"
-            >
-              <Copy className="w-4 h-4" /> 复制文本
-            </button>
-            <button
+            />
+            <PopupUI.ActionButton
+              label="下载 TXT"
+              icon={Download}
+              variant="success"
               onClick={handleDownload}
-              className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-emerald-900/20 flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" /> 下载 TXT
-            </button>
+            />
           </div>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest px-1">
-            要导出的阶段 (可多选)
-          </div>
+          <PopupUI.SectionTitle>要导出的阶段 (可多选)</PopupUI.SectionTitle>
           <div className="grid grid-cols-2 gap-2">
-            {["stage1", "stage2", "stage3", "playoffs"].map((st) => {
-              const isSelected = selectedStages.includes(st as StageKey);
-              return (
-                <div
-                  key={st}
-                  className={`flex items-center gap-3 p-3 rounded cursor-pointer transition-colors border ${isSelected ? "bg-blue-500/10 border-blue-500/30" : "bg-zinc-200/20 dark:bg-black/20 border-black/5 dark:border-white/5 hover:bg-zinc-200/40 dark:bg-black/40"}`}
-                  onClick={() =>
-                    setSelectedStages((prev) =>
-                      prev.includes(st as StageKey)
-                        ? prev.filter((x) => x !== st)
-                        : [...prev, st as StageKey],
-                    )
-                  }
-                >
-                  {isSelected ? (
-                    <CheckSquare className="w-5 h-5 text-blue-400" />
-                  ) : (
-                    <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
-                  )}
-                  <span className="font-bold text-sm text-zinc-900 dark:text-zinc-200">
-                    {stageLabels[st]}
-                  </span>
-                </div>
-              );
-            })}
+            {["stage1", "stage2", "stage3", "playoffs"].map((st) => (
+              <PopupUI.CheckboxRow
+                key={st}
+                label={stageLabels[st]}
+                checked={selectedStages.includes(st as StageKey)}
+                onChange={() =>
+                  setSelectedStages((prev) =>
+                    prev.includes(st as StageKey)
+                      ? prev.filter((x) => x !== st)
+                      : [...prev, st as StageKey],
+                  )
+                }
+              />
+            ))}
           </div>
 
-          <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest mt-2 px-1">
-            导出内容
-          </div>
-          <div
-            className="flex items-center justify-between p-3 bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 rounded cursor-pointer border border-black/5 dark:border-white/5"
-            onClick={() => setIncludeResults(!includeResults)}
-          >
-            <span className="text-sm font-bold text-zinc-900 dark:text-zinc-200">
-              包含实际比赛结果
-            </span>
-            {includeResults ? (
-              <CheckSquare className="w-5 h-5 text-blue-400" />
-            ) : (
-              <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
-            )}
-          </div>
+          <PopupUI.SectionTitle>导出内容</PopupUI.SectionTitle>
+          <PopupUI.SwitchRow
+            label="包含实际比赛结果"
+            checked={includeResults}
+            onChange={setIncludeResults}
+          />
 
-          <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest mt-2 px-1">
-            选择包含的社区竞猜
-          </div>
+          <PopupUI.SectionTitle>选择包含的社区竞猜</PopupUI.SectionTitle>
           <div className="flex flex-col gap-2">
-            <div
-              className="flex items-center gap-3 p-3 bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 rounded cursor-pointer hover:bg-white dark:bg-zinc-800 transition-colors border border-black/5 dark:border-white/5"
-              onClick={() =>
+            <PopupUI.CheckboxRow
+              label="全选"
+              countText={`(${selectedIds.length}/${communityPicks.length})`}
+              checked={selectedIds.length === communityPicks.length && communityPicks.length > 0}
+              onChange={() =>
                 setSelectedIds(
                   selectedIds.length === communityPicks.length
                     ? []
                     : communityPicks.map((p) => p.id),
                 )
               }
-            >
-              {selectedIds.length === communityPicks.length &&
-              communityPicks.length > 0 ? (
-                <CheckSquare className="w-5 h-5 text-blue-400" />
-              ) : (
-                <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
-              )}
-              <span className="font-bold text-sm text-zinc-900 dark:text-zinc-200">
-                全选 ({selectedIds.length}/{communityPicks.length})
-              </span>
-            </div>
-            <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[120px] custom-scrollbar border border-black/5 dark:border-white/5 rounded pl-1">
-              {sortedCommunityPicks.map((item) => {
-                const isSelected = selectedIds.includes(item.id);
-                return (
-                  <div
-                    key={item.id}
-                    className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${isSelected ? "bg-blue-500/10 text-blue-400" : "hover:bg-zinc-200/40 dark:bg-black/40 text-zinc-800 dark:text-zinc-300"}`}
-                    onClick={() =>
-                      setSelectedIds((prev) =>
-                        prev.includes(item.id)
-                          ? prev.filter((x) => x !== item.id)
-                          : [...prev, item.id],
-                      )
-                    }
-                  >
-                    {isSelected ? (
-                      <CheckSquare className="w-4 h-4 text-blue-400" />
-                    ) : (
-                      <Square className="w-4 h-4 text-zinc-500 dark:text-zinc-500" />
-                    )}
-                    <span className="font-bold text-sm truncate">
-                      {item.name}
-                    </span>
-                  </div>
-                );
-              })}
+              className="bg-black/5 dark:bg-white/5 border-none"
+            />
+            <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[160px] custom-scrollbar">
+              {sortedCommunityPicks.map((item) => (
+                <PopupUI.CheckboxRow
+                  key={item.id}
+                  label={item.name}
+                  checked={selectedIds.includes(item.id)}
+                  onChange={() =>
+                    setSelectedIds((prev) =>
+                      prev.includes(item.id)
+                        ? prev.filter((x) => x !== item.id)
+                        : [...prev, item.id],
+                    )
+                  }
+                />
+              ))}
             </div>
           </div>
 
           <div className="mt-4 flex justify-end">
-            <button
+            <PopupUI.ActionButton
+              label="生成文本预览"
+              icon={FileText}
               onClick={handleGeneratePreview}
-              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20 flex items-center gap-2"
-            >
-              <FileText className="w-4 h-4" /> 生成文本预览
-            </button>
+            />
           </div>
         </div>
       )}
-    </Modal>
+    </PopupUI.Modal>
   );
 };

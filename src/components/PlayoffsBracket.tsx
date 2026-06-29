@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { PickSlot } from "../types";
 import { cn } from "../lib/utils";
 import { TEAMS } from "../data/teams";
@@ -10,6 +10,9 @@ import { TournamentBracketRenderer } from "./TournamentBracketRenderer";
 import { PLAYOFFS_CONFIG, BracketNode } from "../data/bracketConfigs";
 import { getLocalStrength } from "../data/localPoints";
 import { GLOBAL_SEEDING } from "../data/seedings";
+import { ExportContext } from "../lib/ExportContext";
+
+import { ExportSettingsContext } from "../lib/ExportSettingsContext";
 
 export const BracketSlot: React.FC<{
   slot:
@@ -25,6 +28,7 @@ export const BracketSlot: React.FC<{
   onDrop?: any;
   onClick?: any;
   emptyTitle: string;
+  isExportNode?: boolean;
 }> = ({
   slot,
   readOnly,
@@ -32,8 +36,12 @@ export const BracketSlot: React.FC<{
   onDrop,
   onClick,
   emptyTitle,
+  isExportNode,
 }) => {
   const team = TEAMS.find((t) => t.id === slot?.teamId);
+  const isExportCtx = React.useContext(ExportContext);
+  const isExport = isExportNode !== undefined ? isExportNode : isExportCtx;
+  const exportSettings = React.useContext(ExportSettingsContext);
 
   return (
     <div
@@ -64,36 +72,39 @@ export const BracketSlot: React.FC<{
         onClick ? "cursor-pointer" : !readOnly ? "cursor-pointer" : "",
         team
           ? cn(
-              "bg-white/80 dark:bg-zinc-800/80 border border-black/10 dark:border-white/10 shadow-lg backdrop-blur-md",
+              isExport ? "bg-white dark:bg-zinc-800" : "bg-white/80 dark:bg-zinc-800/80",
+              "border border-black/10 dark:border-white/10",
+              !isExport && "shadow-lg backdrop-blur-md",
               !readOnly &&
-                "hover:border-black/30 dark:hover:border-white/30 hover:-translate-y-0.5 hover:shadow-xl",
+                !isExport && "hover:border-black/30 dark:hover:border-white/30 hover:-translate-y-0.5 hover:shadow-xl",
             )
           : cn(
-              "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 border-dashed text-zinc-400 dark:text-zinc-500",
+              isExport ? "bg-zinc-100 dark:bg-zinc-900" : "bg-black/5 dark:bg-white/5",
+              "border border-black/10 dark:border-white/10 border-dashed text-zinc-400 dark:text-zinc-500",
               !readOnly &&
                 "hover:border-black/30 dark:hover:border-white/30 hover:bg-black/10 dark:hover:bg-white/10",
             ),
         readOnly && !team && "opacity-50 cursor-default",
         slot?.resultStatus === "correct"
-          ? "border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+          ? cn("border-emerald-500/50", isExport ? "bg-emerald-50 dark:bg-emerald-950/80" : "bg-emerald-500/10", !isExport && "shadow-[0_0_15px_rgba(16,185,129,0.2)]")
           : "",
         slot?.resultStatus === "incorrect"
-          ? "border-rose-500/50 bg-rose-500/10"
+          ? cn("border-rose-500/50", isExport ? "bg-rose-50 dark:bg-rose-950/80" : "bg-rose-500/10")
           : "",
         slot?.isSimulated &&
-          "ring-2 ring-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.3)]",
+          cn("ring-2 ring-blue-500/50", isExport ? "bg-blue-50 dark:bg-blue-950/80" : "", !isExport && "shadow-[0_0_15px_rgba(59,130,246,0.3)]"),
       )}
     >
       {team ? (
         <>
-          <div className="w-8 h-8 flex items-center justify-center shrink-0 bg-white/50 dark:bg-black/30 rounded-md border border-black/5 dark:border-white/5 shadow-inner">
+          <div className={cn("w-8 h-8 flex items-center justify-center shrink-0 rounded-md border border-black/5 dark:border-white/5", isExport ? "bg-zinc-100 dark:bg-zinc-900" : "bg-white/50 dark:bg-black/30", !isExport && "shadow-inner")}>
             <TeamLogo team={team} fallbackClasses="text-xs" />
           </div>
-          <span className="font-display font-bold tracking-wide text-zinc-900 dark:text-zinc-100 text-sm flex-1 truncate drop-shadow-sm">
-            {team.name}
+          <span className={cn("font-display font-bold tracking-wide text-zinc-900 dark:text-zinc-100 text-sm flex-1 truncate", !isExport && "drop-shadow-sm")}>
+            {isExport && exportSettings?.useShortName && team.shortName ? team.shortName : team.name}
           </span>
           {slot?.score !== undefined && slot?.score !== null ? (
-            <div className="flex items-center justify-center min-w-[24px] shrink-0 bg-zinc-100/50 dark:bg-zinc-900/50 px-2 py-1 rounded-md shadow-inner border border-black/5 dark:border-white/5">
+            <div className={cn("flex items-center justify-center min-w-[24px] shrink-0 px-2 py-1 rounded-md border border-black/5 dark:border-white/5", isExport ? "bg-zinc-100 dark:bg-zinc-900" : "bg-zinc-100/50 dark:bg-zinc-900/50", !isExport && "shadow-inner")}>
               <span
                 className={cn(
                   "font-mono text-base font-bold leading-none",
@@ -108,12 +119,12 @@ export const BracketSlot: React.FC<{
           ) : slot?.bottomText || slot?.isLive ? (
             <div className="flex flex-col items-center justify-center min-w-[28px] shrink-0 relative h-full">
               {slot?.bottomText ? (
-                <div className="text-[0.625rem] sm:text-[0.6875rem] font-mono font-bold text-emerald-500 dark:text-emerald-400 shrink-0 drop-shadow-sm">
+                <div className={cn("text-[0.625rem] sm:text-[0.6875rem] font-mono font-bold text-emerald-500 dark:text-emerald-400 shrink-0", !isExport && "drop-shadow-sm")}>
                   {slot.bottomText}
                 </div>
               ) : null}
               {slot?.isLive && (
-                <span className="text-[8px] font-black text-rose-500 scale-[0.8] absolute bottom-1.5 tracking-widest uppercase animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.5)]">
+                <span className={cn("text-[8px] font-black text-rose-500 scale-[0.8] absolute bottom-1.5 tracking-widest uppercase animate-pulse", !isExport && "shadow-[0_0_8px_rgba(244,63,94,0.5)]")}>
                   LIVE
                 </span>
               )}
@@ -139,6 +150,7 @@ export const PlayoffsBracket: React.FC<{
   onClick?: (slotId: string, teamId: string | null) => void;
   onMatchClick?: (m: BracketMatch) => void;
   hideControls?: boolean;
+  currentEvent?: import("../types").TournamentEvent;
 }> = ({
   slots,
   readOnly = false,
@@ -149,7 +161,9 @@ export const PlayoffsBracket: React.FC<{
   onClick,
   onMatchClick,
   hideControls = false,
+  currentEvent,
 }) => {
+  const isExport = React.useContext(ExportContext);
   const [selectedMatch, setSelectedMatch] = React.useState<BracketMatch | null>(
     null,
   );
@@ -346,7 +360,9 @@ export const PlayoffsBracket: React.FC<{
     setSimulations(newSims);
   };
 
-  const renderNode = (node: BracketNode) => {
+  const renderNode = (node: BracketNode, isExportNode?: boolean) => {
+    const activeIsExport = isExportNode !== undefined ? isExportNode : isExport;
+    
     if (node.type === "playoffsHeader") {
       const match: BracketMatch | undefined =
         node.matchIndex !== undefined
@@ -357,7 +373,11 @@ export const PlayoffsBracket: React.FC<{
 
       return (
         <div
-          className="absolute text-[0.6875rem] text-zinc-600 dark:text-zinc-400 bg-white/60 dark:bg-zinc-900/60 rounded-full px-4 py-1.5 font-display font-semibold tracking-widest uppercase flex items-center justify-center pointer-events-auto cursor-pointer hover:bg-white dark:hover:bg-zinc-800 w-[190px] z-50 shadow-sm border border-black/5 dark:border-white/5 backdrop-blur-md transition-all duration-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:shadow-md hover:-translate-y-1 -mt-2"
+          className={cn(
+            "absolute text-[0.6875rem] text-zinc-600 dark:text-zinc-400 rounded-full px-4 py-1.5 font-display font-semibold tracking-widest uppercase flex items-center justify-center pointer-events-auto cursor-pointer w-[190px] z-50 border border-black/5 dark:border-white/5 transition-all duration-300 -mt-2",
+            activeIsExport ? "bg-white dark:bg-zinc-900" : "bg-white/60 dark:bg-zinc-900/60",
+            !activeIsExport && "shadow-sm hover:shadow-md backdrop-blur-md hover:-translate-y-1 hover:bg-white dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100"
+          )}
           onClick={() => {
             if (match) {
               if (onMatchClick) onMatchClick(match);
@@ -383,6 +403,7 @@ export const PlayoffsBracket: React.FC<{
         onDrop={onDrop}
         onClick={() => handleSlotClick(node.id)}
         emptyTitle={emptyTitle}
+        isExportNode={activeIsExport}
       />
     );
   };
@@ -433,6 +454,8 @@ export const PlayoffsBracket: React.FC<{
       <TournamentBracketRenderer
         config={PLAYOFFS_CONFIG}
         renderNode={renderNode}
+        title={currentEvent?.name}
+        logoUrl={currentEvent?.logoUrl}
       />
 
       <MatchDialog

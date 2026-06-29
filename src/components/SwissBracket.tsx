@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { TEAMS } from "../data/teams";
 import { GLOBAL_SEEDING } from "../data/seedings";
 import { getLocalStrength, LOCAL_POINTS } from "../data/localPoints";
@@ -12,18 +12,20 @@ import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { MatchDialog } from "./MatchDialog";
 import { TournamentBracketRenderer } from "./TournamentBracketRenderer";
 import { SWISS_CONFIG, BracketNode } from "../data/bracketConfigs";
+import { ExportContext } from "../lib/ExportContext";
 
 export const MatchParticipant = ({ teamId }: { teamId?: string }) => {
   const team = TEAMS.find((t) => t.id === teamId);
+  const isExport = useContext(ExportContext);
   if (team) {
     return (
-      <div className="w-[36px] h-[36px] shrink-0 flex items-center justify-center relative zoom-in-95 animate-in bg-zinc-100/50 dark:bg-zinc-800/50 rounded-md border border-black/5 dark:border-white/5 shadow-sm">
+      <div className={cn("w-[36px] h-[36px] shrink-0 flex items-center justify-center relative zoom-in-95 animate-in rounded-md border border-black/5 dark:border-white/5", isExport ? "bg-zinc-100 dark:bg-zinc-800" : "bg-zinc-100/50 dark:bg-zinc-800/50", !isExport && "shadow-sm")}>
         <TeamLogo team={team} fallbackClasses="rounded-[4px] text-[0.625rem]" />
       </div>
     );
   }
   return (
-    <div className="w-[36px] h-[36px] shrink-0 rounded-md bg-zinc-100/50 dark:bg-zinc-900/50 border border-dashed border-black/20 dark:border-white/20 flex items-center justify-center font-display font-semibold text-zinc-400 dark:text-zinc-600 text-xs shadow-inner pb-[1px] relative zoom-in-95 animate-in">
+    <div className={cn("w-[36px] h-[36px] shrink-0 rounded-md border border-dashed border-black/20 dark:border-white/20 flex items-center justify-center font-display font-semibold text-zinc-400 dark:text-zinc-600 text-xs pb-[1px] relative zoom-in-95 animate-in", isExport ? "bg-zinc-100 dark:bg-zinc-900" : "bg-zinc-100/50 dark:bg-zinc-900/50", !isExport && "shadow-inner")}>
       ?
     </div>
   );
@@ -35,6 +37,7 @@ const MatchLine: React.FC<{
   simulateWinner?: (m: BracketMatch, winner: 1 | 2 | 0) => void;
   isSimulated?: boolean;
 }> = ({ match, onClick, simulateWinner, isSimulated }) => {
+  const isExport = useContext(ExportContext);
   const hasResult = match?.score1 !== undefined && match?.score2 !== undefined;
 
   let isFinished = false;
@@ -114,25 +117,25 @@ const MatchLine: React.FC<{
               ? "cursor-pointer hover:bg-black/10 dark:hover:bg-white/10"
               : "",
             hasResult && (match?.score2 ?? 0) > (match?.score1 ?? 0)
-              ? "opacity-40 grayscale blur-[0.5px]"
-              : "opacity-100 drop-shadow-sm",
+              ? cn("opacity-40 grayscale", !isExport && "blur-[0.5px]")
+              : cn("opacity-100", !isExport && "drop-shadow-sm"),
             simulateWinner && (match?.score1 ?? 0) > (match?.score2 ?? 0)
-              ? "ring-2 ring-emerald-500 bg-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+              ? cn("ring-2 ring-emerald-500 bg-emerald-500/20", !isExport && "shadow-[0_0_15px_rgba(16,185,129,0.3)]")
               : "",
           )}
         >
           <MatchParticipant teamId={match?.team1Id} />
         </div>
         {hasResult ? (
-          <div className="flex flex-col items-center justify-center w-[44px] h-[36px] shrink-0 relative bg-zinc-100/50 dark:bg-zinc-900/50 rounded-md border border-black/5 dark:border-white/5 shadow-inner">
+          <div className={cn("flex flex-col items-center justify-center w-[44px] h-[36px] shrink-0 relative rounded-md border border-black/5 dark:border-white/5", isExport ? "bg-zinc-100 dark:bg-zinc-900" : "bg-zinc-100/50 dark:bg-zinc-900/50", !isExport && "shadow-inner")}>
             <div className="flex items-center justify-center w-full gap-0 px-1">
               <span
                 className={cn(
                   "flex-1 text-center text-[0.8125rem] font-mono font-bold tracking-tight",
                   isLive && !isSimulated
-                    ? "text-black dark:text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]"
+                    ? cn("text-black dark:text-white", !isExport && "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]")
                     : (displayLeft ?? 0) > (displayRight ?? 0)
-                      ? "text-emerald-500 dark:text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.4)]"
+                      ? cn("text-emerald-500 dark:text-emerald-400", !isExport && "drop-shadow-[0_0_5px_rgba(16,185,129,0.4)]")
                       : "text-zinc-500 dark:text-zinc-500",
                 )}
               >
@@ -145,9 +148,9 @@ const MatchLine: React.FC<{
                 className={cn(
                   "flex-1 text-center text-[0.8125rem] font-mono font-bold tracking-tight",
                   isLive && !isSimulated
-                    ? "text-black dark:text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]"
+                    ? cn("text-black dark:text-white", !isExport && "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]")
                     : (displayRight ?? 0) > (displayLeft ?? 0)
-                      ? "text-emerald-500 dark:text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.4)]"
+                      ? cn("text-emerald-500 dark:text-emerald-400", !isExport && "drop-shadow-[0_0_5px_rgba(16,185,129,0.4)]")
                       : "text-zinc-500 dark:text-zinc-500",
                 )}
               >
@@ -155,11 +158,11 @@ const MatchLine: React.FC<{
               </span>
             </div>
             {isSimulated ? (
-              <span className="absolute -top-2.5 text-[8px] text-blue-900 dark:text-blue-100 font-bold bg-blue-500/20 dark:bg-blue-500/30 border border-blue-500/40 px-1.5 py-0.5 rounded-full tracking-wider shadow-sm">
+              <span className={cn("absolute -top-2.5 text-[8px] text-blue-900 dark:text-blue-100 font-bold bg-blue-500/20 dark:bg-blue-500/30 border border-blue-500/40 px-1.5 py-0.5 rounded-full tracking-wider", !isExport && "shadow-sm")}>
                 SIM
               </span>
             ) : isLive ? (
-              <span className="absolute -top-2.5 text-[8px] text-rose-900 dark:text-rose-100 font-bold bg-rose-500/20 dark:bg-rose-500/30 border border-rose-500/40 px-1.5 py-0.5 rounded-full tracking-wider shadow-[0_0_8px_rgba(244,63,94,0.4)] animate-pulse">
+              <span className={cn("absolute -top-2.5 text-[8px] text-rose-900 dark:text-rose-100 font-bold bg-rose-500/20 dark:bg-rose-500/30 border border-rose-500/40 px-1.5 py-0.5 rounded-full tracking-wider animate-pulse", !isExport && "shadow-[0_0_8px_rgba(244,63,94,0.4)]")}>
                 LIVE
               </span>
             ) : match.format === "bo3" || match.format === "bo5" ? (
@@ -169,12 +172,12 @@ const MatchLine: React.FC<{
             ) : null}
           </div>
         ) : (
-          <div className="flex items-center justify-center w-[44px] h-[36px] shrink-0 relative bg-zinc-100/30 dark:bg-zinc-900/30 rounded-md border border-dashed border-black/10 dark:border-white/10">
+          <div className={cn("flex items-center justify-center w-[44px] h-[36px] shrink-0 relative rounded-md border border-dashed border-black/10 dark:border-white/10", isExport ? "bg-zinc-100 dark:bg-zinc-900" : "bg-zinc-100/30 dark:bg-zinc-900/30")}>
             <span className="text-[0.625rem] text-zinc-400 dark:text-zinc-500 font-display font-bold w-full text-center uppercase tracking-widest shrink-0 transition-colors">
               VS
             </span>
             {isLive ? (
-              <span className="absolute -top-2.5 text-[8px] text-rose-900 dark:text-rose-100 font-bold bg-rose-500/20 dark:bg-rose-500/30 border border-rose-500/40 px-1.5 py-0.5 rounded-full tracking-wider shadow-[0_0_8px_rgba(244,63,94,0.4)] animate-pulse">
+              <span className={cn("absolute -top-2.5 text-[8px] text-rose-900 dark:text-rose-100 font-bold bg-rose-500/20 dark:bg-rose-500/30 border border-rose-500/40 px-1.5 py-0.5 rounded-full tracking-wider animate-pulse", !isExport && "shadow-[0_0_8px_rgba(244,63,94,0.4)]")}>
                 LIVE
               </span>
             ) : match?.format === "bo3" || match?.format === "bo5" ? (
@@ -192,10 +195,10 @@ const MatchLine: React.FC<{
               ? "cursor-pointer hover:bg-black/10 dark:hover:bg-white/10"
               : "",
             hasResult && (match?.score1 ?? 0) > (match?.score2 ?? 0)
-              ? "opacity-40 grayscale blur-[0.5px]"
-              : "opacity-100 drop-shadow-sm",
+              ? cn("opacity-40 grayscale", !isExport && "blur-[0.5px]")
+              : cn("opacity-100", !isExport && "drop-shadow-sm"),
             simulateWinner && (match?.score2 ?? 0) > (match?.score1 ?? 0)
-              ? "ring-2 ring-emerald-500 bg-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+              ? cn("ring-2 ring-emerald-500 bg-emerald-500/20", !isExport && "shadow-[0_0_15px_rgba(16,185,129,0.3)]")
               : "",
           )}
         >
@@ -212,18 +215,26 @@ export const GroupBox = ({
   matches = [],
   onMatchClick,
   simulateWinner,
+  isExportNode,
 }: {
   score: string;
   count: number;
   matches?: BracketMatch[];
   onMatchClick?: (m: BracketMatch) => void;
   simulateWinner?: (m: BracketMatch, winner: 1 | 2 | 0) => void;
+  isExportNode?: boolean;
 }) => {
+  const isExportCtx = useContext(ExportContext);
+  const isExport = isExportNode !== undefined ? isExportNode : isExportCtx;
   return (
-    <div className="bg-white/60 dark:bg-zinc-900/60 border border-white/40 dark:border-white/10 rounded-2xl px-2 pt-8 pb-3 flex flex-col items-center relative shadow-xl dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] w-[180px] shrink-0 z-10 backdrop-blur-xl pointer-events-auto transition-transform duration-300 hover:-translate-y-1">
+    <div className={cn(
+      "border rounded-2xl px-2 pt-8 pb-3 flex flex-col items-center relative w-[180px] shrink-0 z-10 pointer-events-auto transition-transform duration-300 hover:-translate-y-1 border-white/40 dark:border-white/10",
+      isExport ? "bg-white dark:bg-zinc-900" : "bg-white/60 dark:bg-zinc-900/60",
+      !isExport && "shadow-xl dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] backdrop-blur-xl"
+    )}>
       <div className="absolute top-2 left-0 w-full flex justify-center">
-        <div className="bg-zinc-200/50 dark:bg-zinc-800/80 px-3 py-1 rounded-full border border-black/5 dark:border-white/5 shadow-inner">
-          <span className="text-[0.6875rem] font-display font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-widest leading-none drop-shadow-sm">
+        <div className={cn("px-3 py-1 rounded-full border border-black/5 dark:border-white/5", isExport ? "bg-zinc-200 dark:bg-zinc-800" : "bg-zinc-200/50 dark:bg-zinc-800/80", !isExport && "shadow-inner")}>
+          <span className={cn("text-[0.6875rem] font-display font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-widest leading-none", !isExport && "drop-shadow-sm")}>
             {score}
           </span>
         </div>
@@ -248,6 +259,7 @@ const DrawPath: React.FC<{ p1: any; p2: any; win: boolean }> = ({
   p2,
   win,
 }) => {
+  const isExport = useContext(ExportContext);
   let sx = p1.x + p1.o1;
   let sy = p1.y;
   let ex = p2.x - p2.o2;
@@ -265,7 +277,7 @@ const DrawPath: React.FC<{ p1: any; p2: any; win: boolean }> = ({
       fill="none"
       className={cn(
         "transition-all duration-500",
-        win ? "drop-shadow-[0_0_3px_rgba(16,185,129,0.4)]" : "",
+        win && !isExport ? "drop-shadow-[0_0_3px_rgba(16,185,129,0.4)]" : "",
       )}
       strokeDasharray={win ? "none" : "6 4"}
       strokeLinecap="round"
@@ -278,33 +290,48 @@ export const ResultGroup = ({
   count,
   win,
   teams = [],
+  isExportNode,
 }: {
   score: string;
   count: number;
   win: boolean;
   teams?: string[];
+  isExportNode?: boolean;
 }) => {
+  const isExportCtx = useContext(ExportContext);
+  const isExport = isExportNode !== undefined ? isExportNode : isExportCtx;
   return (
     <div
       className={cn(
-        "border rounded-2xl px-2 pt-8 pb-3 flex flex-col items-center relative shadow-xl dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] w-[180px] shrink-0 z-10 backdrop-blur-xl pointer-events-auto transition-transform duration-300 hover:-translate-y-1",
+        "border rounded-2xl px-2 pt-8 pb-3 flex flex-col items-center relative w-[180px] shrink-0 z-10 pointer-events-auto transition-transform duration-300 hover:-translate-y-1",
+        !isExport && "shadow-xl dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] backdrop-blur-xl",
         win
-          ? "bg-emerald-50/60 dark:bg-emerald-950/40 border-emerald-400/30 dark:border-emerald-500/20 bg-gradient-to-br from-emerald-400/10 dark:from-emerald-500/20 via-transparent to-transparent"
-          : "bg-rose-50/60 dark:bg-rose-950/40 border-rose-400/30 dark:border-rose-500/20 bg-gradient-to-br from-rose-400/10 dark:from-rose-500/20 via-transparent to-transparent",
+          ? cn(
+              isExport ? "bg-emerald-50 dark:bg-emerald-950" : "bg-emerald-50/60 dark:bg-emerald-950/40", 
+              "border-emerald-400/30 dark:border-emerald-500/20",
+              !isExport && "bg-gradient-to-br from-emerald-400/10 dark:from-emerald-500/20 via-transparent to-transparent"
+            )
+          : cn(
+              isExport ? "bg-rose-50 dark:bg-rose-950" : "bg-rose-50/60 dark:bg-rose-950/40",
+              "border-rose-400/30 dark:border-rose-500/20",
+              !isExport && "bg-gradient-to-br from-rose-400/10 dark:from-rose-500/20 via-transparent to-transparent"
+            ),
       )}
     >
       <div className="absolute top-2 left-0 w-full flex justify-center">
         <div
           className={cn(
-            "px-3 py-1 rounded-full border shadow-inner",
+            "px-3 py-1 rounded-full border",
+            !isExport && "shadow-inner",
             win
-              ? "bg-emerald-100/50 dark:bg-emerald-900/50 border-emerald-500/20"
-              : "bg-rose-100/50 dark:bg-rose-900/50 border-rose-500/20",
+              ? cn(isExport ? "bg-emerald-100 dark:bg-emerald-900" : "bg-emerald-100/50 dark:bg-emerald-900/50", "border-emerald-500/20")
+              : cn(isExport ? "bg-rose-100 dark:bg-rose-900" : "bg-rose-100/50 dark:bg-rose-900/50", "border-rose-500/20"),
           )}
         >
           <span
             className={cn(
-              "text-[0.6875rem] font-display font-bold uppercase tracking-widest leading-none drop-shadow-sm",
+              "text-[0.6875rem] font-display font-bold uppercase tracking-widest leading-none",
+              !isExport && "drop-shadow-sm",
               win
                 ? "text-emerald-700 dark:text-emerald-400"
                 : "text-rose-700 dark:text-rose-400",
@@ -828,7 +855,7 @@ export const SwissBracket = ({
         !m.team1Id || !m.team2Id || m.team1Id === "tbd" || m.team2Id === "tbd",
     );
 
-  const renderNode = (node: BracketNode) => {
+  const renderNode = (node: BracketNode, isExportNode?: boolean) => {
     if (node.type === "swissGroup") {
       return (
         <GroupBox
@@ -837,6 +864,7 @@ export const SwissBracket = ({
           matches={getMatches(node.score!)}
           onMatchClick={setSelectedMatch}
           simulateWinner={simulationMode ? handleSimulateWinner : undefined}
+          isExportNode={isExportNode}
         />
       );
     } else if (node.type === "swissResult") {
@@ -848,6 +876,7 @@ export const SwissBracket = ({
           count={node.count!}
           win={node.win!}
           teams={getFinalTeams(wins, losses)}
+          isExportNode={isExportNode}
         />
       );
     }
@@ -916,6 +945,8 @@ export const SwissBracket = ({
         config={SWISS_CONFIG}
         renderNode={renderNode}
         initialScale={calculatedScale}
+        title={currentEvent?.name}
+        logoUrl={currentEvent?.logoUrl}
         svgDefs={
           <defs>
             <linearGradient id="win-grad" x1="0" y1="0" x2="1" y2="0">

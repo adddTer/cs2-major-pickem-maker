@@ -4,62 +4,92 @@ import { ZoomIn, ZoomOut, RotateCcw, Download, Loader2, Copy, DownloadCloud, Mou
 import { BracketConfig, BracketNode, BracketEdge } from "../data/bracketConfigs";
 import { dialog } from "./DialogManager";
 import { ExportContext } from "../lib/ExportContext";
+import { ExportSettingsContext } from "../lib/ExportSettingsContext";
 import { cn } from "../lib/utils";
 import { Modal } from "./Modal";
 
 export const TournamentBracketRenderer: React.FC<{
   config: BracketConfig;
   initialScale?: number;
-  renderNode: (node: BracketNode) => ReactNode;
+  renderNode: (node: BracketNode, isExportNode?: boolean) => ReactNode;
   svgDefs?: ReactNode;
-}> = ({ config, initialScale = 1, renderNode, svgDefs }) => {
+  title?: string;
+  logoUrl?: string;
+}> = ({ config, initialScale = 1, renderNode, svgDefs, title, logoUrl }) => {
   const nodeDict = Object.fromEntries(config.nodes.map(n => [n.id, n]));
   const exportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [hiddenExportRender, setHiddenExportRender] = useState(false);
   const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
   const [exportBlob, setExportBlob] = useState<Blob | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [exportTheme, setExportTheme] = useState<"light" | "dark">("dark");
+  const [exportShowIcon, setExportShowIcon] = useState(true);
+  const [exportShowName, setExportShowName] = useState(true);
+  const [exportBackground, setExportBackground] = useState<"solid" | "gradient" | "aurora" | "grid">("aurora");
+  const [exportAccent, setExportAccent] = useState<"blue" | "emerald" | "purple" | "rose" | "orange">("blue");
+  const [exportUseShortName, setExportUseShortName] = useState(false);
 
-  useEffect(() => {
-    if (hiddenExportRender) {
-      const runExport = async () => {
-        // Wait longer to allow proxy images to load completely
-        await new Promise(r => setTimeout(r, 1500));
-        if (!exportRef.current) {
-          setIsExporting(false);
-          setHiddenExportRender(false);
-          return;
-        }
-        
-        try {
-          const htmlToImage = await import('html-to-image');
-          const blob = await htmlToImage.toBlob(exportRef.current, {
-            backgroundColor: document.documentElement.classList.contains("dark") ? "#070b09" : "#f8fafc",
-            pixelRatio: 2,
-            includeQueryParams: true,
-            cacheBust: true,
-            style: {
-              transform: 'none',
-              transformOrigin: 'top left',
-            }
-          });
-          if (blob) {
-            setExportBlob(blob);
-            setPreviewBlobUrl(URL.createObjectURL(blob));
-          } else {
-             throw new Error("Blob generated is null");
-          }
-        } catch(err: any) {
-          console.error(err);
-          dialog.alert("导出预览时出错: " + (err.message || String(err)));
-        } finally {
-          setIsExporting(false);
-          setHiddenExportRender(false);
-        }
-      };
-      runExport();
+  const runExport = async (
+    themeArg = exportTheme,
+    iconArg = exportShowIcon,
+    nameArg = exportShowName,
+    bgArg = exportBackground,
+    accentArg = exportAccent,
+    shortNameArg = exportUseShortName
+  ) => {
+    setIsExporting(true);
+    setHiddenExportRender(true);
+    
+    // We need to sync state here if we passed an argument so the JSX renders correctly
+    setExportTheme(themeArg);
+    setExportShowIcon(iconArg);
+    setExportShowName(nameArg);
+    setExportBackground(bgArg);
+    setExportAccent(accentArg);
+    setExportUseShortName(shortNameArg);
+
+    // Wait longer to allow proxy images to load completely
+    await new Promise(r => setTimeout(r, 1500));
+    if (!exportRef.current) {
+      setIsExporting(false);
+      setHiddenExportRender(false);
+      return;
     }
-  }, [hiddenExportRender]);
+    
+    try {
+      const isDarkForExport = themeArg === "dark";
+      
+      // wait a bit for styles
+      await new Promise(r => setTimeout(r, 150));
+
+      const htmlToImage = await import('html-to-image');
+      const target = exportRef.current;
+
+      const blob = await htmlToImage.toBlob(target, {
+        backgroundColor: isDarkForExport ? "#070b09" : "#f8fafc",
+        pixelRatio: 3,
+        includeQueryParams: true,
+        cacheBust: true,
+      });
+      
+      if (blob) {
+        setExportBlob(blob);
+        setPreviewBlobUrl(URL.createObjectURL(blob));
+      } else {
+         dialog.alert("导出预览时出错: Blob generated is null");
+      }
+      
+    } catch(err: any) {
+      console.error(err);
+      dialog.alert("导出预览时出错: " + (err.message || String(err)));
+    } finally {
+      setIsExporting(false);
+      setHiddenExportRender(false);
+    }
+  };
+
+
 
   const handleDownload = () => {
     if (!previewBlobUrl) return;
@@ -84,8 +114,36 @@ export const TournamentBracketRenderer: React.FC<{
 
   const handleExport = () => {
     if (isExporting) return;
-    setIsExporting(true);
-    setHiddenExportRender(true);
+    setIsModalOpen(true);
+    // Don't auto-generate, let the user configure first
+  };
+
+  const colors = {
+    blue: { light: "rgba(59, 130, 246, 0.25)", dark: "rgba(29, 78, 216, 0.35)", baseDark: "#070b09", baseLight: "#f8fafc", glow: "rgba(59, 130, 246, 0.4)", hex: "#3b82f6" },
+    emerald: { light: "rgba(16, 185, 129, 0.25)", dark: "rgba(4, 120, 87, 0.35)", baseDark: "#070b09", baseLight: "#f8fafc", glow: "rgba(16, 185, 129, 0.4)", hex: "#10b981" },
+    purple: { light: "rgba(168, 85, 247, 0.25)", dark: "rgba(126, 34, 206, 0.35)", baseDark: "#070b09", baseLight: "#f8fafc", glow: "rgba(168, 85, 247, 0.4)", hex: "#a855f7" },
+    rose: { light: "rgba(244, 63, 94, 0.25)", dark: "rgba(190, 18, 60, 0.35)", baseDark: "#070b09", baseLight: "#f8fafc", glow: "rgba(244, 63, 94, 0.4)", hex: "#f43f5e" },
+    orange: { light: "rgba(249, 115, 22, 0.25)", dark: "rgba(194, 65, 12, 0.35)", baseDark: "#070b09", baseLight: "#f8fafc", glow: "rgba(249, 115, 22, 0.4)", hex: "#f97316" },
+  };
+
+  const getBgStyle = () => {
+    const isDark = exportTheme === "dark";
+    const c = colors[exportAccent];
+    const accent = isDark ? c.dark : c.light;
+    const base = isDark ? c.baseDark : c.baseLight;
+    
+    if (exportBackground === "solid") return { background: base };
+    if (exportBackground === "gradient") return { background: `linear-gradient(to bottom, ${accent} 0%, ${base} 100%)` };
+    if (exportBackground === "aurora") return { background: base };
+    if (exportBackground === "grid") {
+      const gridColor = isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)";
+      return {
+        backgroundColor: base,
+        backgroundImage: `radial-gradient(at 50% 0%, ${accent} 0%, transparent 70%), linear-gradient(to right, ${gridColor} 1px, transparent 1px), linear-gradient(to bottom, ${gridColor} 1px, transparent 1px)`,
+        backgroundSize: "100% 100%, 40px 40px, 40px 40px",
+      };
+    }
+    return { background: base };
   };
 
   return (
@@ -149,11 +207,12 @@ export const TournamentBracketRenderer: React.FC<{
                 className="relative pointer-events-none px-4 flex-shrink-0"
                 style={{ width: config.width, height: config.height }}
               >
-                {/* SVG Connections */}
-                <svg
-                  className="absolute inset-0 w-full h-full z-0 pointer-events-none"
-                  style={{ left: 0, top: 0 }}
-                >
+                <div className="relative shrink-0" style={{ width: config.width, height: config.height }}>
+                  {/* SVG Connections */}
+                  <svg
+                    className="absolute inset-0 w-full h-full z-0 pointer-events-none"
+                    style={{ left: 0, top: 0 }}
+                  >
                   {svgDefs}
                   {config.nodes
                     .filter((node) => node.hasDropStub)
@@ -228,7 +287,7 @@ export const TournamentBracketRenderer: React.FC<{
 
                       let strokeProps = {
                         stroke: "currentColor",
-                        className: "text-black/15 dark:text-white/15 drop-shadow-sm",
+                        className: "text-black/15 dark:text-white/15",
                         strokeDasharray: "none"
                       };
                       if (edge.win === false) {
@@ -264,13 +323,14 @@ export const TournamentBracketRenderer: React.FC<{
                       className={
                         node.type === "swissGroup" || node.type === "swissResult"
                           ? "absolute transform -translate-x-1/2 -translate-y-1/2 z-10 w-max"
-                          : "absolute pointer-events-auto shadow-sm"
+                          : "absolute pointer-events-auto"
                       }
                     >
-                      {renderNode(node)}
+                      {renderNode(node, false)}
                     </div>
                   );
                 })}
+                </div>
               </div>
             </TransformComponent>
           </>
@@ -280,18 +340,48 @@ export const TournamentBracketRenderer: React.FC<{
       {/* Hidden export layer */}
       {hiddenExportRender && (
         <ExportContext.Provider value={Date.now()}>
-          <div className="absolute left-[-9999px] top-[-9999px]">
+        <ExportSettingsContext.Provider value={{ useShortName: exportUseShortName }}>
+          <div className="fixed left-0 top-0 -z-50 opacity-0 pointer-events-none overflow-visible">
             <div
               ref={exportRef}
-              className="relative pointer-events-none px-4 flex-shrink-0 bg-transparent flex items-center justify-center p-8"
-              style={{ width: config.width + 64, height: config.height + 64 }}
+              className={cn(
+                "export-mode relative pointer-events-none flex-shrink-0 flex flex-col items-center justify-center box-border overflow-hidden",
+                exportTheme === "dark" ? "dark text-white" : "text-black"
+              )}
+              style={{ width: config.width + 160, padding: "60px 60px 100px 60px", ...getBgStyle() }}
             >
+              {exportBackground === "aurora" && (
+                <div 
+                  className="absolute inset-0 pointer-events-none" 
+                  style={{ background: `radial-gradient(ellipse at top, ${exportTheme === "dark" ? colors[exportAccent].dark : colors[exportAccent].light}, transparent 70%)` }}
+                />
+              )}
+
+              {(exportShowIcon && logoUrl) || (exportShowName && title) ? (
+                <div className="flex flex-col items-center gap-4 z-50 mb-12 shrink-0 relative w-full">
+                  {exportShowIcon && logoUrl && (
+                    <div className="relative">
+                      <div className="absolute inset-0 blur-[40px] rounded-full scale-150 pointer-events-none" style={{ backgroundColor: colors[exportAccent].glow }} />
+                      <img src={`https://wsrv.nl/?url=${encodeURIComponent(logoUrl)}`} crossOrigin="anonymous" referrerPolicy="no-referrer" className="relative h-24 w-auto object-contain drop-shadow-xl" alt="Logo" />
+                    </div>
+                  )}
+                  {exportShowName && title && (
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="text-4xl font-black tracking-tighter uppercase whitespace-nowrap font-sans text-transparent bg-clip-text drop-shadow-sm" style={{ backgroundImage: `linear-gradient(to bottom, ${exportTheme === "dark" ? "white, rgba(255,255,255,0.6)" : "black, rgba(0,0,0,0.6)"})`}}>
+                        {title}
+                      </div>
+                      <div className="h-1 w-24 opacity-50 rounded-full" style={{ backgroundImage: `linear-gradient(to right, transparent, ${colors[exportAccent].hex || exportTheme === "dark" ? "white" : "black"}, transparent)` }} />
+                    </div>
+                  )}
+                </div>
+              ) : null}
               <div
-                className="relative"
+                className="relative shrink-0"
                 style={{ width: config.width, height: config.height }}
               >
                 {/* SVG Connections for Export */}
                 <svg
+                  xmlns="http://www.w3.org/2000/svg"
                   className="absolute inset-0 w-full h-full z-0 pointer-events-none"
                   style={{ left: 0, top: 0 }}
                 >
@@ -402,24 +492,25 @@ export const TournamentBracketRenderer: React.FC<{
                         cn(
                           node.type === "swissGroup" || node.type === "swissResult"
                             ? "absolute transform -translate-x-1/2 -translate-y-1/2 z-10 w-max"
-                            : "absolute shadow-sm",
+                            : "absolute",
                           "pointer-events-none"
                         )
                       }
                     >
-                      {renderNode(node)}
+                      {renderNode(node, true)}
                     </div>
                   );
                 })}
               </div>
             </div>
-          </div>
+        </div>
+        </ExportSettingsContext.Provider>
         </ExportContext.Provider>
       )}
 
       <Modal
-        isOpen={!!previewBlobUrl}
-        onClose={() => setPreviewBlobUrl(null)}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         title="保存或分享"
         maxWidthClass="max-w-md md:max-w-3xl lg:max-w-[1000px]"
       >
@@ -435,18 +526,126 @@ export const TournamentBracketRenderer: React.FC<{
                 />
               )}
             </div>
+            {isExporting && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+                <Loader2 className="w-8 h-8 text-white animate-spin" />
+              </div>
+            )}
           </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          
+          <div className="flex flex-col gap-2">
+            <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest px-1">
+              外观设置
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setExportTheme("light")}
+                className={`flex-1 py-2 text-sm font-bold rounded border transition-colors ${exportTheme === "light" ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800"}`}
+              >
+                浅色
+              </button>
+              <button
+                onClick={() => setExportTheme("dark")}
+                className={`flex-1 py-2 text-sm font-bold rounded border transition-colors ${exportTheme === "dark" ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800"}`}
+              >
+                深色
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 mt-4">
+            <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest px-1">
+              背景风格
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { id: "aurora", label: "极光" },
+                { id: "grid", label: "网格" },
+                { id: "gradient", label: "渐变" },
+                { id: "solid", label: "纯色" }
+              ].map(bg => (
+                <button
+                  key={bg.id}
+                  onClick={() => setExportBackground(bg.id as any)}
+                  className={`flex-1 min-w-[70px] py-2 text-sm font-bold rounded border transition-colors ${exportBackground === bg.id ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800"}`}
+                >
+                  {bg.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest px-1">
+              强调色
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { id: "blue", label: "蓝色", color: "bg-blue-500" },
+                { id: "emerald", label: "翠绿", color: "bg-emerald-500" },
+                { id: "purple", label: "紫色", color: "bg-purple-500" },
+                { id: "rose", label: "玫瑰", color: "bg-rose-500" },
+                { id: "orange", label: "橙色", color: "bg-orange-500" },
+              ].map(accent => (
+                <button
+                  key={accent.id}
+                  onClick={() => setExportAccent(accent.id as any)}
+                  className={`flex-1 flex flex-col items-center justify-center gap-1.5 min-w-[60px] py-2 text-xs font-bold rounded border transition-colors ${exportAccent === accent.id ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800"}`}
+                >
+                  <div className={`w-3 h-3 rounded-full ${accent.color}`} />
+                  {accent.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest px-1">
+              内容显示
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setExportShowIcon(!exportShowIcon)}
+                className={`flex-1 py-2 text-sm font-bold rounded border transition-colors flex items-center justify-center gap-2 ${exportShowIcon ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800"}`}
+              >
+                赛事图标
+              </button>
+              <button
+                onClick={() => setExportShowName(!exportShowName)}
+                className={`flex-1 py-2 text-sm font-bold rounded border transition-colors flex items-center justify-center gap-2 ${exportShowName ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800"}`}
+              >
+                赛事名称
+              </button>
+              <button
+                onClick={() => setExportUseShortName(!exportUseShortName)}
+                className={`flex-1 py-2 text-sm font-bold rounded border transition-colors flex items-center justify-center gap-2 ${exportUseShortName ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800"}`}
+              >
+                {exportUseShortName ? "队伍简称" : "队伍全名"}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-2">
+            <button
+              onClick={() => runExport()}
+              disabled={isExporting}
+              className="flex-1 flex items-center justify-center gap-2 h-12 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 disabled:pointer-events-none text-white rounded-xl font-medium transition-all active:scale-[0.98]"
+            >
+              {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <DownloadCloud className="w-5 h-5 hidden" />}
+              生成预览图
+            </button>
             <button
               onClick={handleDownload}
-              className="flex-1 flex items-center justify-center gap-2 h-12 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl font-medium transition-all active:scale-[0.98]"
+              disabled={!previewBlobUrl}
+              className="flex-1 flex items-center justify-center gap-2 h-12 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none text-white rounded-xl font-medium transition-all active:scale-[0.98]"
             >
               <DownloadCloud className="w-5 h-5" />
               下载图片
             </button>
             <button
               onClick={handleCopy}
-              className="flex-1 flex items-center justify-center gap-2 h-12 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-xl font-medium transition-all active:scale-[0.98]"
+              disabled={!previewBlobUrl}
+              className="flex-1 flex items-center justify-center gap-2 h-12 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:pointer-events-none text-zinc-900 dark:text-zinc-100 rounded-xl font-medium transition-all active:scale-[0.98]"
             >
               <Copy className="w-5 h-5" />
               复制到剪贴板

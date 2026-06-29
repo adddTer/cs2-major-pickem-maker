@@ -1,11 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useContext } from "react";
 import { BracketNode } from "../data/bracketConfigs";
 import { TournamentBracketRenderer } from "./TournamentBracketRenderer";
 import { BracketSlot } from "./PlayoffsBracket";
 import { generateBracketConfig, parseFormatString } from "../utils/bracketGenerator";
 import { GroupBox, ResultGroup } from "./SwissBracket";
+import { ExportContext } from "../lib/ExportContext";
+import { cn } from "../lib/utils";
 
-export const TestBracket = ({ format, onMatchClick, activeGroupId = 0 }: { format: string; onMatchClick?: (match: any) => void; activeGroupId?: number }) => {
+export const TestBracket = ({ format, onMatchClick, activeGroupId = 0, currentEvent }: { format: string; onMatchClick?: (match: any) => void; activeGroupId?: number; currentEvent?: import("../types").TournamentEvent }) => {
   const parsedFormat = useMemo(() => parseFormatString(format), [format]);
   const isRoundRobin = parsedFormat.type === "round_robin" || parsedFormat.type === "double_round_robin";
 
@@ -17,7 +19,7 @@ export const TestBracket = ({ format, onMatchClick, activeGroupId = 0 }: { forma
   const renderNode = (node: BracketNode) => {
     if (node.type === "playoffsSlot") {
       return (
-        <div className="z-10 pointer-events-auto shadow-xl rounded-[6px]">
+        <div className="z-10 pointer-events-auto rounded-[6px] shadow-xl">
           <BracketSlot 
             slot={{ id: node.id, type: "playoffs", teamId: null }}
             readOnly={false} 
@@ -30,7 +32,9 @@ export const TestBracket = ({ format, onMatchClick, activeGroupId = 0 }: { forma
     if (node.type === "playoffsHeader") {
       return (
         <div
-          className="absolute text-[0.6875rem] text-zinc-600 dark:text-zinc-400 bg-white/60 dark:bg-zinc-900/60 rounded-full px-4 py-1.5 font-display font-semibold tracking-widest uppercase flex items-center justify-center pointer-events-auto cursor-default w-[190px] z-50 shadow-sm border border-black/5 dark:border-white/5 backdrop-blur-md -mt-8"
+          className={cn(
+            "absolute text-[0.6875rem] text-zinc-600 dark:text-zinc-400 bg-white/60 dark:bg-zinc-900/60 rounded-full px-4 py-1.5 font-display font-semibold tracking-widest uppercase flex items-center justify-center pointer-events-auto cursor-default w-[190px] z-50 shadow-sm border border-black/5 dark:border-white/5 -mt-8 backdrop-blur-md"
+          )}
         >
           {node.title}
         </div>
@@ -143,6 +147,8 @@ export const TestBracket = ({ format, onMatchClick, activeGroupId = 0 }: { forma
           config={config}
           renderNode={renderNode}
           initialScale={0.8}
+          title={currentEvent?.name}
+          logoUrl={currentEvent?.logoUrl}
           svgDefs={(
             <defs>
               <linearGradient id="win-grad" x1="0" y1="0" x2="1" y2="0">

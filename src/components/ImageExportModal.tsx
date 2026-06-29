@@ -1,8 +1,7 @@
 import React from "react";
 import { PickSet, StageKey, SlotType } from "../types";
-import { Modal } from "./Modal";
 import { ExportContext } from "../lib/ExportContext";
-import { RefreshCw, Copy, Download, CheckSquare, Square } from "lucide-react";
+import { RefreshCw, Copy, Download } from "lucide-react";
 import { dialog } from "./DialogManager";
 import { MiniPlayoffsBracket } from "./MiniPlayoffsBracket";
 import { MiniPicksDisplay } from "./MiniPicksDisplay";
@@ -12,6 +11,7 @@ import { simulateSwiss } from "../utils/simulateSwiss";
 import { MATCHES } from "../data/matches";
 import { TEAMS } from "../data/teams";
 import { cn } from "../lib/utils";
+import { PopupUI } from "./PopupUI";
 
 interface ImageExportModalProps {
   showImageExportModal: boolean;
@@ -24,6 +24,12 @@ interface ImageExportModalProps {
   setImageExportShowProbabilities: (val: boolean) => void;
   imageExportShowTeamNames: boolean;
   setImageExportShowTeamNames: (val: boolean) => void;
+  imageExportTheme: "light" | "dark";
+  setImageExportTheme: (val: "light" | "dark") => void;
+  imageExportShowIcon: boolean;
+  setImageExportShowIcon: (val: boolean) => void;
+  imageExportShowName: boolean;
+  setImageExportShowName: (val: boolean) => void;
   imageExportStyle: "standard" | "compact";
   setImageExportStyle: (val: "standard" | "compact") => void;
   imageExportSimCount: number;
@@ -63,6 +69,12 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
   setImageExportShowProbabilities,
   imageExportShowTeamNames,
   setImageExportShowTeamNames,
+  imageExportTheme,
+  setImageExportTheme,
+  imageExportShowIcon,
+  setImageExportShowIcon,
+  imageExportShowName,
+  setImageExportShowName,
   imageExportStyle,
   setImageExportStyle,
   imageExportSimCount,
@@ -213,7 +225,7 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
   return (
     <>
       {simulatingOverlay}
-      <Modal
+      <PopupUI.Modal
         isOpen={showImageExportModal}
         onClose={() => {
           setShowImageExportModal(false);
@@ -231,13 +243,14 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
               />
             </div>
             <div className="flex justify-end gap-3 mt-4">
-              <button
+              <PopupUI.ActionButton
+                label="返回修改"
+                variant="secondary"
                 onClick={() => setExportPreviewUrl(null)}
-                className="px-4 py-2 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:bg-white/5 text-zinc-800 dark:text-zinc-300 font-bold text-sm transition-colors rounded-md"
-              >
-                返回修改
-              </button>
-              <button
+              />
+              <PopupUI.ActionButton
+                label="复制图片"
+                icon={Copy}
                 onClick={async () => {
                   try {
                     const response = await fetch(exportPreviewUrl);
@@ -251,16 +264,13 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                     dialog.alert("复制失败，请尝试直接下载。");
                   }
                 }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20 flex items-center gap-2"
-              >
-                <Copy className="w-4 h-4" /> 复制图片
-              </button>
-              <button
+              />
+              <PopupUI.ActionButton
+                label="下载图片"
+                icon={Download}
+                variant="success"
                 onClick={handleDownloadImage}
-                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-emerald-900/20 flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" /> 下载图片
-              </button>
+              />
             </div>
           </div>
         ) : isSimulatingProbability || isExportingImage ? (
@@ -281,38 +291,19 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
         ) : (
           <div className="flex flex-col gap-4">
             {activeStage !== "stage1" && (
-              <div
-                className="flex items-center justify-between p-3 bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 rounded cursor-pointer border border-black/5 dark:border-white/5"
-                onClick={() =>
-                  setImageExportShowPrevStage(!imageExportShowPrevStage)
-                }
-              >
-                <span className="text-sm font-bold text-zinc-900 dark:text-zinc-200">
-                  显示上阶段成绩
-                </span>
-                {imageExportShowPrevStage ? (
-                  <CheckSquare className="w-5 h-5 text-blue-400" />
-                ) : (
-                  <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
-                )}
-              </div>
+              <PopupUI.SwitchRow
+                label="显示上阶段成绩"
+                checked={imageExportShowPrevStage}
+                onChange={setImageExportShowPrevStage}
+              />
             )}
-            <div className="flex flex-col bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 rounded border border-black/5 dark:border-white/5 overflow-hidden">
-              <div
-                className="flex items-center justify-between p-3 cursor-pointer"
-                onClick={() =>
-                  setImageExportShowProbabilities(!imageExportShowProbabilities)
-                }
-              >
-                <span className="text-sm font-bold text-zinc-900 dark:text-zinc-200">
-                  显示概率而非对错
-                </span>
-                {imageExportShowProbabilities ? (
-                  <CheckSquare className="w-5 h-5 text-blue-400" />
-                ) : (
-                  <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
-                )}
-              </div>
+            <div className="flex flex-col bg-black/5 dark:bg-white/5 rounded border border-black/5 dark:border-white/5 overflow-hidden">
+              <PopupUI.SwitchRow
+                label="显示概率而非对错"
+                checked={imageExportShowProbabilities}
+                onChange={setImageExportShowProbabilities}
+                className="mb-0 border-none bg-transparent hover:bg-black/5 dark:hover:bg-white/5"
+              />
               
               <div
                 className={`transition-all duration-300 ease-in-out grid ${
@@ -331,93 +322,67 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                           : `${imageExportSimCount / 1000}K`}
                       </span>
                     </div>
-                    <div className="relative flex flex-col gap-2">
-                       <input
-                         type="range"
-                         min="10000"
-                         max="5000000"
-                         step="10000"
-                         value={imageExportSimCount}
-                         onChange={(e) => setImageExportSimCount(Number(e.target.value))}
-                         className="w-full h-1.5 bg-zinc-700/80 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                       />
-                       <div className="flex justify-between text-[0.625rem] text-zinc-500 dark:text-zinc-500 px-1 font-mono font-bold">
-                         <span>10K (极速)</span>
-                         <span>5M (精确)</span>
-                       </div>
-                    </div>
+                    <PopupUI.Slider
+                      min={10000}
+                      max={5000000}
+                      step={10000}
+                      value={imageExportSimCount}
+                      onChange={setImageExportSimCount}
+                      leftLabel="10K (极速)"
+                      rightLabel="5M (精确)"
+                    />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div
-              className="flex items-center justify-between p-3 bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 rounded cursor-pointer border border-black/5 dark:border-white/5"
-              onClick={() =>
-                setImageExportShowTeamNames(!imageExportShowTeamNames)
-              }
-            >
-              <span className="text-sm font-bold text-zinc-900 dark:text-zinc-200">
-                显示队伍名称
-              </span>
-              {imageExportShowTeamNames ? (
-                <CheckSquare className="w-5 h-5 text-blue-400" />
-              ) : (
-                <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
-              )}
+            <PopupUI.SwitchRow
+              label="显示队伍名称"
+              checked={imageExportShowTeamNames}
+              onChange={setImageExportShowTeamNames}
+            />
+
+            <div>
+              <PopupUI.SectionTitle>展示样式</PopupUI.SectionTitle>
+              <PopupUI.ButtonGroup
+                options={[
+                  { label: "标准", value: "standard" },
+                  { label: "紧凑", value: "compact" }
+                ]}
+                value={imageExportStyle}
+                onChange={(val) => setImageExportStyle(val as any)}
+              />
             </div>
+
+            <div>
+              <PopupUI.SectionTitle>外观设置</PopupUI.SectionTitle>
+              <PopupUI.ButtonGroup
+                options={[
+                  { label: "浅色", value: "light" },
+                  { label: "深色", value: "dark" }
+                ]}
+                value={imageExportTheme}
+                onChange={(val) => setImageExportTheme(val as any)}
+              />
+            </div>
+            
+            <PopupUI.SwitchRow
+              label="显示比赛图标"
+              checked={imageExportShowIcon}
+              onChange={setImageExportShowIcon}
+            />
+
+            <PopupUI.SwitchRow
+              label="显示比赛名称"
+              checked={imageExportShowName}
+              onChange={setImageExportShowName}
+            />
+
+            <PopupUI.SectionTitle>选择包含的社区竞猜</PopupUI.SectionTitle>
             <div className="flex flex-col gap-2">
-              <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest px-1">
-                展示样式
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setImageExportStyle("standard")}
-                  className={`flex-1 py-2 text-sm font-bold rounded border transition-colors ${imageExportStyle === "standard" ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:bg-zinc-800"}`}
-                >
-                  标准
-                </button>
-                <button
-                  onClick={() => setImageExportStyle("compact")}
-                  className={`flex-1 py-2 text-sm font-bold rounded border transition-colors ${imageExportStyle === "compact" ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:bg-zinc-800"}`}
-                >
-                  紧凑
-                </button>
-              </div>
-            </div>
-            <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest mt-2 px-1">
-              选择包含的社区竞猜
-            </div>
-            <div className="flex flex-col gap-2">
-              <div
-                className="flex items-center gap-3 p-3 bg-black/50 dark:bg-white/50 dark:bg-zinc-800/50 rounded cursor-pointer hover:bg-white dark:bg-zinc-800 transition-colors border border-black/5 dark:border-white/5"
-                onClick={() => {
-                  const validIds = extendedCommunityPicks
-                    .filter((p) => {
-                      const stagePicks = p.picks[activeStage] || [];
-                      if (activeStage === "playoffs") {
-                        const userPicks = stagePicks.filter(
-                          (s) => !s.id.startsWith("qf-"),
-                        );
-                        return (
-                          userPicks.length === 7 &&
-                          userPicks.every((s) => !!s.teamId)
-                        );
-                      } else {
-                        return (
-                          stagePicks.length === 10 &&
-                          stagePicks.every((s) => !!s.teamId)
-                        );
-                      }
-                    })
-                    .map((p) => p.id);
-                  setImageExportIds(
-                    imageExportIds.length === validIds.length ? [] : validIds,
-                  );
-                }}
-              >
-                {(() => {
-                  const validIdsCount = extendedCommunityPicks.filter((p) => {
+              {(() => {
+                const validIds = extendedCommunityPicks
+                  .filter((p) => {
                     const stagePicks = p.picks[activeStage] || [];
                     if (activeStage === "playoffs") {
                       const userPicks = stagePicks.filter(
@@ -433,65 +398,54 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
                         stagePicks.every((s) => !!s.teamId)
                       );
                     }
-                  }).length;
-                  return (
-                    <>
-                      {imageExportIds.length === validIdsCount &&
-                      validIdsCount > 0 ? (
-                        <CheckSquare className="w-5 h-5 text-blue-400" />
-                      ) : (
-                        <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
-                      )}
-                      <span className="font-bold text-sm text-zinc-900 dark:text-zinc-200">
-                        全选完整预测 ({imageExportIds.length}/{validIdsCount})
-                      </span>
-                    </>
-                  );
-                })()}
-              </div>
+                  })
+                  .map((p) => p.id);
+                
+                const validIdsCount = validIds.length;
+                const isAllSelected = imageExportIds.length === validIdsCount && validIdsCount > 0;
+
+                return (
+                  <PopupUI.CheckboxRow
+                    label={`全选完整预测`}
+                    countText={`(${imageExportIds.length}/${validIdsCount})`}
+                    checked={isAllSelected}
+                    onChange={() => {
+                      setImageExportIds(
+                        isAllSelected ? [] : validIds,
+                      );
+                    }}
+                    className="bg-black/5 dark:bg-white/5 border-none"
+                  />
+                );
+              })()}
               <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[160px] custom-scrollbar">
-                {extendedSortedCommunityPicks.map((item) => {
-                  const isSelected = imageExportIds.includes(item.id);
-                  return (
-                    <div
-                      key={item.id}
-                      className={`flex items-center gap-3 p-3 rounded cursor-pointer transition-colors border ${isSelected ? "bg-blue-500/10 border-blue-500/30" : "bg-zinc-200/20 dark:bg-black/20 border-black/5 dark:border-white/5 hover:bg-zinc-200/40 dark:bg-black/40"}`}
-                      onClick={() =>
-                        setImageExportIds((prev) =>
-                          prev.includes(item.id)
-                            ? prev.filter((x) => x !== item.id)
-                            : [...prev, item.id],
-                        )
-                      }
-                    >
-                      {isSelected ? (
-                        <CheckSquare className="w-5 h-5 text-blue-400" />
-                      ) : (
-                        <Square className="w-5 h-5 text-zinc-500 dark:text-zinc-500" />
-                      )}
-                      <span className="font-bold text-sm text-zinc-900 dark:text-zinc-200 truncate">
-                        {item.name}
-                      </span>
-                    </div>
-                  );
-                })}
+                {extendedSortedCommunityPicks.map((item) => (
+                  <PopupUI.CheckboxRow
+                    key={item.id}
+                    label={item.name}
+                    checked={imageExportIds.includes(item.id)}
+                    onChange={() =>
+                      setImageExportIds((prev) =>
+                        prev.includes(item.id)
+                          ? prev.filter((x) => x !== item.id)
+                          : [...prev, item.id],
+                      )
+                    }
+                  />
+                ))}
               </div>
             </div>
             <div className="mt-4 flex justify-end">
-              <button
-                onClick={handleGeneratePreview}
+              <PopupUI.ActionButton
+                label="生成预览"
+                isLoading={isExportingImage}
                 disabled={isExportingImage || imageExportIds.length === 0}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isExportingImage ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : null}
-                生成预览
-              </button>
+                onClick={handleGeneratePreview}
+              />
             </div>
           </div>
         )}
-      </Modal>
+      </PopupUI.Modal>
 
       {/* Hidden container for image export */}
       {!isSimulatingProbability &&
@@ -499,25 +453,48 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
           <ExportContext.Provider
             value={isExportingImage ? exportSession : false}
           >
-            <div className="absolute left-[-9999px] top-[-9999px]">
+            <div className="fixed left-0 top-0 opacity-0 pointer-events-none -z-50 overflow-visible">
               <div
                 ref={exportContainerRef}
-                className="bg-zinc-50 dark:bg-[#070b09] p-8 w-max min-w-[500px] max-w-[1200px] flex flex-col gap-6"
+                className={cn(
+                  "bg-zinc-50 dark:bg-[#070b09] p-8 w-max min-w-[500px] max-w-[1200px] flex flex-col gap-6",
+                  imageExportTheme === "dark" ? "dark" : ""
+                )}
                 style={{
                   fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
                 }}
               >
-                <div className="flex flex-col items-center justify-center border-b border-black/10 dark:border-white/10 pb-6 mb-2">
-                  <h1 className="text-2xl font-black text-black dark:text-white tracking-widest flex items-center gap-2">
-                    IEM Cologne 2026 -{" "}
-                    {activeStage === "stage1"
-                      ? "第一阶段"
-                      : activeStage === "stage2"
-                        ? "第二阶段"
-                        : activeStage === "stage3"
-                          ? "第三阶段"
-                          : "决胜阶段"}
-                  </h1>
+                <div className="relative">
+                  {/* Background accent */}
+                  {imageExportTheme === "dark" && (
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent pointer-events-none" />
+                  )}
+                  
+                  {(imageExportShowIcon || imageExportShowName) && (
+                    <div className="flex flex-col items-center gap-6 z-50 mt-4 mb-10 shrink-0 relative w-full pt-4">
+                      {imageExportShowIcon && currentEvent?.logoUrl && (
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-blue-500/20 blur-[50px] rounded-full scale-150 pointer-events-none" />
+                          <img src={`https://wsrv.nl/?url=${encodeURIComponent(currentEvent.logoUrl)}`} crossOrigin="anonymous" referrerPolicy="no-referrer" className="relative h-32 w-auto object-contain drop-shadow-2xl" alt="Logo" />
+                        </div>
+                      )}
+                      {imageExportShowName && (
+                        <div className="flex flex-col items-center gap-3 mt-2">
+                          <h1 className="text-4xl md:text-5xl font-black tracking-tighter uppercase font-sans text-center text-transparent bg-clip-text bg-gradient-to-b from-black to-black/60 dark:from-white dark:to-white/60 drop-shadow-sm">
+                            {currentEvent?.name || "IEM Cologne 2026"} -{" "}
+                            {activeStage === "stage1"
+                              ? "第一阶段"
+                              : activeStage === "stage2"
+                                ? "第二阶段"
+                                : activeStage === "stage3"
+                                  ? "第三阶段"
+                                  : "决胜阶段"}
+                          </h1>
+                          <div className="h-1 w-24 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50 rounded-full" />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div
                   className={`grid ${imageExportStyle === "compact" ? "grid-cols-1 gap-0 bg-zinc-100/80 dark:bg-zinc-900/80 border border-black/5 dark:border-white/5 rounded-lg shadow-sm overflow-hidden" : "grid-cols-1 gap-6"}`}

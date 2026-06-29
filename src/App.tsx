@@ -187,6 +187,9 @@ export default function App() {
     useState(false);
   const [imageExportShowTeamNames, setImageExportShowTeamNames] =
     useState(false);
+  const [imageExportTheme, setImageExportTheme] = useState<"light" | "dark">("dark");
+  const [imageExportShowIcon, setImageExportShowIcon] = useState(true);
+  const [imageExportShowName, setImageExportShowName] = useState(true);
   const [imageExportSimCount, setImageExportSimCount] =
     useState<number>(100000);
   const [imageExportStyle, setImageExportStyle] = useState<
@@ -461,30 +464,30 @@ export default function App() {
       await new Promise((r) => setTimeout(r, 300));
     }
 
-    // We also give html-to-image a little time
+    let isDarkForExport = imageExportTheme === "dark";
+
     setTimeout(() => {
       import("html-to-image").then((htmlToImage) => {
-        if (!exportContainerRef.current) return;
-        htmlToImage
-          .toPng(
-            exportContainerRef.current.querySelector("#export-content") ||
-              exportContainerRef.current,
-            {
-              backgroundColor: "#070b09",
-              pixelRatio: 3,
-              includeQueryParams: true,
-              cacheBust: true,
-            },
-          )
-          .then(function (dataUrl) {
-            setExportPreviewUrl(dataUrl);
-            setIsExportingImage(false);
-          })
-          .catch(function (error) {
-            console.error("oops, something went wrong!", error);
-            setIsExportingImage(false);
-            dialog.alert("截图生成失败");
-          });
+        if (!exportContainerRef.current) {
+          return;
+        }
+        
+        const target = (exportContainerRef.current.querySelector("#export-content") ||
+          exportContainerRef.current) as HTMLElement;
+
+        htmlToImage.toPng(target, {
+          backgroundColor: isDarkForExport ? "#070b09" : "#f8fafc",
+          pixelRatio: 3,
+          includeQueryParams: true,
+          cacheBust: true,
+        }).then((dataUrl) => {
+          setExportPreviewUrl(dataUrl);
+          setIsExportingImage(false);
+        }).catch((error) => {
+          console.error("oops, something went wrong!", error);
+          setIsExportingImage(false);
+          dialog.alert("截图生成失败: " + (error.message || String(error)));
+        });
       });
     }, 500);
   };
@@ -1052,6 +1055,7 @@ export default function App() {
                           readOnly={true}
                           showResults={false}
                           onMatchClick={(m) => setGlobalSelectedMatch(m)}
+                          currentEvent={currentEvent}
                         />
                       </div>
                     ) : (
@@ -1059,6 +1063,7 @@ export default function App() {
                         <TestBracket
                           format={format}
                           activeGroupId={activeGroupId}
+                          currentEvent={currentEvent}
                         />
                       </div>
                     )}
@@ -1230,6 +1235,12 @@ export default function App() {
         setImageExportShowProbabilities={setImageExportShowProbabilities}
         imageExportShowTeamNames={imageExportShowTeamNames}
         setImageExportShowTeamNames={setImageExportShowTeamNames}
+        imageExportTheme={imageExportTheme}
+        setImageExportTheme={setImageExportTheme}
+        imageExportShowIcon={imageExportShowIcon}
+        setImageExportShowIcon={setImageExportShowIcon}
+        imageExportShowName={imageExportShowName}
+        setImageExportShowName={setImageExportShowName}
         imageExportSimCount={imageExportSimCount}
         setImageExportSimCount={setImageExportSimCount}
         imageExportStyle={imageExportStyle}

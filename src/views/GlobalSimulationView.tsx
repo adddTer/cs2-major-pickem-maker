@@ -467,6 +467,7 @@ export function GlobalSimulationView({
                     onClick={(slotId) =>
                       setSelectedSlotForModal(slotId.replace("playoffs-", ""))
                     }
+                    currentEvent={currentEvent}
                   />
                 </div>
               </div>

@@ -18,9 +18,9 @@ export const SlotBox: React.FC<{
   onClick?: (slotId: string, teamId: string | null) => void;
 }> = ({ slot, border, readOnly = false, size = "md", onDrop, onClick }) => {
   const team = TEAMS.find((t) => t.id === slot.teamId);
+  const isExport = useContext(ExportContext);
   const isSm = size === "sm";
   const isXs = size === "xs";
-  const isExport = useContext(ExportContext);
   const isTbd = team?.id === "tbd";
 
   return (
@@ -50,10 +50,7 @@ export const SlotBox: React.FC<{
       }
       className={cn(
         "bg-white/40 dark:bg-zinc-900/40 flex items-center justify-center transition-all duration-300 group relative border shrink-0",
-        !isExport &&
-          !isTbd &&
-          "backdrop-blur-xl shadow-[inset_0_1px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_4px_rgba(255,255,255,0.05)]",
-        isExport && isTbd && "bg-white dark:bg-zinc-900",
+        !isTbd && !isExport && "shadow-[inset_0_1px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_4px_rgba(255,255,255,0.05)] backdrop-blur-xl",
         isXs
           ? "w-7 h-7 sm:w-8 sm:h-8 rounded-lg"
           : isSm
@@ -65,10 +62,7 @@ export const SlotBox: React.FC<{
             ? "hover:bg-white/60 dark:hover:bg-zinc-800/60 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_8px_16px_rgba(0,0,0,0.4)]"
             : "",
         slot.resultStatus === "correct"
-          ? cn(
-              "border-emerald-500/60 bg-emerald-500/10",
-              !isExport && "shadow-[0_0_15px_rgba(16,185,129,0.2)]",
-            )
+          ? cn("border-emerald-500/60 bg-emerald-500/10", !isExport && "shadow-[0_0_15px_rgba(16,185,129,0.2)]")
           : slot.resultStatus === "incorrect"
             ? "border-rose-500/40 bg-rose-500/10"
             : team && !isTbd
@@ -77,7 +71,7 @@ export const SlotBox: React.FC<{
                   !isExport && "shadow-sm dark:shadow-sm",
                   border,
                 )
-              : "border-black/5 dark:border-white/5 hover:border-black/20 dark:hover:border-white/20 border-dashed bg-black/5 dark:bg-white/5 shadow-inner",
+              : cn("border-black/5 dark:border-white/5 hover:border-black/20 dark:hover:border-white/20 border-dashed bg-black/5 dark:bg-white/5", !isExport && "shadow-inner"),
         slot.clashType === "x-one" &&
           slot.resultStatus === "unknown" &&
           "border-amber-500/30 bg-amber-500/5",
