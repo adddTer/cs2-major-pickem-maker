@@ -9,7 +9,8 @@ import { BracketMatch, TournamentEvent } from "../types";
 import { MatchDialog } from "../components/MatchDialog";
 import { TeamLogo } from "../components/TeamLogo";
 import { TEAMS } from "../data/teams";
-import { Play, Trophy, BarChart2, X } from "lucide-react";
+import { Play, Trophy, BarChart2 } from "lucide-react";
+import { PopupUI } from "../components/PopupUI";
 
 interface GlobalSimulationViewProps {
   currentMatches: any;
@@ -315,58 +316,42 @@ export function GlobalSimulationView({
 
   return (
     <div className="w-full h-full flex flex-col p-4 sm:p-6 lg:p-8 overflow-y-auto relative custom-scrollbar bg-zinc-50 dark:bg-zinc-950">
-      {modalData && selectedSlotForModal && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => setSelectedSlotForModal(null)}
-        >
-          <div
-            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-              <h3 className="font-display font-bold text-lg text-zinc-900 dark:text-zinc-100">
-                {modalData.title}
-              </h3>
-              <button
-                onClick={() => setSelectedSlotForModal(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
+      <PopupUI.Modal
+        isOpen={!!modalData && !!selectedSlotForModal}
+        onClose={() => setSelectedSlotForModal(null)}
+        title={modalData?.title || "概率分布"}
+        maxWidthClass="max-w-md"
+      >
+        <div className="flex flex-col gap-3 pt-2">
+          {modalData?.data.map((item, i) => (
+            <div
+              key={item.team?.id}
+              className="flex items-center gap-4 p-3.5 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm"
+            >
+              <span className="text-zinc-400 dark:text-zinc-500 font-black w-6 text-center text-sm font-display tracking-wider">
+                {i + 1}
+              </span>
+              <div className="w-8 h-8 flex items-center justify-center shrink-0 bg-white dark:bg-zinc-800 rounded-full border border-zinc-100 dark:border-zinc-700 shadow-sm">
+                <TeamLogo team={item.team!} />
+              </div>
+              <span className="font-bold flex-1 text-zinc-900 dark:text-zinc-100">
+                {item.team?.name}
+              </span>
+              <span className="text-zinc-600 dark:text-zinc-300 font-mono font-bold text-xs bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm px-2.5 py-1 rounded-lg">
+                {item.prob}%
+              </span>
             </div>
-            <div className="overflow-y-auto p-5 flex flex-col gap-2.5 custom-scrollbar">
-              {modalData.data.map((item, i) => (
-                <div
-                  key={item.team?.id}
-                  className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm"
-                >
-                  <span className="text-zinc-400 dark:text-zinc-500 font-bold w-6 text-center text-sm">
-                    {i + 1}
-                  </span>
-                  <div className="w-8 h-8 flex items-center justify-center shrink-0">
-                    <TeamLogo team={item.team!} />
-                  </div>
-                  <span className="font-medium flex-1 text-zinc-900 dark:text-zinc-100">
-                    {item.team?.name}
-                  </span>
-                  <span className="text-zinc-600 dark:text-zinc-300 font-mono font-medium text-xs bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 shadow-sm px-2 py-1 rounded-lg">
-                    {item.prob}%
-                  </span>
-                </div>
-              ))}
-              {modalData.data.length === 0 && (
-                <div className="text-center text-zinc-500 dark:text-zinc-400 py-12 flex flex-col items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                    <BarChart2 className="w-6 h-6 text-zinc-400" />
-                  </div>
-                  <span className="text-sm">无足够数据</span>
-                </div>
-              )}
+          ))}
+          {(!modalData || modalData.data.length === 0) && (
+            <div className="text-center text-zinc-500 dark:text-zinc-400 py-12 flex flex-col items-center gap-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl border border-zinc-200/50 dark:border-zinc-800/50 border-dashed">
+              <div className="w-16 h-16 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center shadow-sm">
+                <BarChart2 className="w-6 h-6 text-zinc-400" />
+              </div>
+              <span className="text-sm font-medium">无足够数据</span>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </PopupUI.Modal>
 
       <div className="flex flex-col items-center justify-center p-8 sm:p-12 bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 mb-8 shadow-sm relative overflow-hidden shrink-0">
         <h2 className="text-2xl sm:text-3xl font-display font-bold tracking-tight mb-3 text-zinc-900 dark:text-white relative z-10 text-center">
@@ -377,14 +362,14 @@ export function GlobalSimulationView({
         </p>
 
         {isSimulating ? (
-          <div className="w-full max-w-md flex flex-col items-center gap-4 relative z-10">
-            <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden relative">
+          <div className="w-full max-w-md flex flex-col items-center gap-6 relative z-10">
+            <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-3 overflow-hidden relative shadow-inner border border-zinc-200/50 dark:border-zinc-700/50">
               <div
-                className="bg-zinc-900 dark:bg-white h-full transition-all duration-300 rounded-full"
+                className="bg-zinc-900 dark:bg-white h-full transition-all duration-300 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.2)] dark:shadow-[0_0_10px_rgba(255,255,255,0.2)]"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <div className="text-xs font-mono font-medium text-zinc-500 dark:text-zinc-400">
+            <div className="text-sm font-mono font-bold text-zinc-500 dark:text-zinc-400">
               推演中... {progress}%
             </div>
           </div>
@@ -392,13 +377,13 @@ export function GlobalSimulationView({
           <div className="flex flex-col sm:flex-row items-center gap-4 relative z-10">
             <button
               onClick={handleRunSimulation}
-              className="px-8 py-3.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium text-sm sm:text-base rounded-2xl shadow-sm transition-all active:scale-95 whitespace-nowrap flex items-center gap-2"
+              className="px-8 py-3.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-bold text-sm sm:text-base rounded-2xl shadow-lg transition-all active:scale-95 whitespace-nowrap flex items-center gap-2.5 ring-1 ring-zinc-900/5 dark:ring-white/5"
             >
-              <Play className="w-4 h-4" />
+              <Play className="w-4 h-4 fill-current" />
               {result ? "重新推演赛程" : "开始全盘推演"}
             </button>
             {result && (
-              <div className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-mono bg-zinc-50 dark:bg-zinc-800/50 px-5 py-3.5 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+              <div className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-mono font-medium bg-zinc-50 dark:bg-zinc-800/50 px-5 py-3.5 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                 已完成 {result.totalSims.toLocaleString()} 次模拟
               </div>
             )}
@@ -472,30 +457,30 @@ export function GlobalSimulationView({
                 </div>
               </div>
 
-              <div className="w-full xl:w-[20rem] flex shrink-0 flex-col gap-6 h-full overflow-y-auto custom-scrollbar xl:overflow-visible">
-                <div className="p-6 bg-white dark:bg-zinc-900 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden">
-                  <h3 className="text-lg font-bold mb-6 mt-2 flex items-center gap-2 text-zinc-900 dark:text-zinc-100 font-display">
-                    <Trophy className="w-5 h-5 text-zinc-400" /> 夺冠概率 TOP 5
+              <div className="w-full xl:w-[22rem] flex shrink-0 flex-col gap-6 h-full overflow-y-auto custom-scrollbar xl:overflow-visible">
+                <div className="p-6 sm:p-8 bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden flex flex-col h-full">
+                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2.5 text-zinc-900 dark:text-zinc-100 font-display justify-center">
+                    <Trophy className="w-5 h-5 text-amber-500" /> 夺冠概率 TOP 5
                   </h3>
                   <div className="flex flex-col gap-3">
                     {topChampions.map((item, i) => (
                       <div
                         key={item.team?.id}
-                        className="group flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm transition-all"
+                        className="group flex items-center gap-4 p-3.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm transition-all hover:bg-white dark:hover:bg-zinc-800 hover:shadow-md"
                       >
                         <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-white" : i === 1 ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300" : i === 2 ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400" : "text-zinc-400"}`}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-black font-display tracking-wider ${i === 0 ? "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20" : i === 1 ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-600" : i === 2 ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20" : "bg-transparent text-zinc-400 border border-transparent"}`}
                         >
                           {i + 1}
                         </div>
-                        <div className="w-8 h-8 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center p-1 border border-zinc-100 dark:border-zinc-700">
+                        <div className="w-10 h-10 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center p-1.5 border border-zinc-100 dark:border-zinc-700 shadow-sm">
                           <TeamLogo team={item.team!} />
                         </div>
-                        <span className="font-medium flex-1 text-sm text-zinc-900 dark:text-zinc-100">
+                        <span className="font-bold flex-1 text-zinc-900 dark:text-zinc-100">
                           {item.team?.shortName}
                         </span>
-                        <div className="px-2 py-1 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-100 dark:border-zinc-700 shadow-sm">
-                          <span className="text-zinc-600 dark:text-zinc-300 font-mono font-medium text-xs">
+                        <div className="px-2.5 py-1.5 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
+                          <span className="text-zinc-600 dark:text-zinc-300 font-mono font-bold text-xs">
                             {item.prob}%
                           </span>
                         </div>

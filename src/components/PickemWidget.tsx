@@ -6,7 +6,7 @@ import { PickEmDock } from "./PickEmDock";
 import { TeamLogo } from "./TeamLogo";
 import { MiniPlayoffsBracket } from "./MiniPlayoffsBracket";
 import { dialog } from "./DialogManager";
-import { Modal } from "./Modal";
+import { PopupUI } from "./PopupUI";
 
 interface PickemWidgetProps {
   newNickname: string;
@@ -424,13 +424,14 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
         <div className="text-[0.6875rem] text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 font-medium">
           点击队伍，再点击下方槽位；或直接拖动。
         </div>
-        {activeStage === "playoffs" && currentPoolTeams.length < 8 && (
+        {activeStage === "playoffs" && (currentEventId === "iem_cologne_2026" ? currentPoolTeams.length < 8 : currentPoolTeams.length < 6) && (
           <div className="text-[0.6875rem] text-amber-500 bg-amber-500/10 p-2.5 rounded border border-amber-500/20">
-            请先在第三阶段竞猜或等待实际比赛完成，以获得 8 支晋级队伍。
+            请先在上一阶段竞猜或等待实际比赛完成，以获得足够的晋级队伍。
           </div>
         )}
         {activeStage !== "stage1" &&
           activeStage !== "playoffs" &&
+          currentEventId === "iem_cologne_2026" &&
           currentPoolTeams.length < 16 && (
             <div className="text-[0.6875rem] text-amber-500 bg-amber-500/10 p-2.5 rounded border border-amber-500/20">
               请先在上一阶段填满 8 支晋级队伍。
@@ -480,7 +481,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
       {/* 3. PickEm Slots */}
       <div className="flex flex-col gap-3">
         {activeStage === "playoffs" ? (
-          <div className="w-full bg-zinc-100/50 dark:bg-zinc-900/50 p-3 rounded-xl border border-black/5 dark:border-white/5 overflow-x-hidden">
+          <div className="w-full bg-zinc-100/50 dark:bg-zinc-900/50 p-3 rounded-xl border border-black/5 dark:border-white/5 overflow-x-auto custom-scrollbar">
             <MiniPlayoffsBracket
               slots={currentSlots.map((s) => ({
                 ...s,
@@ -532,7 +533,7 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
         )}
       </div>
 
-      <Modal
+      <PopupUI.Modal
         isOpen={!!diffModalData}
         onClose={() => setDiffModalData(null)}
         title="发现差异"
@@ -591,22 +592,20 @@ export const PickemWidget: React.FC<PickemWidgetProps> = ({
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-black/10 dark:border-white/10 mt-2">
-              <button
+              <PopupUI.ActionButton
+                label="取消"
+                variant="secondary"
                 onClick={() => setDiffModalData(null)}
-                className="px-4 py-2 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:bg-white/5 text-zinc-800 dark:text-zinc-300 font-bold text-sm transition-colors rounded-lg"
-              >
-                取消
-              </button>
-              <button
+              />
+              <PopupUI.ActionButton
+                label="确认覆盖"
+                variant="primary"
                 onClick={() => applySteamPicks(diffModalData.steam)}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors rounded-lg shadow-lg shadow-blue-900/20"
-              >
-                确认覆盖
-              </button>
+              />
             </div>
           </div>
         )}
-      </Modal>
+      </PopupUI.Modal>
     </div>
   );
 };

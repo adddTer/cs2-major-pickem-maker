@@ -51,6 +51,7 @@ export const MiniPlayoffsBracket: React.FC<{
     </div>
   );
 
+  const qfSlots = slots.filter((s) => s.type === "qf");
   const sfSlots = slots.filter((s) => s.type === "sf");
   const finalSlots = slots.filter((s) => s.type === "final");
   const champSlot = slots.filter((s) => s.type === "champion");
@@ -60,7 +61,32 @@ export const MiniPlayoffsBracket: React.FC<{
       <div
         className={`flex w-max ${compact ? (isExport ? "gap-2 items-start flex-nowrap" : "gap-3 sm:gap-4 lg:gap-6 items-start flex-nowrap") : isExport ? "gap-4 items-start flex-nowrap" : "gap-3 sm:gap-4 lg:gap-6 items-start flex-nowrap"}`}
       >
-        {/* 1/4决赛胜者 (4 Slots) */}
+        {/* 1/4决赛胜者 (QF slots if they exist) */}
+        {qfSlots.length > 0 && (
+          <>
+            <div
+              className={`flex flex-col shrink-0 ${compact ? (isExport ? "gap-1" : "gap-0.5 sm:gap-1") : isExport ? "gap-2" : "gap-1.5 sm:gap-2"}`}
+            >
+              {!compact && (
+                <span
+                  className={`font-bold text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 whitespace-nowrap ${isExport ? "text-[0.625rem] text-left" : "text-[9px] sm:text-[0.625rem] text-center sm:text-left"}`}
+                >
+                  晋级四强
+                </span>
+              )}
+              <div
+                className={`flex flex-nowrap ${isExport ? "justify-start" : "justify-center sm:justify-start"} ${compact ? (isExport ? "gap-0.5" : "gap-1") : isExport ? "gap-1.5" : "gap-1.5"}`}
+              >
+                {qfSlots.map(renderSlot)}
+              </div>
+            </div>
+            <div
+              className={`${isExport ? "block" : "hidden sm:block"} w-px bg-black/5 dark:bg-white/5 self-stretch ${compact ? "my-1" : ""}`}
+            ></div>
+          </>
+        )}
+
+        {/* 1/4决赛胜者/半决赛队伍 (4 Slots) */}
         <div
           className={`flex flex-col shrink-0 ${compact ? (isExport ? "gap-1" : "gap-0.5 sm:gap-1") : isExport ? "gap-2" : "gap-1.5 sm:gap-2"}`}
         >
@@ -70,7 +96,7 @@ export const MiniPlayoffsBracket: React.FC<{
                 <span
                   className={`font-bold text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 whitespace-nowrap ${isExport ? "text-[0.625rem] text-left" : "text-[9px] sm:text-[0.625rem] text-center sm:text-left"}`}
                 >
-                  1/4 决赛胜者
+                  晋级半决赛
                 </span>
               )}
               <div

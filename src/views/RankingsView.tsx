@@ -107,18 +107,18 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
     });
 
     return (
-      <div className="flex-1 flex flex-col bg-white/40 dark:bg-zinc-900/40 border border-black/5 dark:border-white/5 rounded-[2rem] shadow-[0_8px_32px_-8px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5)] relative backdrop-blur-xl overflow-hidden p-6 sm:p-8">
+      <div className="flex-1 flex flex-col bg-white/40 dark:bg-zinc-900/40 border border-zinc-200/50 dark:border-zinc-800/50 rounded-[2.5rem] shadow-sm relative backdrop-blur-xl overflow-hidden p-6 sm:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
           <div className="flex flex-col gap-2">
-            <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">参赛队伍排名</h2>
+            <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 font-display">参赛队伍排名</h2>
             {isDegraded && (
-              <div className="flex items-center gap-1.5 text-amber-600 dark:text-yellow-500/90 text-[0.6875rem] bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20 w-fit">
-                <AlertCircle className="w-3 h-3" />
+              <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-500 text-[13px] bg-amber-50 dark:bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-200 dark:border-amber-500/20 w-fit font-medium shadow-sm">
+                <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>无法获取实时数据，已降级为本地预设排名</span>
               </div>
             )}
           </div>
-          <div className="flex bg-zinc-200/50 dark:bg-zinc-900/50 p-1 rounded-xl border border-black/5 dark:border-white/5 shadow-inner overflow-x-auto custom-scrollbar shrink-0 max-w-full">
+          <div className="flex bg-white/60 dark:bg-zinc-950/60 p-1.5 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-inner overflow-x-auto custom-scrollbar shrink-0 max-w-full">
             {["stage1", "stage2", "stage3", "playoffs"].map((tabId) => {
               const stageLabel =
                 tabId === "stage1"
@@ -133,10 +133,10 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
                   key={`rankings-${tabId}`}
                   onClick={() => setActiveStage(tabId as StageKey)}
                   className={cn(
-                    "px-4 py-1.5 text-xs font-display font-medium rounded-lg cursor-pointer transition-all duration-300 whitespace-nowrap shrink-0 flex items-center",
+                    "px-5 py-2 text-[13px] font-display font-bold rounded-xl cursor-pointer transition-all duration-300 whitespace-nowrap shrink-0 flex items-center",
                     activeStage === tabId
-                      ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-md ring-1 ring-black/5 dark:ring-white/10"
-                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5",
+                      ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-md ring-1 ring-zinc-900/5 dark:ring-white/10"
+                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/50",
                   )}
                 >
                   {stageLabel}
@@ -146,20 +146,20 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto bg-zinc-200/20 dark:bg-black/20 rounded-md border border-black/5 dark:border-white/5">
-          <table className="w-full text-left text-[0.8125rem] text-zinc-800 dark:text-zinc-300 relative border-collapse">
-            <thead className="text-[0.6875rem] uppercase tracking-wider text-zinc-600 dark:text-zinc-400 bg-zinc-200/80 dark:bg-zinc-800/80 sticky top-0 z-10 backdrop-blur-md">
+        <div className="flex-1 overflow-auto bg-white/60 dark:bg-zinc-950/60 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-inner custom-scrollbar">
+          <table className="w-full text-left text-[13px] text-zinc-800 dark:text-zinc-300 relative border-collapse">
+            <thead className="text-[11px] font-display uppercase tracking-wider text-zinc-500 dark:text-zinc-400 bg-zinc-50/90 dark:bg-zinc-900/90 sticky top-0 z-10 backdrop-blur-md shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
               <tr>
-                <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 font-medium w-16 text-center">综合排序</th>
-                <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 text-left font-medium">队伍</th>
-                <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 font-medium text-right">综合实力</th>
-                <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 font-medium text-right">V社排名</th>
-                <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 font-medium text-right">V社积分</th>
-                <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 font-medium text-right">HLTV排名</th>
-                <th className="px-4 py-3 border-b border-black/5 dark:border-white/5 font-medium text-right">HLTV积分</th>
+                <th className="px-5 py-4 font-bold w-16 text-center border-b border-zinc-200/50 dark:border-zinc-800/50">综合排序</th>
+                <th className="px-5 py-4 text-left font-bold border-b border-zinc-200/50 dark:border-zinc-800/50">队伍</th>
+                <th className="px-5 py-4 font-bold text-right border-b border-zinc-200/50 dark:border-zinc-800/50">综合实力</th>
+                <th className="px-5 py-4 font-bold text-right border-b border-zinc-200/50 dark:border-zinc-800/50">V社排名</th>
+                <th className="px-5 py-4 font-bold text-right border-b border-zinc-200/50 dark:border-zinc-800/50">V社积分</th>
+                <th className="px-5 py-4 font-bold text-right border-b border-zinc-200/50 dark:border-zinc-800/50">HLTV排名</th>
+                <th className="px-5 py-4 font-bold text-right border-b border-zinc-200/50 dark:border-zinc-800/50">HLTV积分</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-zinc-200/50 dark:divide-zinc-800/50">
               {sortedTeams.map((team, idx) => {
                 const hasData =
                   team.valveRank !== undefined || team.hltvRank !== undefined;
@@ -167,64 +167,64 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
                 return (
                   <tr
                     key={team.id}
-                    className="hover:bg-black/[0.02] dark:bg-white/[0.02] transition-colors group"
+                    className="hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 transition-colors group"
                   >
-                    <td className="px-4 py-3 text-center text-zinc-500 dark:text-zinc-400 font-mono">
+                    <td className="px-5 py-3 text-center text-zinc-400 dark:text-zinc-500 font-mono font-bold">
                       {idx + 1}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 flex-shrink-0">
-                          <TeamLogo team={team} fallbackClasses="text-[9px] rounded-sm" />
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-4">
+                        <div className="w-8 h-8 flex-shrink-0 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center border border-zinc-100 dark:border-zinc-700 shadow-sm">
+                          <TeamLogo team={team} fallbackClasses="text-[10px] rounded-full" />
                         </div>
-                        <span className="font-bold text-zinc-900 dark:text-zinc-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                        <span className="font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm">
                           {team.name}
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-5 py-3 text-right">
                       {hasData && team.strength ? (
-                        <span className="font-mono text-zinc-800 dark:text-zinc-300">
+                        <span className="font-mono font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700">
                           {team.strength.toFixed(1)}
                         </span>
                       ) : (
-                        <span className="text-zinc-500 dark:text-zinc-600">暂无</span>
+                        <span className="text-zinc-400 dark:text-zinc-600 font-medium">暂无</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-5 py-3 text-right">
                       {team.valveRank !== undefined && team.valveRank <= 1000 ? (
-                        <span className="font-mono text-zinc-800 dark:text-zinc-300">
+                        <span className="font-mono font-bold text-zinc-900 dark:text-zinc-100">
                           #{team.valveRank}
                         </span>
                       ) : (
-                        <span className="text-zinc-500 dark:text-zinc-600">暂无</span>
+                        <span className="text-zinc-400 dark:text-zinc-600 font-medium">暂无</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-5 py-3 text-right">
                       {team.valvePoints !== undefined ? (
-                        <span className="font-mono text-emerald-600 dark:text-emerald-400/80">
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                           {team.valvePoints}
                         </span>
                       ) : (
-                        <span className="text-zinc-500 dark:text-zinc-600">暂无</span>
+                        <span className="text-zinc-400 dark:text-zinc-600 font-medium">暂无</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-5 py-3 text-right">
                       {team.hltvRank !== undefined && team.hltvRank <= 1000 ? (
-                        <span className="font-mono text-zinc-800 dark:text-zinc-300">
+                        <span className="font-mono font-bold text-zinc-900 dark:text-zinc-100">
                           #{team.hltvRank}
                         </span>
                       ) : (
-                        <span className="text-zinc-500 dark:text-zinc-600">暂无</span>
+                        <span className="text-zinc-400 dark:text-zinc-600 font-medium">暂无</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-5 py-3 text-right">
                       {team.hltvPoints !== undefined ? (
-                        <span className="font-mono text-blue-600 dark:text-blue-400/80">
+                        <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
                           {team.hltvPoints}
                         </span>
                       ) : (
-                        <span className="text-zinc-500 dark:text-zinc-600">暂无</span>
+                        <span className="text-zinc-400 dark:text-zinc-600 font-medium">暂无</span>
                       )}
                     </td>
                   </tr>
@@ -232,7 +232,7 @@ export const RankingsView: React.FC<RankingsViewProps> = ({ activeStage, setActi
               })}
               {sortedTeams.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-zinc-500 dark:text-zinc-500">
+                  <td colSpan={7} className="text-center py-16 text-zinc-500 dark:text-zinc-400 font-medium bg-zinc-50/50 dark:bg-zinc-900/50">
                     此阶段暂无参赛队伍
                   </td>
                 </tr>

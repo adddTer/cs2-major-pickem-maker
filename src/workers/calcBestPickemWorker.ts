@@ -73,8 +73,15 @@ self.onmessage = async (e: MessageEvent) => {
   // 2. Hill Climbing
   self.postMessage({ type: 'progress', phase: 'optimizing', progress: 0 });
 
-  let bestGlobalScore = -1;
-  let bestGlobalPicks: { p30: number, p03: number, pAdv: number } = { p30: 0, p03: 0, pAdv: 0 };
+  let topCandidates: { p30: number, p03: number, pAdv: number, score: number }[] = [];
+
+  const addCandidate = (cand: { p30: number, p03: number, pAdv: number, score: number }) => {
+    if (topCandidates.length === 5 && cand.score <= topCandidates[4].score) return;
+    if (topCandidates.some(c => c.p30 === cand.p30 && c.p03 === cand.p03 && c.pAdv === cand.pAdv)) return;
+    topCandidates.push(cand);
+    topCandidates.sort((a, b) => b.score - a.score);
+    if (topCandidates.length > 5) topCandidates.pop();
+  };
   
   const getRandomStart = () => {
     let pool = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
@@ -144,6 +151,7 @@ self.onmessage = async (e: MessageEvent) => {
       let bestNScore = currentScore;
       for (let n of neighbors) {
          n.score = evaluate(sim30Arr, sim03Arr, simAdvArr, numSimulations, n.p30, n.p03, n.pAdv);
+         addCandidate({ p30: n.p30, p03: n.p03, pAdv: n.pAdv, score: n.score });
          if (n.score > bestNScore) {
            bestNScore = n.score;
            bestN = { p30: n.p30, p03: n.p03, pAdv: n.pAdv };
@@ -157,10 +165,7 @@ self.onmessage = async (e: MessageEvent) => {
       }
     }
     
-    if (currentScore > bestGlobalScore) {
-       bestGlobalScore = currentScore;
-       bestGlobalPicks = current;
-    }
+    addCandidate({ ...current, score: currentScore });
     
     self.postMessage({ type: 'progress', phase: 'optimizing', progress: Math.floor((restart / 50) * 100) });
     await new Promise(r => setTimeout(r, 0));
@@ -172,13 +177,41 @@ self.onmessage = async (e: MessageEvent) => {
     return res;
   }
 
+  // Count frequencies
+  const teamStats = allTeams.map(() => ({ count30: 0, count03: 0, countAdv: 0 }));
+  for (let i = 0; i < numSimulations; i++) {
+     const mask30 = sim30Arr[i];
+     const mask03 = sim03Arr[i];
+     const maskAdv = simAdvArr[i];
+     for (let j = 0; j < 16; j++) {
+         if (mask30 & (1<<j)) teamStats[j].count30++;
+         if (mask03 & (1<<j)) teamStats[j].count03++;
+         if (maskAdv & (1<<j)) teamStats[j].countAdv++;
+     }
+  }
+
+  const resultCandidates = topCandidates.map(cand => ({
+     t30: toArr(cand.p30).map(i => allTeams[i]),
+     t03: toArr(cand.p03).map(i => allTeams[i]),
+     tAdv: toArr(cand.pAdv).map(i => allTeams[i]),
+     score: cand.score
+  }));
+
+  const teamProbabilities = {};
+  allTeams.forEach((t, i) => {
+      teamProbabilities[t] = {
+          p30: teamStats[i].count30 / numSimulations,
+          p03: teamStats[i].count03 / numSimulations,
+          pAdv: teamStats[i].countAdv / numSimulations,
+      };
+  });
+
   self.postMessage({ 
     type: 'done', 
     result: { 
-       t30: toArr(bestGlobalPicks.p30).map(i => allTeams[i]),
-       t03: toArr(bestGlobalPicks.p03).map(i => allTeams[i]),
-       tAdv: toArr(bestGlobalPicks.pAdv).map(i => allTeams[i]),
-       score: bestGlobalScore
+       type: 'swiss',
+       candidates: resultCandidates,
+       teamProbabilities
     } 
   });
 };

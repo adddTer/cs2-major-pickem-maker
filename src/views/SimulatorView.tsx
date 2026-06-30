@@ -5,7 +5,7 @@ import { DialogManager, dialog } from "../components/DialogManager";
 import { getAllMatrixSets, saveMatrixSet, deleteMatrixSet } from "../lib/db";
 import { getLocalStrength } from "../data/localPoints";
 import { GLOBAL_SEEDING } from "../data/seedings";
-import { Modal } from "../components/Modal";
+import { PopupUI } from "../components/PopupUI";
 import { Trash2, Copy, Plus, Save, Edit2, Menu, X, Calculator } from "lucide-react";
 import { cn } from "../lib/utils";
 import { TeamLogo } from "../components/TeamLogo";
@@ -39,7 +39,34 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
 
   // Get teams for the active stage
   const stageTeams = useMemo(() => {
-    if (activeStage === "playoffs") return [];
+    if (activeStage === "playoffs") {
+      const playoffsTeams = new Set<string>();
+      const pMatches = currentMatches["playoffs"] || {};
+      Object.values(pMatches).forEach((round: any) => {
+        round.forEach((m: any) => {
+          if (m.team1Id && m.team1Id !== "tbd") playoffsTeams.add(m.team1Id);
+          if (m.team2Id && m.team2Id !== "tbd") playoffsTeams.add(m.team2Id);
+        });
+      });
+      const arr = Array.from(playoffsTeams);
+      if (arr.length > 0) {
+        return arr.map(t => TEAMS.find(x => x.id === t)).filter(Boolean) as typeof TEAMS;
+      } else {
+        // Fallback to stage 3 teams if playoffs hasn't started
+        const s3Matches = currentMatches["stage3"];
+        if (s3Matches && s3Matches["0:0"]) {
+           const s3Teams = new Set<string>();
+           s3Matches["0:0"].forEach((m: any) => {
+             if (m.team1Id && m.team1Id !== "tbd") s3Teams.add(m.team1Id);
+             if (m.team2Id && m.team2Id !== "tbd") s3Teams.add(m.team2Id);
+           });
+           const s3Arr = Array.from(s3Teams);
+           return s3Arr.map(t => TEAMS.find(x => x.id === t)).filter(Boolean) as typeof TEAMS;
+        }
+      }
+      return [];
+    }
+
     const stageMatches = currentMatches[activeStage];
     if (!stageMatches || !stageMatches["0:0"]) return [];
     
@@ -77,7 +104,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
   const loadMatrices = async (forceSelectId?: string) => {
     const all = await getAllMatrixSets(activeStage, currentEvent?.id);
     let defaultSet = all.find(m => m.isDefault);
-    if (!defaultSet && stageTeams.length === 16) {
+    if (!defaultSet && (stageTeams.length === 16 || (activeStage === "playoffs" && stageTeams.length >= 2))) {
        // Create it
        defaultSet = {
          id: `default-${activeStage}-${currentEvent?.id || 'iem_cologne_2026'}`,
@@ -144,7 +171,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
   };
 
   const handleOpenQuickCreate = () => {
-    if (stageTeams.length < 16) return;
+    if (activeStage === "playoffs" ? stageTeams.length < 2 : stageTeams.length < 16) return;
     refreshQuickCreateStrengths(powerWeights.hltv, powerWeights.vrs);
     setIsQuickCreateOpen(true);
   };
@@ -154,7 +181,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
     const name = await dialog.prompt("请输入新矩阵名称", defaultName);
     if (!name || !name.trim()) return;
 
-    if (stageTeams.length < 16) return;
+    if (activeStage === "playoffs" ? stageTeams.length < 2 : stageTeams.length < 16) return;
     const data: Record<string, Record<string, number>> = {};
     stageTeams.forEach(t1 => {
       data[t1.id] = {};
@@ -185,7 +212,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
   };
 
   const handleCreateNew = async () => {
-    if (stageTeams.length < 16) return;
+    if (activeStage === "playoffs" ? stageTeams.length < 2 : stageTeams.length < 16) return;
     const defaultName = `自定义概率 - ${new Date().toLocaleDateString()}`;
     const name = await dialog.prompt("请输入新矩阵名称", defaultName);
     if (!name || !name.trim()) return;
@@ -232,7 +259,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
   };
 
   const handleSaveLocal = async () => {
-    if (!activeMatrix || activeMatrix.isDefault) return;
+    if (!activeMatrix) return;
     const updated = { ...activeMatrix, matrix: localMatrixData };
     await saveMatrixSet(updated);
     dialog.alert("矩阵已保存到本地！");
@@ -242,7 +269,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
   const [editVal, setEditVal] = useState<{ r: string; c: string; val: string } | null>(null);
 
   const onCellChange = (t1Id: string, t2Id: string, val: string) => {
-    if (!activeMatrix || activeMatrix.isDefault) return;
+    if (!activeMatrix) return;
     if (val === "") {
        setEditVal({ r: t1Id, c: t2Id, val });
        return;
@@ -264,24 +291,137 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
 
   const getDisplayVal = (r: string, c: string, prob: number) => {
      if (editVal && editVal.r === r && editVal.c === c) return editVal.val;
-     return Math.round(prob * 100).toString();
+     return Math.round(prob * 100).toString() + "%";
   };
 
-  if (activeStage === "playoffs") {
-    return <div className="p-8 text-center text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">目前暂不支持决胜阶段的推演。</div>;
+  if (activeStage === "playoffs" && stageTeams.length < 2) {
+    return <div className="p-8 text-center text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">决胜阶段队伍尚未产生，无法进行推演。</div>;
   }
 
-  if (stageTeams.length < 16) {
+  if (activeStage !== "playoffs" && stageTeams.length < 16) {
     return <div className="p-8 text-center text-zinc-500 dark:text-zinc-600 dark:text-zinc-400">该阶段当前首轮对阵未完全确定，无法进行推演。</div>;
   }
 
-  const [aiPickemState, setAiPickemState] = useState<{ isGenerating: boolean, progress: number, phase: string, result: any | null }>({
-    isGenerating: false, progress: 0, phase: '', result: null
+  const [aiPickemState, setAiPickemState] = useState<{ isGenerating: boolean, progress: number, phase: string, result: any | null, activeCandidateIndex: number, resultTab: 'candidates' | 'probabilities' }>({
+    isGenerating: false, progress: 0, phase: '', result: null, activeCandidateIndex: 0, resultTab: 'candidates'
   });
 
   const handleAIPickem = () => {
     if (!activeMatrix) return;
     
+    if (activeStage === "playoffs") {
+      const pm = currentMatches['playoffs'] || {};
+      const qm = pm['qf'] || [];
+      const hasPlayoffsTeams = qm.some((m: any) => m.team1Id && m.team1Id !== 'tbd' && m.team2Id && m.team2Id !== 'tbd');
+      
+      if (!hasPlayoffsTeams) {
+        dialog.alert("决胜阶段对阵尚未确定，无法进行推演。请在淘汰赛对阵出炉后再尝试。");
+        return;
+      }
+
+      setAiPickemState({ isGenerating: true, progress: 0, phase: 'simulating', result: null });
+      
+      const getProb = (t1: string, t2: string) => {
+        return activeMatrix.matrix[t1]?.[t2] ?? 0.5;
+      };
+      
+      const teams = [
+        qm[0]?.team1Id, qm[0]?.team2Id,
+        qm[1]?.team1Id, qm[1]?.team2Id,
+        qm[2]?.team1Id, qm[2]?.team2Id,
+        qm[3]?.team1Id, qm[3]?.team2Id,
+      ];
+      
+      // Calculate exact probabilities
+      const teamProbabilities: Record<string, any> = {};
+      teams.forEach(t => {
+        if (t && t !== 'tbd') {
+           teamProbabilities[t] = { pSF: 0, pFinal: 0, pChamp: 0 };
+        }
+      });
+      
+      let allBrackets = [];
+      
+      const getP = (t1: string, t2: string) => {
+         if (!t1 || t1 === 'tbd') return 0;
+         if (!t2 || t2 === 'tbd') return 1;
+         return getProb(t1, t2);
+      };
+
+      for(let i=0; i<128; i++) {
+         let w0 = (i & 1) ? teams[0] : teams[1];
+         let w1 = (i & 2) ? teams[2] : teams[3];
+         let w2 = (i & 4) ? teams[4] : teams[5];
+         let w3 = (i & 8) ? teams[6] : teams[7];
+         let ws0 = (i & 16) ? w0 : w1;
+         let ws1 = (i & 32) ? w2 : w3;
+         let champ = (i & 64) ? ws0 : ws1;
+         
+         if (!w0 || !w1 || !w2 || !w3 || !ws0 || !ws1 || !champ || w0 === 'tbd' || w1 === 'tbd' || w2 === 'tbd' || w3 === 'tbd' || ws0 === 'tbd' || ws1 === 'tbd' || champ === 'tbd') continue;
+         
+         let p = 1.0;
+         p *= (i & 1) ? getP(teams[0], teams[1]) : getP(teams[1], teams[0]);
+         p *= (i & 2) ? getP(teams[2], teams[3]) : getP(teams[3], teams[2]);
+         p *= (i & 4) ? getP(teams[4], teams[5]) : getP(teams[5], teams[4]);
+         p *= (i & 8) ? getP(teams[6], teams[7]) : getP(teams[7], teams[6]);
+         p *= (i & 16) ? getP(w0, w1) : getP(w1, w0);
+         p *= (i & 32) ? getP(w2, w3) : getP(w3, w2);
+         p *= (i & 64) ? getP(ws0, ws1) : getP(ws1, ws0);
+         
+         allBrackets.push({
+            tQFW: [w0, w1, w2, w3],
+            tSFW: [ws0, ws1],
+            tChamp: champ,
+            score: p,
+            p1: 0, p2: 0, p3: 0, sortScore: 0
+         });
+      }
+      
+      allBrackets.forEach(c => {
+         let p1 = 0, p2 = 0, p3 = 0;
+         allBrackets.forEach(o => {
+            let qfCorrect = c.tQFW.filter((t: string) => o.tQFW.includes(t)).length;
+            let sfCorrect = c.tSFW.filter((t: string) => o.tSFW.includes(t)).length;
+            let champCorrect = c.tChamp === o.tChamp ? 1 : 0;
+            
+            let goals = 0;
+            if (qfCorrect >= 2) goals++;
+            if (sfCorrect >= 1) goals++;
+            if (champCorrect) goals++;
+            
+            if (goals === 1) p1 += o.score;
+            else if (goals === 2) p2 += o.score;
+            else if (goals === 3) p3 += o.score;
+         });
+         c.p1 = p1;
+         c.p2 = p2;
+         c.p3 = p3;
+         c.sortScore = p3 * 10000 + p2 * 100 + p1;
+      });
+      
+      allBrackets.sort((a, b) => b.sortScore - a.sortScore);
+      let candidates = allBrackets.slice(0, 5);
+      
+      // Calculate exact team probabilities by marginalizing over brackets
+      allBrackets.forEach(b => {
+         b.tQFW.forEach(t => { teamProbabilities[t].pSF += b.score; });
+         b.tSFW.forEach(t => { teamProbabilities[t].pFinal += b.score; });
+         teamProbabilities[b.tChamp].pChamp += b.score;
+      });
+
+      setTimeout(() => {
+        setAiPickemState({
+          isGenerating: false,
+          progress: 100,
+          phase: 'done',
+          result: { type: 'playoffs', candidates, teamProbabilities },
+          activeCandidateIndex: 0,
+          resultTab: 'candidates'
+        });
+      }, 500);
+      return;
+    }
+
     setAiPickemState({ isGenerating: true, progress: 0, phase: 'simulating', result: null });
     
     const stageMatchesMap = currentMatches[activeStage];
@@ -310,7 +450,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
       if (e.data.type === 'progress') {
         setAiPickemState(prev => ({ ...prev, progress: e.data.progress, phase: e.data.phase }));
       } else if (e.data.type === 'done') {
-        setAiPickemState(prev => ({ ...prev, isGenerating: false, result: e.data.result }));
+        setAiPickemState(prev => ({ ...prev, isGenerating: false, result: e.data.result, activeCandidateIndex: 0, resultTab: 'candidates' }));
         w.terminate();
       }
     };
@@ -334,6 +474,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
             { id: "stage1", label: "第一阶段" },
             { id: "stage2", label: "第二阶段" },
             { id: "stage3", label: "第三阶段" },
+            { id: "playoffs", label: "决胜阶段" },
           ].map((tab) => {
             const isActive = activeStage === tab.id;
             return (
@@ -438,64 +579,64 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center justify-end gap-2 shrink-0 bg-white/60 dark:bg-black/40 p-1.5 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-sm">
-                    <select 
-                      value={numSimulations} 
-                      onChange={(e) => setNumSimulations(Number(e.target.value))}
-                      disabled={aiPickemState.isGenerating}
-                      className="bg-transparent border-none outline-none text-xs text-zinc-600 dark:text-zinc-300 px-2 py-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 font-medium"
-                    >
-                      <option value={10000}>1万次推演</option>
-                      <option value={50000}>5万次推演</option>
-                      <option value={100000}>10万次推演</option>
-                      <option value={200000}>20万次推演</option>
-                      <option value={500000}>50万次推演</option>
-                    </select>
+                    {activeStage !== 'playoffs' && (
+                      <select 
+                        value={numSimulations} 
+                        onChange={(e) => setNumSimulations(Number(e.target.value))}
+                        disabled={aiPickemState.isGenerating}
+                        className="bg-transparent border-none outline-none text-xs text-zinc-600 dark:text-zinc-300 px-2 py-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 font-medium"
+                      >
+                        <option value={10000}>1万次推演</option>
+                        <option value={50000}>5万次推演</option>
+                        <option value={100000}>10万次推演</option>
+                        <option value={200000}>20万次推演</option>
+                        <option value={500000}>50万次推演</option>
+                      </select>
+                    )}
                     <button onClick={handleAIPickem} disabled={aiPickemState.isGenerating} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-wait text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors shrink-0">
                        <Calculator className="w-4 h-4" />
                        {aiPickemState.isGenerating ? "计算中..." : "推演最优作业"}
                     </button>
-                    {!activeMatrix.isDefault && (
-                      <button onClick={handleSaveLocal} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-white text-white dark:text-black rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors shrink-0">
-                         <Save className="w-4 h-4" />
-                         保存修改
-                      </button>
-                    )}
+                    <button onClick={handleSaveLocal} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-200 dark:hover:bg-white text-white dark:text-black rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors shrink-0">
+                       <Save className="w-4 h-4" />
+                       保存修改
+                    </button>
                   </div>
                </div>
 
-               <div className="flex-1 overflow-auto rounded-2xl bg-white/60 dark:bg-zinc-950/60 custom-scrollbar border border-black/5 dark:border-white/5 shadow-inner">
-                 <table className="w-full text-center border-collapse min-w-max">
-                   <thead className="sticky top-0 z-20 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
+               <div className="flex-1 overflow-auto rounded-2xl bg-white/60 dark:bg-zinc-950/60 custom-scrollbar border border-zinc-200/50 dark:border-zinc-800/50 shadow-inner">
+                 <table className="w-full text-center border-collapse min-w-max text-[13px]">
+                   <thead className="sticky top-0 z-20 bg-zinc-50/90 dark:bg-zinc-900/90 backdrop-blur-md shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
                      <tr>
-                       <th className="w-16 min-w-[64px] md:w-20 md:min-w-[80px] sticky left-0 z-30 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-r border-b border-black/5 dark:border-white/5 text-[0.625rem] text-zinc-500 dark:text-zinc-500 p-1 font-bold">
-                         横(胜) \ 纵
+                       <th className="w-16 min-w-[64px] md:w-20 md:min-w-[80px] sticky left-0 z-30 bg-zinc-50/90 dark:bg-zinc-900/90 backdrop-blur-md border-r border-b border-zinc-200/50 dark:border-zinc-800/50 text-[11px] text-zinc-500 dark:text-zinc-400 p-2 font-display uppercase tracking-wider">
+                         胜率
                        </th>
                        {stageTeams.map(t => (
-                         <th key={`col-${t.id}`} className="min-w-[48px] md:min-w-[52px] lg:min-w-[60px] border-r border-b border-black/5 dark:border-white/5 p-1 md:px-1.5 md:py-1 font-normal bg-transparent" title={t.name}>
+                         <th key={`col-${t.id}`} className="min-w-[48px] md:min-w-[52px] lg:min-w-[60px] border-r border-b border-zinc-200/50 dark:border-zinc-800/50 p-2 font-normal bg-transparent" title={t.name}>
                            <div className="flex items-center justify-center">
                              {t.logo ? (
-                               <div className="w-4 h-4 md:w-5 md:h-5 shrink-0">
-                                 <TeamLogo team={t} fallbackClasses="text-[0.625rem]" />
+                               <div className="w-5 h-5 md:w-6 md:h-6 shrink-0 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center border border-zinc-100 dark:border-zinc-700 shadow-sm">
+                                 <TeamLogo team={t} fallbackClasses="text-[9px]" />
                                </div>
                              ) : (
-                               <span className="truncate text-[0.625rem] md:text-xs">{t.shortName}</span>
+                               <span className="truncate text-xs font-bold text-zinc-700 dark:text-zinc-300">{t.shortName}</span>
                              )}
                            </div>
                          </th>
                        ))}
                      </tr>
                    </thead>
-                   <tbody>
+                   <tbody className="divide-y divide-zinc-200/50 dark:divide-zinc-800/50">
                      {stageTeams.map((rowTeam) => (
-                       <tr key={`row-${rowTeam.id}`} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group">
-                         <th className="w-16 min-w-[64px] md:w-20 md:min-w-[80px] sticky left-0 z-10 bg-white dark:bg-zinc-950 group-hover:bg-zinc-50 dark:group-hover:bg-[#111613] border-r border-b border-black/5 dark:border-white/5 font-normal transition-colors p-1 md:px-1.5">
-                           <div className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1.5 h-full">
+                       <tr key={`row-${rowTeam.id}`} className="hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 transition-colors group">
+                         <th className="w-16 min-w-[64px] md:w-20 md:min-w-[80px] sticky left-0 z-10 bg-white/90 dark:bg-zinc-950/90 group-hover:bg-zinc-50/90 dark:group-hover:bg-zinc-900/90 backdrop-blur-md border-r border-zinc-200/50 dark:border-zinc-800/50 font-normal transition-colors p-2">
+                           <div className="flex flex-col md:flex-row items-center justify-center gap-1.5 h-full">
                              {rowTeam.logo && (
-                               <div className="w-4 h-4 md:w-5 md:h-5 shrink-0">
-                                 <TeamLogo team={rowTeam} fallbackClasses="text-[8px]" />
+                               <div className="w-5 h-5 md:w-6 md:h-6 shrink-0 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center border border-zinc-100 dark:border-zinc-700 shadow-sm group-hover:border-zinc-300 dark:group-hover:border-zinc-600 transition-colors">
+                                 <TeamLogo team={rowTeam} fallbackClasses="text-[10px]" />
                                </div>
                              )}
-                             <span className="text-[9px] md:text-xs md:font-medium truncate text-zinc-800 dark:text-zinc-300 text-center md:text-left leading-none" title={rowTeam.name}>{rowTeam.shortName}</span>
+                             <span className="text-[10px] md:text-[13px] md:font-bold truncate text-zinc-800 dark:text-zinc-200 text-center md:text-left leading-none group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" title={rowTeam.name}>{rowTeam.shortName}</span>
                            </div>
                          </th>
                          {stageTeams.map((colTeam) => {
@@ -504,40 +645,40 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
                            const probPctNum = Math.round(prob * 100);
                            const probPct = isSelf ? "-" : probPctNum;
                            
-                           // Color scale: 50 is center (zinc). > 50 tends to emerald, < 50 tends to rose
+                           // Color scale
                            let valColor = "text-zinc-500 dark:text-zinc-500";
+                           let bgColor = "bg-transparent";
                            if (!isSelf) {
-                             if (probPctNum > 65) valColor = "text-emerald-600 dark:text-emerald-400 font-bold";
-                             else if (probPctNum > 50) valColor = "text-emerald-500 dark:text-emerald-300";
-                             else if (probPctNum === 50) valColor = "text-zinc-500 dark:text-zinc-600 dark:text-zinc-400";
-                             else if (probPctNum > 35) valColor = "text-rose-500 dark:text-rose-300";
-                             else valColor = "text-rose-600 dark:text-rose-400 font-bold";
+                             if (probPctNum > 65) { valColor = "text-emerald-700 dark:text-emerald-300 font-bold"; bgColor = "bg-emerald-50/50 dark:bg-emerald-900/10"; }
+                             else if (probPctNum > 50) { valColor = "text-emerald-600 dark:text-emerald-400 font-medium"; }
+                             else if (probPctNum === 50) { valColor = "text-zinc-500 dark:text-zinc-400"; }
+                             else if (probPctNum > 35) { valColor = "text-rose-600 dark:text-rose-400 font-medium"; }
+                             else { valColor = "text-rose-700 dark:text-rose-300 font-bold"; bgColor = "bg-rose-50/50 dark:bg-rose-900/10"; }
                            }
 
                            return (
-                             <td key={`cell-${rowTeam.id}-${colTeam.id}`} className="min-w-[48px] md:min-w-[52px] lg:min-w-[60px] border-r border-b border-black/5 dark:border-white/5 relative min-h-[40px] md:min-h-[40px] p-0 h-[40px]">
+                             <td key={`cell-${rowTeam.id}-${colTeam.id}`} className={cn("min-w-[48px] md:min-w-[52px] lg:min-w-[60px] border-r border-zinc-200/50 dark:border-zinc-800/50 relative min-h-[44px] md:min-h-[48px] p-0 h-[44px]", bgColor)}>
                                {isSelf ? (
-                                 <span className="text-zinc-400 dark:text-zinc-700 flex items-center justify-center h-full">-</span>
+                                 <span className="text-zinc-300 dark:text-zinc-700 flex items-center justify-center h-full font-black text-lg">-</span>
                                ) : (
-                                 activeMatrix.isDefault ? (
-                                   <div className={cn("flex items-center justify-center w-full h-full text-[0.625rem] md:text-xs cursor-default selection:bg-transparent", valColor)}>
-                                     {probPct}%
-                                   </div>
-                                 ) : (
                                    <input 
                                      className={cn(
-                                        "w-full h-full bg-transparent text-center text-[0.625rem] md:text-xs outline-none focus:bg-black/10 dark:focus:bg-white/10 transition-colors absolute inset-0",
-                                        valColor
+                                        "w-full h-full bg-transparent text-center text-xs md:text-[13px] font-mono outline-none transition-colors absolute inset-0 z-10",
+                                        valColor,
+                                        "focus:bg-zinc-100 dark:focus:bg-zinc-800/50 focus:ring-2 focus:ring-inset focus:ring-blue-500/50"
                                      )}
                                      type="text"
                                      inputMode="numeric"
                                      pattern="[0-9]*"
-                                     value={getDisplayVal(rowTeam.id, colTeam.id, prob)} // showing integer for simpler edit
-                                     onChange={(e) => onCellChange(rowTeam.id, colTeam.id, e.target.value)}
-                                     onBlur={() => setEditVal(null)} // clear active edit state on blur
-                                     onFocus={(e) => e.target.select()}
+                                     value={getDisplayVal(rowTeam.id, colTeam.id, prob)}
+                                     onChange={(e) => {
+                                        onCellChange(rowTeam.id, colTeam.id, e.target.value);
+                                     }}
+                                     onBlur={() => setEditVal(null)}
+                                     onFocus={(e) => {
+                                        e.target.select();
+                                     }}
                                    />
-                                 )
                                )}
                              </td>
                            );
@@ -556,162 +697,308 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
         </div>
         </div>
       </div>
-      <Modal
+      <PopupUI.Modal
         isOpen={isQuickCreateOpen}
         onClose={() => setIsQuickCreateOpen(false)}
         title="通过实力值快速创建"
         maxWidthClass="max-w-xl"
       >
-        <div className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 text-[0.6875rem] md:text-sm mb-4 leading-relaxed">
-          通过调整以下队伍的实力值 (Elo) 来快速生成对应的概率矩阵。系统默认采用队伍此时的 VRS / HLTV 等效积分。如果该队伍没有找到相关积分，则会根据种子顺位进行分配。
-        </div>
-
-        <div className="mb-5 flex flex-col gap-2 p-3 bg-zinc-200/30 dark:bg-black/30 border border-black/5 dark:border-white/5 rounded">
-          <div className="text-sm font-medium text-zinc-800 dark:text-zinc-300">
-            基础实力计算比重 <span className="text-zinc-500 dark:text-zinc-500 font-normal ml-2 text-xs">(调节将重置下方所有输入)</span>
+        <div className="flex flex-col gap-6 pt-2">
+          <div className="text-zinc-500 dark:text-zinc-400 text-[13px] leading-relaxed">
+            通过调整以下队伍的实力值 (Elo) 来快速生成对应的概率矩阵。系统默认采用队伍此时的 VRS / HLTV 等效积分。如果该队伍没有找到相关积分，则会根据种子顺位进行分配。
           </div>
-          <div className="flex items-center gap-4 text-xs font-mono">
-            <div className="w-20 text-right text-emerald-400">HLTV {powerWeights.hltv}%</div>
-            <input 
-              type="range"
-              min="0"
-              max="100"
-              value={powerWeights.hltv}
-              onChange={(e) => {
-                const hltv = parseInt(e.target.value);
-                refreshQuickCreateStrengths(hltv, 100 - hltv);
-              }}
-              className="flex-1 accent-emerald-500 h-1.5 bg-white dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer"
-            />
-            <div className="w-20 text-sky-400">VRS {powerWeights.vrs}%</div>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 mb-6">
-          {stageTeams.map(t => (
-            <div key={t.id} className="flex items-center gap-3 p-2 bg-zinc-200/20 dark:bg-black/20 border border-black/5 dark:border-white/5 rounded">
-              <div className="w-5 h-5 shrink-0">
-                <TeamLogo team={t} fallbackClasses="text-xs" />
-              </div>
-              <span className="flex-1 text-xs md:text-sm font-medium text-zinc-900 dark:text-zinc-200 truncate">{t.name}</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                className="w-20 bg-zinc-50 dark:bg-zinc-950 border border-black/10 dark:border-white/10 rounded px-2 py-1 text-xs md:text-sm text-right text-emerald-400 focus:outline-none focus:border-emerald-500/50"
-                value={quickCreateStrengths[t.id] ?? ""}
-                onChange={(e) => {
-                  setQuickCreateStrengths(prev => ({ ...prev, [t.id]: e.target.value }));
-                }}
-                onBlur={(e) => {
-                   if (!e.target.value || e.target.value.trim() === "") {
-                      setQuickCreateStrengths(prev => ({ ...prev, [t.id]: "0" }));
-                   }
-                }}
-                onFocus={(e) => e.target.select()}
-              />
+          <div className="flex flex-col gap-3 p-5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 rounded-2xl shadow-sm">
+            <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100 font-display flex items-center justify-between">
+              基础实力计算比重
+              <span className="text-zinc-400 dark:text-zinc-500 font-normal text-[11px] tracking-wide">(调节将重置下方所有输入)</span>
             </div>
-          ))}
+            <div className="flex items-center gap-4 text-xs font-mono font-bold">
+              <div className="w-20 text-right text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-500/20">HLTV {powerWeights.hltv}%</div>
+              <input 
+                type="range"
+                min="0"
+                max="100"
+                value={powerWeights.hltv}
+                onChange={(e) => {
+                  const hltv = parseInt(e.target.value);
+                  refreshQuickCreateStrengths(hltv, 100 - hltv);
+                }}
+                className="flex-1 accent-blue-500 h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all"
+              />
+              <div className="w-20 text-center text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-500/10 py-1.5 rounded-lg border border-sky-100 dark:border-sky-500/20">VRS {powerWeights.vrs}%</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
+            {stageTeams.map(t => (
+              <div key={t.id} className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 rounded-xl shadow-sm transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700">
+                <div className="w-6 h-6 shrink-0 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center border border-zinc-100 dark:border-zinc-700">
+                  <TeamLogo team={t} fallbackClasses="text-xs" />
+                </div>
+                <span className="flex-1 text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{t.name}</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  className="w-20 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-sm font-mono text-right text-emerald-600 dark:text-emerald-400 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all shadow-inner"
+                  value={quickCreateStrengths[t.id] ?? ""}
+                  onChange={(e) => {
+                    setQuickCreateStrengths(prev => ({ ...prev, [t.id]: e.target.value }));
+                  }}
+                  onBlur={(e) => {
+                     if (!e.target.value || e.target.value.trim() === "") {
+                        setQuickCreateStrengths(prev => ({ ...prev, [t.id]: "0" }));
+                     }
+                  }}
+                  onFocus={(e) => e.target.select()}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end gap-3 mt-2">
+            <PopupUI.ActionButton
+              label="取消"
+              variant="secondary"
+              onClick={() => setIsQuickCreateOpen(false)}
+            />
+            <PopupUI.ActionButton
+              label="生成矩阵"
+              variant="success"
+              onClick={handleQuickCreateSave}
+            />
+          </div>
         </div>
-        <div className="flex justify-end gap-2 shrink-0">
-          <button
-            onClick={() => setIsQuickCreateOpen(false)}
-            className="px-4 py-2 rounded bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 text-zinc-800 dark:text-zinc-300 text-sm font-medium transition-colors"
-          >
-            取消
-          </button>
-          <button
-            onClick={handleQuickCreateSave}
-            className="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-black dark:text-white text-sm font-medium transition-colors shadow-sm"
-          >
-            生成矩阵
-          </button>
-        </div>
-      </Modal>
-      <Modal
+      </PopupUI.Modal>
+      <PopupUI.Modal
         isOpen={aiPickemState.isGenerating || aiPickemState.result !== null}
         onClose={() => {
           if (!aiPickemState.isGenerating) setAiPickemState({ isGenerating: false, progress: 0, phase: '', result: null });
         }}
         title="计算最优作业"
       >
-        <div className="flex flex-col gap-6 py-4">
+        <div className="flex flex-col gap-6 pt-4">
           {aiPickemState.isGenerating ? (
-            <div className="flex flex-col items-center justify-center p-8 gap-4">
-               <Calculator className="w-12 h-12 text-blue-500 animate-pulse" />
-               <div className="text-sm font-bold text-zinc-800 dark:text-zinc-300">
+            <div className="flex flex-col items-center justify-center p-12 gap-6 bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-inner">
+               <Calculator className="w-16 h-16 text-blue-500 animate-pulse drop-shadow-lg" />
+               <div className="text-base font-bold text-zinc-900 dark:text-zinc-100 font-display text-center">
                  {aiPickemState.phase === 'simulating' ? `正在进行 ${numSimulations / 10000}万 次矩阵推演...` : '正在启发式搜索最优化作业...'}
                </div>
-               <div className="w-full bg-white dark:bg-zinc-800 rounded-full h-2 mt-4 overflow-hidden">
-                 <div className="bg-blue-500 h-2 rounded-full transition-all duration-300" style={{ width: `${aiPickemState.progress}%` }} />
+               <div className="w-full max-w-sm bg-zinc-200 dark:bg-zinc-800 rounded-full h-3 mt-4 overflow-hidden relative shadow-inner border border-zinc-300/50 dark:border-zinc-700/50">
+                 <div className="absolute inset-y-0 left-0 bg-blue-500 rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]" style={{ width: `${aiPickemState.progress}%` }} />
                </div>
-               <div className="text-xs text-zinc-500 dark:text-zinc-500">{aiPickemState.progress}%</div>
+               <div className="text-sm font-mono font-bold text-zinc-500 dark:text-zinc-400">{aiPickemState.progress}%</div>
             </div>
           ) : aiPickemState.result ? (
-            <div className="flex flex-col gap-6">
-              <div className="p-5 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl flex flex-col items-center justify-center gap-3">
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold text-2xl font-display">保 5 分概率: {(aiPickemState.result.score * 100).toFixed(2)}%</span>
-                <span className="text-zinc-500 dark:text-zinc-600 dark:text-zinc-400 text-xs text-center font-medium max-w-sm">基于当前矩阵推演 {numSimulations / 10000} 万次，并通过启发式算法搜索得出的最优解。</span>
-              </div>
+            <div className="flex flex-col gap-8">
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-3">
-                  <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1 font-display">3-0 晋级</div>
-                  <div className="grid grid-cols-1 gap-2">
-                    {aiPickemState.result.t30.map((tid: string) => {
-                      const t = TEAMS.find(x => x.id === tid);
-                      return t ? (
-                        <div key={t.id} className="flex items-center gap-3 p-2.5 bg-white/60 dark:bg-zinc-800/60 border border-black/5 dark:border-white/5 rounded-xl shadow-sm">
-                          <div className="w-6 h-6 shrink-0 bg-black/5 dark:bg-white/5 rounded-full p-1"><TeamLogo team={t} fallbackClasses="text-xs" /></div>
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{t.name}</span>
-                        </div>
-                      ) : null;
-                    })}
-                  </div>
-                </div>
-                <div className="flex flex-col gap-3">
-                  <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1 font-display">0-3 淘汰</div>
-                  <div className="grid grid-cols-1 gap-2">
-                    {aiPickemState.result.t03.map((tid: string) => {
-                      const t = TEAMS.find(x => x.id === tid);
-                      return t ? (
-                        <div key={t.id} className="flex items-center gap-3 p-2.5 bg-white/60 dark:bg-zinc-800/60 border border-black/5 dark:border-white/5 rounded-xl shadow-sm">
-                          <div className="w-6 h-6 shrink-0 bg-black/5 dark:bg-white/5 rounded-full p-1"><TeamLogo team={t} fallbackClasses="text-xs" /></div>
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{t.name}</span>
-                        </div>
-                      ) : null;
-                    })}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex flex-col gap-3">
-                <div className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1 font-display">其余晋级队伍</div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {aiPickemState.result.tAdv.map((tid: string) => {
-                    const t = TEAMS.find(x => x.id === tid);
-                    return t ? (
-                      <div key={t.id} className="flex items-center gap-3 p-2.5 bg-white/60 dark:bg-zinc-800/60 border border-black/5 dark:border-white/5 rounded-xl shadow-sm">
-                        <div className="w-6 h-6 shrink-0 bg-black/5 dark:bg-white/5 rounded-full p-1"><TeamLogo team={t} fallbackClasses="text-xs" /></div>
-                        <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{t.shortName}</span>
-                      </div>
-                    ) : null;
-                  })}
-                </div>
+              <div className="flex items-center justify-center gap-2 -mb-2">
+                <button 
+                  onClick={() => setAiPickemState(prev => ({ ...prev, resultTab: 'candidates' }))}
+                  className={cn(
+                    "px-4 py-2 text-sm font-bold rounded-xl transition-colors",
+                    aiPickemState.resultTab === 'candidates' ? "bg-zinc-900 text-white dark:bg-white dark:text-black" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                  )}
+                >
+                  推荐作业
+                </button>
+                <button 
+                  onClick={() => setAiPickemState(prev => ({ ...prev, resultTab: 'probabilities' }))}
+                  className={cn(
+                    "px-4 py-2 text-sm font-bold rounded-xl transition-colors",
+                    aiPickemState.resultTab === 'probabilities' ? "bg-zinc-900 text-white dark:bg-white dark:text-black" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                  )}
+                >
+                  队伍概率
+                </button>
               </div>
 
-              <div className="flex justify-end mt-2 pt-4 border-t border-black/5 dark:border-white/5">
-                <button
+              {aiPickemState.resultTab === 'candidates' ? (() => {
+                 const activeCand = aiPickemState.result.candidates[aiPickemState.activeCandidateIndex];
+                 return (
+                   <div className="flex flex-col gap-6">
+                      <div className="flex items-center justify-between">
+                         <button 
+                           onClick={() => setAiPickemState(prev => ({ ...prev, activeCandidateIndex: Math.max(0, prev.activeCandidateIndex - 1) }))}
+                           disabled={aiPickemState.activeCandidateIndex === 0}
+                           className="p-2 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-900 dark:text-zinc-100 transition-colors"
+                         >
+                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                         </button>
+                         <div className="flex flex-col items-center">
+                            <span className="font-bold text-zinc-900 dark:text-zinc-100 text-lg font-display">候选方案 {aiPickemState.activeCandidateIndex + 1}</span>
+                            <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                              {aiPickemState.result.type === 'playoffs' 
+                                ? `完成3个目标: ${(activeCand.p3 * 100).toFixed(1)}% | 2个: ${(activeCand.p2 * 100).toFixed(1)}% | 1个: ${(activeCand.p1 * 100).toFixed(1)}%` 
+                                : `保 5 分概率: ${(activeCand.score * 100).toFixed(2)}%`}
+                            </span>
+                         </div>
+                         <button 
+                           onClick={() => setAiPickemState(prev => ({ ...prev, activeCandidateIndex: Math.min(prev.result.candidates.length - 1, prev.activeCandidateIndex + 1) }))}
+                           disabled={aiPickemState.activeCandidateIndex === aiPickemState.result.candidates.length - 1}
+                           className="p-2 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-900 dark:text-zinc-100 transition-colors"
+                         >
+                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                         </button>
+                      </div>
+
+                      {aiPickemState.result.type === 'playoffs' ? (
+                        <div className="flex flex-col gap-6">
+                          <div className="flex flex-col gap-4">
+                            <PopupUI.SectionTitle>冠军</PopupUI.SectionTitle>
+                            <div className="grid grid-cols-1 gap-2.5">
+                              {(() => {
+                                const t = TEAMS.find(x => x.id === activeCand.tChamp);
+                                return t ? (
+                                  <div className="flex items-center gap-4 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl shadow-sm">
+                                    <div className="w-10 h-10 shrink-0 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center border border-amber-200 dark:border-amber-700 shadow-sm"><TeamLogo team={t} fallbackClasses="text-lg" /></div>
+                                    <span className="text-lg font-black text-amber-700 dark:text-amber-500 font-display tracking-wider">{t.name}</span>
+                                  </div>
+                                ) : null;
+                              })()}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-4">
+                            <PopupUI.SectionTitle>亚军</PopupUI.SectionTitle>
+                            <div className="grid grid-cols-2 gap-3">
+                              {activeCand.tSFW.map((tid: string) => {
+                                const t = TEAMS.find(x => x.id === tid);
+                                return t ? (
+                                  <div key={t.id} className="flex items-center gap-3 p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
+                                    <div className="w-6 h-6 shrink-0 bg-zinc-50 dark:bg-zinc-800 rounded-full flex items-center justify-center border border-zinc-100 dark:border-zinc-700"><TeamLogo team={t} fallbackClasses="text-xs" /></div>
+                                    <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">{t.shortName}</span>
+                                  </div>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-4">
+                            <PopupUI.SectionTitle>3-4th</PopupUI.SectionTitle>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                              {activeCand.tQFW.map((tid: string) => {
+                                const t = TEAMS.find(x => x.id === tid);
+                                return t ? (
+                                  <div key={t.id} className="flex items-center gap-2 p-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm">
+                                    <div className="w-5 h-5 shrink-0 bg-zinc-50 dark:bg-zinc-800 rounded-full flex items-center justify-center border border-zinc-100 dark:border-zinc-700"><TeamLogo team={t} fallbackClasses="text-[10px]" /></div>
+                                    <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 truncate">{t.shortName}</span>
+                                  </div>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div className="flex flex-col gap-4">
+                              <PopupUI.SectionTitle>3-0 晋级</PopupUI.SectionTitle>
+                              <div className="grid grid-cols-1 gap-2.5">
+                                {activeCand.t30.map((tid: string) => {
+                                  const t = TEAMS.find(x => x.id === tid);
+                                  return t ? (
+                                    <div key={t.id} className="flex items-center gap-4 p-3.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                                      <div className="w-8 h-8 shrink-0 bg-zinc-50 dark:bg-zinc-800 rounded-full flex items-center justify-center border border-zinc-100 dark:border-zinc-700"><TeamLogo team={t} fallbackClasses="text-sm" /></div>
+                                      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{t.name}</span>
+                                    </div>
+                                  ) : null;
+                                })}
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-4">
+                              <PopupUI.SectionTitle>0-3 淘汰</PopupUI.SectionTitle>
+                              <div className="grid grid-cols-1 gap-2.5">
+                                {activeCand.t03.map((tid: string) => {
+                                  const t = TEAMS.find(x => x.id === tid);
+                                  return t ? (
+                                    <div key={t.id} className="flex items-center gap-4 p-3.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                                      <div className="w-8 h-8 shrink-0 bg-zinc-50 dark:bg-zinc-800 rounded-full flex items-center justify-center border border-zinc-100 dark:border-zinc-700"><TeamLogo team={t} fallbackClasses="text-sm" /></div>
+                                      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{t.name}</span>
+                                    </div>
+                                  ) : null;
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col gap-4">
+                            <PopupUI.SectionTitle>3-1/3-2 晋级</PopupUI.SectionTitle>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                              {activeCand.tAdv.map((tid: string) => {
+                                const t = TEAMS.find(x => x.id === tid);
+                                return t ? (
+                                  <div key={t.id} className="flex items-center gap-3 p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="w-6 h-6 shrink-0 bg-zinc-50 dark:bg-zinc-800 rounded-full flex items-center justify-center border border-zinc-100 dark:border-zinc-700"><TeamLogo team={t} fallbackClasses="text-xs" /></div>
+                                    <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">{t.shortName}</span>
+                                  </div>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                   </div>
+                 );
+              })() : (
+                 <div className="flex flex-col gap-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden">
+                    <div className="grid grid-cols-4 bg-zinc-100 dark:bg-zinc-900/50 text-xs font-bold text-zinc-500 dark:text-zinc-400 p-3 border-b border-zinc-200 dark:border-zinc-800">
+                      <div className="col-span-1">队伍</div>
+                      {aiPickemState.result.type === 'playoffs' ? (
+                        <>
+                          <div className="text-center">四强</div>
+                          <div className="text-center">决赛</div>
+                          <div className="text-center">冠军</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-center">3-0</div>
+                          <div className="text-center">0-3</div>
+                          <div className="text-center">晋级</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex flex-col max-h-[50vh] overflow-y-auto hide-scrollbar">
+                      {Object.keys(aiPickemState.result.teamProbabilities).map((tid) => {
+                         const t = TEAMS.find(x => x.id === tid);
+                         if (!t) return null;
+                         const probs = aiPickemState.result.teamProbabilities[tid];
+                         return (
+                           <div key={tid} className="grid grid-cols-4 p-3 border-b border-zinc-100 dark:border-zinc-800/50 last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 items-center">
+                             <div className="col-span-1 flex items-center gap-2">
+                               <div className="w-5 h-5 shrink-0 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center border border-zinc-200 dark:border-zinc-700"><TeamLogo team={t} fallbackClasses="text-[10px]" /></div>
+                               <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{t.shortName}</span>
+                             </div>
+                             {aiPickemState.result.type === 'playoffs' ? (
+                               <>
+                                 <div className="text-center text-xs font-mono text-zinc-600 dark:text-zinc-400">{(probs.pSF * 100).toFixed(1)}%</div>
+                                 <div className="text-center text-xs font-mono text-zinc-600 dark:text-zinc-400">{(probs.pFinal * 100).toFixed(1)}%</div>
+                                 <div className="text-center text-xs font-mono font-bold text-amber-600 dark:text-amber-500">{(probs.pChamp * 100).toFixed(1)}%</div>
+                               </>
+                             ) : (
+                               <>
+                                 <div className="text-center text-xs font-mono text-blue-600 dark:text-blue-400">{(probs.p30 * 100).toFixed(1)}%</div>
+                                 <div className="text-center text-xs font-mono text-rose-600 dark:text-rose-400">{(probs.p03 * 100).toFixed(1)}%</div>
+                                 <div className="text-center text-xs font-mono font-bold text-emerald-600 dark:text-emerald-500">{((probs.p30 + probs.pAdv) * 100).toFixed(1)}%</div>
+                               </>
+                             )}
+                           </div>
+                         );
+                      })}
+                    </div>
+                 </div>
+              )}
+
+
+              <div className="flex justify-end mt-4 pt-6 border-t border-zinc-100 dark:border-zinc-800/60">
+                <PopupUI.ActionButton
+                  label="确定"
+                  variant="primary"
                   onClick={() => setAiPickemState({ isGenerating: false, progress: 0, phase: '', result: null })}
-                  className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-sm active:scale-95"
-                >
-                  确定
-                </button>
+                />
               </div>
             </div>
           ) : null}
         </div>
-      </Modal>
+      </PopupUI.Modal>
     </div>
   );
 };

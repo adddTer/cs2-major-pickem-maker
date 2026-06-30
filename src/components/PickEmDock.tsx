@@ -106,95 +106,102 @@ export const PickEmDock: React.FC<{
       <div
         className={cn(
           "grid w-full max-w-[1400px] mx-auto gap-2 sm:gap-3",
-          "grid-cols-2",
+          (slots30.length > 0 && slots03.length > 0) ? "grid-cols-2" : "grid-cols-1",
         )}
       >
         {/* 3:0 (2 Slots) */}
-        <div
-          className={cn(
-            "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-emerald-500/20 shadow-sm relative",
-            "w-full col-span-1",
-          )}
-        >
-          <div className="px-2 py-1.5 sm:py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex flex-col items-center rounded-t-xl">
-            <span className="text-emerald-400 font-black tracking-widest text-[0.8125rem] sm:text-sm leading-tight">
-              3:0
-            </span>
-            <span className="text-emerald-500/70 text-[9px] sm:text-[0.625rem] font-bold">
-              全胜晋级
-            </span>
+        {slots30.length > 0 && (
+          <div
+            className={cn(
+              "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-emerald-500/20 shadow-sm relative",
+              "w-full col-span-1",
+            )}
+          >
+            <div className="px-2 py-1.5 sm:py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex flex-col items-center rounded-t-xl">
+              <span className="text-emerald-400 font-black tracking-widest text-[0.8125rem] sm:text-sm leading-tight">
+                3:0
+              </span>
+              <span className="text-emerald-500/70 text-[9px] sm:text-[0.625rem] font-bold">
+                全胜晋级
+              </span>
+            </div>
+            <div className="p-3 sm:p-4 flex gap-2 sm:gap-4 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl flex-wrap">
+              {slots30.map((s) => (
+                <SlotBox
+                  key={s.id}
+                  slot={s}
+                  readOnly={readOnly}
+                  border="border-emerald-500/30"
+                  onDrop={onDrop}
+                  onClick={onClick}
+                />
+              ))}
+            </div>
           </div>
-          <div className="p-3 sm:p-4 flex gap-2 sm:gap-4 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl flex-wrap">
-            {slots30.map((s) => (
-              <SlotBox
-                key={s.id}
-                slot={s}
-                readOnly={readOnly}
-                border="border-emerald-500/30"
-                onDrop={onDrop}
-                onClick={onClick}
-              />
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* 0:3 (2 Slots) */}
-        <div
-          className={cn(
-            "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-rose-500/20 shadow-sm relative",
-            "w-full col-span-1 order-none",
-          )}
-        >
-          <div className="px-2 py-1.5 sm:py-2 bg-rose-500/10 border-b border-rose-500/20 flex flex-col items-center rounded-t-xl">
-            <span className="text-rose-400 font-black tracking-widest text-[0.8125rem] sm:text-sm leading-tight">
-              0:3
-            </span>
-            <span className="text-rose-500/70 text-[9px] sm:text-[0.625rem] font-bold">
-              全败淘汰
-            </span>
+        {slots03.length > 0 && (
+          <div
+            className={cn(
+              "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-rose-500/20 shadow-sm relative",
+              "w-full col-span-1 order-none",
+            )}
+          >
+            <div className="px-2 py-1.5 sm:py-2 bg-rose-500/10 border-b border-rose-500/20 flex flex-col items-center rounded-t-xl">
+              <span className="text-rose-400 font-black tracking-widest text-[0.8125rem] sm:text-sm leading-tight">
+                0:3
+              </span>
+              <span className="text-rose-500/70 text-[9px] sm:text-[0.625rem] font-bold">
+                全败淘汰
+              </span>
+            </div>
+            <div className="p-3 sm:p-4 flex gap-2 sm:gap-4 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl flex-wrap">
+              {slots03.map((s) => (
+                <SlotBox
+                  key={s.id}
+                  slot={s}
+                  readOnly={readOnly}
+                  border="border-rose-500/30"
+                  onDrop={onDrop}
+                  onClick={onClick}
+                />
+              ))}
+            </div>
           </div>
-          <div className="p-3 sm:p-4 flex gap-2 sm:gap-4 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl flex-wrap">
-            {slots03.map((s) => (
-              <SlotBox
-                key={s.id}
-                slot={s}
-                readOnly={readOnly}
-                border="border-rose-500/30"
-                onDrop={onDrop}
-                onClick={onClick}
-              />
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* Advance (6 Slots) */}
-        <div
-          className={cn(
-            "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-blue-500/20 shadow-sm relative",
-            "w-full col-span-2",
-          )}
-        >
-          <div className="px-2 py-1.5 sm:py-2 bg-blue-500/10 border-b border-blue-500/20 flex flex-col items-center rounded-t-xl">
-            <span className="text-blue-400 font-black tracking-widest text-[0.8125rem] sm:text-sm leading-tight">
-              3:1 / 3:2
-            </span>
-            <span className="text-blue-500/70 text-[9px] sm:text-[0.625rem] font-bold">
-              晋级
-            </span>
+        {slotsAdv.length > 0 && (
+          <div
+            className={cn(
+              "flex flex-col bg-zinc-100/60 dark:bg-zinc-900/60 rounded-xl border border-blue-500/20 shadow-sm relative",
+              "w-full",
+              (slots30.length > 0 && slots03.length > 0) ? "col-span-2" : "col-span-1"
+            )}
+          >
+            <div className="px-2 py-1.5 sm:py-2 bg-blue-500/10 border-b border-blue-500/20 flex flex-col items-center rounded-t-xl">
+              <span className="text-blue-400 font-black tracking-widest text-[0.8125rem] sm:text-sm leading-tight">
+                {slots30.length > 0 ? "3:1 / 3:2" : "晋级"}
+              </span>
+              <span className="text-blue-500/70 text-[9px] sm:text-[0.625rem] font-bold">
+                晋级
+              </span>
+            </div>
+            <div className="p-3 sm:p-4 flex flex-wrap gap-2 sm:gap-4 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl">
+              {slotsAdv.map((s) => (
+                <SlotBox
+                  key={s.id}
+                  slot={s}
+                  readOnly={readOnly}
+                  border="border-blue-500/30"
+                  onDrop={onDrop}
+                  onClick={onClick}
+                />
+              ))}
+            </div>
           </div>
-          <div className="p-3 sm:p-4 flex flex-wrap gap-2 sm:gap-4 justify-center flex-1 items-center bg-zinc-50/40 dark:bg-zinc-950/40 rounded-b-xl">
-            {slotsAdv.map((s) => (
-              <SlotBox
-                key={s.id}
-                slot={s}
-                readOnly={readOnly}
-                border="border-blue-500/30"
-                onDrop={onDrop}
-                onClick={onClick}
-              />
-            ))}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

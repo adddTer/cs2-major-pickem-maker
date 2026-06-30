@@ -234,15 +234,15 @@ export const ImageExportModal: React.FC<ImageExportModalProps> = ({
         title={exportPreviewUrl ? "预览" : "导出为图片"}
       >
         {exportPreviewUrl ? (
-          <div className="flex flex-col gap-4">
-            <div className="bg-zinc-200/40 dark:bg-black/40 rounded-lg overflow-auto max-h-[60vh] border border-black/10 dark:border-white/10 p-2 relative custom-scrollbar">
+          <div className="flex flex-col gap-6">
+            <div className="bg-zinc-100/50 dark:bg-zinc-900/50 rounded-2xl overflow-auto max-h-[60vh] border border-zinc-200/50 dark:border-zinc-800/50 p-3 relative custom-scrollbar shadow-inner flex items-center justify-center">
               <img
                 src={exportPreviewUrl}
                 alt="Preview"
-                className="w-full h-auto rounded"
+                className="max-w-full h-auto rounded-xl drop-shadow-md"
               />
             </div>
-            <div className="flex justify-end gap-3 mt-4">
+            <div className="flex justify-end gap-3 mt-2">
               <PopupUI.ActionButton
                 label="返回修改"
                 variant="secondary"

@@ -269,9 +269,9 @@ export const TextExportModal: React.FC<TextExportModalProps> = ({
       title={previewText ? "导出预览 (文本)" : "配置文本导出"}
     >
       {previewText ? (
-        <div className="flex flex-col gap-4 max-w-full">
+        <div className="flex flex-col gap-6 max-w-full">
           <textarea
-            className="w-full h-80 bg-zinc-50 dark:bg-zinc-950 text-emerald-400 font-mono text-xs p-3 rounded border border-black/10 dark:border-white/10 resize-none focus:outline-none custom-scrollbar"
+            className="w-full h-[50vh] bg-zinc-950 text-emerald-400/90 font-mono text-[13px] p-5 rounded-2xl border border-zinc-800 shadow-inner resize-none focus:outline-none custom-scrollbar leading-relaxed"
             readOnly
             value={previewText}
           />

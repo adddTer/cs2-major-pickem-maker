@@ -7,7 +7,7 @@ import { GroupBox, ResultGroup } from "./SwissBracket";
 import { ExportContext } from "../lib/ExportContext";
 import { cn } from "../lib/utils";
 
-export const TestBracket = ({ format, onMatchClick, activeGroupId = 0, currentEvent }: { format: string; onMatchClick?: (match: any) => void; activeGroupId?: number; currentEvent?: import("../types").TournamentEvent }) => {
+export const TestBracket = ({ format, onMatchClick, activeGroupId = 0, currentEvent, slots = [] }: { format: string; onMatchClick?: (match: any) => void; activeGroupId?: number; currentEvent?: import("../types").TournamentEvent; slots?: import("../types").PickSlot[] }) => {
   const parsedFormat = useMemo(() => parseFormatString(format), [format]);
   const isRoundRobin = parsedFormat.type === "round_robin" || parsedFormat.type === "double_round_robin";
 
@@ -18,11 +18,12 @@ export const TestBracket = ({ format, onMatchClick, activeGroupId = 0, currentEv
 
   const renderNode = (node: BracketNode) => {
     if (node.type === "playoffsSlot") {
+      const slotData = slots.find(s => s.id === node.id || s.id === `playoffs-${node.id}`);
       return (
         <div className="z-10 pointer-events-auto rounded-[6px] shadow-xl">
           <BracketSlot 
-            slot={{ id: node.id, type: "playoffs", teamId: null }}
-            readOnly={false} 
+            slot={{ id: node.id, type: "playoffs", teamId: slotData?.teamId || null }}
+            readOnly={true} 
             emptyTitle="待定" 
             disableDragDrop={node.disableDragDrop}
           />

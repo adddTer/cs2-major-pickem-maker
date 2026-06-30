@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal } from "./Modal";
+import { PopupUI } from "./PopupUI";
 
 export type DialogOptions = {
   title?: string;
@@ -92,13 +92,14 @@ export const DialogManager: React.FC = () => {
   };
 
   return (
-    <Modal
+    <PopupUI.Modal
       isOpen={true}
       onClose={current.type === "alert" ? handleConfirm : handleCancel}
       title={current.title || "提示"}
+      maxWidthClass="max-w-[400px]"
     >
-      <div className="flex flex-col gap-4">
-        <div className="text-zinc-900 dark:text-zinc-200 text-sm whitespace-pre-wrap">
+      <div className="flex flex-col gap-6 pt-2">
+        <div className="text-zinc-700 dark:text-zinc-300 text-sm whitespace-pre-wrap leading-relaxed">
           {current.message}
         </div>
 
@@ -108,7 +109,7 @@ export const DialogManager: React.FC = () => {
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            className="p-2 bg-white dark:bg-zinc-800 border border-black/10 dark:border-white/10 rounded text-sm text-zinc-900 dark:text-zinc-200 w-full focus:outline-none focus:border-blue-500"
+            className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
             onKeyDown={(e) => {
               if (e.key === "Enter") handleConfirm();
               if (e.key === "Escape") handleCancel();
@@ -116,23 +117,21 @@ export const DialogManager: React.FC = () => {
           />
         )}
 
-        <div className="flex justify-end gap-3 mt-4">
+        <div className="flex justify-end gap-3 mt-2">
           {current.type !== "alert" && (
-            <button
+            <PopupUI.ActionButton
+              label="取消"
+              variant="secondary"
               onClick={handleCancel}
-              className="px-4 py-2 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:bg-white/5 text-zinc-800 dark:text-zinc-300 font-bold text-sm transition-colors rounded-md"
-            >
-              取消
-            </button>
+            />
           )}
-          <button
+          <PopupUI.ActionButton
+            label="确定"
+            variant="primary"
             onClick={handleConfirm}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-black dark:text-white font-bold text-sm transition-colors rounded-md shadow-lg shadow-blue-900/20"
-          >
-            确定
-          </button>
+          />
         </div>
       </div>
-    </Modal>
+    </PopupUI.Modal>
   );
 };

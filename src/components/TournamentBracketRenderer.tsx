@@ -6,7 +6,7 @@ import { dialog } from "./DialogManager";
 import { ExportContext } from "../lib/ExportContext";
 import { ExportSettingsContext } from "../lib/ExportSettingsContext";
 import { cn } from "../lib/utils";
-import { Modal } from "./Modal";
+import { PopupUI } from "./PopupUI";
 
 export const TournamentBracketRenderer: React.FC<{
   config: BracketConfig;
@@ -508,151 +508,125 @@ export const TournamentBracketRenderer: React.FC<{
         </ExportContext.Provider>
       )}
 
-      <Modal
+      <PopupUI.Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="保存或分享"
         maxWidthClass="max-w-md md:max-w-3xl lg:max-w-[1000px]"
       >
         <div className="flex flex-col gap-4">
-          <div className="bg-zinc-200/50 dark:bg-black/40 rounded-xl flex items-center justify-center p-2 min-h-[50vh] overflow-hidden select-none relative">
+          <div className="bg-zinc-100/50 dark:bg-zinc-900/50 rounded-2xl flex items-center justify-center p-3 min-h-[50vh] overflow-hidden select-none relative border border-zinc-200/50 dark:border-zinc-800/50 shadow-inner">
             <div className="absolute inset-x-0 bottom-0 top-0 pointer-events-auto overflow-auto custom-scrollbar flex items-center justify-center">
               {previewBlobUrl && (
                 <img
                   src={previewBlobUrl}
                   alt="Preview"
-                  className="max-w-full drop-shadow-2xl"
+                  className="max-w-full drop-shadow-xl rounded-xl"
                   draggable={false}
                 />
               )}
             </div>
             {isExporting && (
-              <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+              <div className="absolute inset-0 z-50 flex items-center justify-center bg-zinc-950/20 backdrop-blur-sm">
                 <Loader2 className="w-8 h-8 text-white animate-spin" />
               </div>
             )}
           </div>
           
-          <div className="flex flex-col gap-2">
-            <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest px-1">
-              外观设置
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setExportTheme("light")}
-                className={`flex-1 py-2 text-sm font-bold rounded border transition-colors ${exportTheme === "light" ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800"}`}
-              >
-                浅色
-              </button>
-              <button
-                onClick={() => setExportTheme("dark")}
-                className={`flex-1 py-2 text-sm font-bold rounded border transition-colors ${exportTheme === "dark" ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800"}`}
-              >
-                深色
-              </button>
+          <div>
+            <PopupUI.SectionTitle>外观设置</PopupUI.SectionTitle>
+            <PopupUI.ButtonGroup
+              options={[
+                { label: "浅色", value: "light" },
+                { label: "深色", value: "dark" }
+              ]}
+              value={exportTheme}
+              onChange={(val) => setExportTheme(val as any)}
+            />
+          </div>
+
+          <div>
+            <PopupUI.SectionTitle>背景风格</PopupUI.SectionTitle>
+            <PopupUI.ButtonGroup
+              options={[
+                { label: "极光", value: "aurora" },
+                { label: "网格", value: "grid" },
+                { label: "渐变", value: "gradient" },
+                { label: "纯色", value: "solid" }
+              ]}
+              value={exportBackground}
+              onChange={(val) => setExportBackground(val as any)}
+            />
+          </div>
+
+          <div>
+            <PopupUI.SectionTitle>强调色</PopupUI.SectionTitle>
+            <PopupUI.ButtonGroup
+              options={[
+                { label: "蓝色", value: "blue" },
+                { label: "翠绿", value: "emerald" },
+                { label: "紫色", value: "purple" },
+                { label: "玫瑰", value: "rose" },
+                { label: "橙色", value: "orange" }
+              ]}
+              value={exportAccent}
+              onChange={(val) => setExportAccent(val as any)}
+            />
+          </div>
+
+          <div>
+            <PopupUI.SectionTitle>内容显示</PopupUI.SectionTitle>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <PopupUI.CheckboxRow
+                label="赛事图标"
+                checked={exportShowIcon}
+                onChange={setExportShowIcon}
+              />
+              <PopupUI.CheckboxRow
+                label="赛事名称"
+                checked={exportShowName}
+                onChange={setExportShowName}
+              />
+              <PopupUI.CheckboxRow
+                label={exportUseShortName ? "队伍简称" : "队伍全名"}
+                checked={exportUseShortName}
+                onChange={setExportUseShortName}
+              />
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 mt-4">
-            <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest px-1">
-              背景风格
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-4 pt-2 border-t border-zinc-200/50 dark:border-zinc-800/50">
+            <div className="flex-1">
+              <PopupUI.ActionButton
+                label="生成预览图"
+                variant="success"
+                icon={isExporting ? Loader2 : DownloadCloud}
+                onClick={() => runExport()}
+                disabled={isExporting}
+                isLoading={isExporting}
+              />
             </div>
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { id: "aurora", label: "极光" },
-                { id: "grid", label: "网格" },
-                { id: "gradient", label: "渐变" },
-                { id: "solid", label: "纯色" }
-              ].map(bg => (
-                <button
-                  key={bg.id}
-                  onClick={() => setExportBackground(bg.id as any)}
-                  className={`flex-1 min-w-[70px] py-2 text-sm font-bold rounded border transition-colors ${exportBackground === bg.id ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800"}`}
-                >
-                  {bg.label}
-                </button>
-              ))}
+            <div className="flex-1">
+              <PopupUI.ActionButton
+                label="下载图片"
+                variant="primary"
+                icon={DownloadCloud}
+                onClick={handleDownload}
+                disabled={!previewBlobUrl}
+              />
             </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest px-1">
-              强调色
+            <div className="flex-1">
+              <PopupUI.ActionButton
+                label="复制到剪贴板"
+                variant="secondary"
+                icon={Copy}
+                onClick={handleCopy}
+                disabled={!previewBlobUrl}
+              />
             </div>
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { id: "blue", label: "蓝色", color: "bg-blue-500" },
-                { id: "emerald", label: "翠绿", color: "bg-emerald-500" },
-                { id: "purple", label: "紫色", color: "bg-purple-500" },
-                { id: "rose", label: "玫瑰", color: "bg-rose-500" },
-                { id: "orange", label: "橙色", color: "bg-orange-500" },
-              ].map(accent => (
-                <button
-                  key={accent.id}
-                  onClick={() => setExportAccent(accent.id as any)}
-                  className={`flex-1 flex flex-col items-center justify-center gap-1.5 min-w-[60px] py-2 text-xs font-bold rounded border transition-colors ${exportAccent === accent.id ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800"}`}
-                >
-                  <div className={`w-3 h-3 rounded-full ${accent.color}`} />
-                  {accent.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <div className="text-xs font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest px-1">
-              内容显示
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => setExportShowIcon(!exportShowIcon)}
-                className={`flex-1 py-2 text-sm font-bold rounded border transition-colors flex items-center justify-center gap-2 ${exportShowIcon ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800"}`}
-              >
-                赛事图标
-              </button>
-              <button
-                onClick={() => setExportShowName(!exportShowName)}
-                className={`flex-1 py-2 text-sm font-bold rounded border transition-colors flex items-center justify-center gap-2 ${exportShowName ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800"}`}
-              >
-                赛事名称
-              </button>
-              <button
-                onClick={() => setExportUseShortName(!exportUseShortName)}
-                className={`flex-1 py-2 text-sm font-bold rounded border transition-colors flex items-center justify-center gap-2 ${exportUseShortName ? "bg-blue-600/20 text-blue-400 border-blue-500/30" : "bg-black/50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800"}`}
-              >
-                {exportUseShortName ? "队伍简称" : "队伍全名"}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-2">
-            <button
-              onClick={() => runExport()}
-              disabled={isExporting}
-              className="flex-1 flex items-center justify-center gap-2 h-12 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 disabled:pointer-events-none text-white rounded-xl font-medium transition-all active:scale-[0.98]"
-            >
-              {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <DownloadCloud className="w-5 h-5 hidden" />}
-              生成预览图
-            </button>
-            <button
-              onClick={handleDownload}
-              disabled={!previewBlobUrl}
-              className="flex-1 flex items-center justify-center gap-2 h-12 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none text-white rounded-xl font-medium transition-all active:scale-[0.98]"
-            >
-              <DownloadCloud className="w-5 h-5" />
-              下载图片
-            </button>
-            <button
-              onClick={handleCopy}
-              disabled={!previewBlobUrl}
-              className="flex-1 flex items-center justify-center gap-2 h-12 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:pointer-events-none text-zinc-900 dark:text-zinc-100 rounded-xl font-medium transition-all active:scale-[0.98]"
-            >
-              <Copy className="w-5 h-5" />
-              复制到剪贴板
-            </button>
           </div>
         </div>
-      </Modal>
+      </PopupUI.Modal>
     </div>
   );
 };

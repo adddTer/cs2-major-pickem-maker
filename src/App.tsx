@@ -35,6 +35,8 @@ import { TestBracket } from "./components/TestBracket";
 import { MatchScheduleBanner } from "./components/MatchScheduleBanner";
 import { useMatchLogic } from "./hooks/useMatchLogic";
 
+import { generatePickSlots } from "./utils/bracketGenerator";
+
 export const EVENTS: TournamentEvent[] = [
   {
     id: "iem_cologne_2026",
@@ -169,12 +171,21 @@ export default function App() {
   const [communityPicks, setCommunityPicks] = useState<PickSet[]>([]);
   const [currentPickSetId, setCurrentPickSetId] = useState<string | null>(null);
 
-  const defaultPicks: Record<string, PickSlot[]> = {
-    stage1: INITIAL_SLOTS.map((s) => ({ ...s, id: `s1-${s.id}` })),
-    stage2: INITIAL_SLOTS.map((s) => ({ ...s, id: `s2-${s.id}` })),
-    stage3: INITIAL_SLOTS.map((s) => ({ ...s, id: `s3-${s.id}` })),
-    playoffs: PLAYOFFS_SLOTS.map((s) => ({ ...s, id: `playoffs-${s.id}` })),
-  };
+  const defaultPicks: Record<string, PickSlot[]> = useMemo(() => {
+    const picks: Record<string, PickSlot[]> = {};
+    const stages = currentEvent.stagesInfo || [
+      { id: "stage1", format: "swiss" },
+      { id: "stage2", format: "swiss" },
+      { id: "stage3", format: "swiss" },
+      { id: "playoffs", format: "playoffs" }
+    ];
+    stages.forEach(stage => {
+      const generatedSlots = generatePickSlots(stage.format || "swiss");
+      picks[stage.id] = generatedSlots.map(s => ({ ...s, id: `${stage.id}-${s.id}` }));
+    });
+    return picks;
+  }, [currentEvent]);
+
   const [picks, setPicks] = useState<Record<string, PickSlot[]>>(defaultPicks);
 
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
@@ -583,10 +594,10 @@ export default function App() {
 
   const getStageStatus = (stage: string) => {
     const actualsForStage = getComputedActuals(stage) || [];
-    const isComplete =
-      (stage === "playoffs" &&
-        actualsForStage.filter((a: any) => a.teamId).length >= 15) ||
-      (stage !== "playoffs" && actualsForStage.length >= 16);
+    const expectedLength = defaultPicks[stage]?.length || 0;
+    
+    const isComplete = expectedLength > 0 && 
+      actualsForStage.filter((a: any) => a.teamId).length >= expectedLength;
 
     if (isComplete) return `比赛已结束`;
 
@@ -630,7 +641,29 @@ export default function App() {
   };
 
   const getAvailableTeams = (stage: string) => {
-    if (currentEvent?.id !== "iem_cologne_2026") return [];
+    if (currentEvent?.id !== "iem_cologne_2026") {
+      // Fallback generic logic for other events
+      if (stage === "playoffs" || stage === "stage2" || stage === "stage3") {
+        const prevStage = stage === "playoffs" ? currentEvent.stagesInfo?.[currentEvent.stagesInfo.length - 2]?.id || "stage1" : "stage1";
+        const actuals = getComputedActuals(prevStage);
+        const advanced = actuals
+          .filter((a) => a.type === "3-0" || a.type === "advance")
+          .map((a) => a.teamId!);
+        
+        if (advanced.length > 0) {
+          return TEAMS.filter((t) => t && advanced.includes(t.id) && t.id !== "tbd");
+        }
+        
+        const advancedPicks = (picks[prevStage] || [])
+          .filter((s) => (s.type === "3-0" || s.type === "advance") && s.teamId)
+          .map((s) => s.teamId!);
+        
+        if (advancedPicks.length > 0) {
+           return TEAMS.filter((t) => t && advancedPicks.includes(t.id) && t.id !== "tbd");
+        }
+      }
+      return TEAMS.filter((t) => t.id !== "tbd").slice(0, 16); // Fallback: just return first 16 teams
+    }
 
     if (stage === "playoffs") {
       const s3Actuals = getComputedActuals("stage3");
@@ -722,22 +755,42 @@ export default function App() {
         if (oldTeamId && oldTeamId !== teamId) {
           const cascadeClear = (slotName: string, removedTeam: string) => {
             const localSlotName = slotName.replace("playoffs-", "");
-            const relatedAdv: Record<string, string> = {
-              "qf-1": "sf-1",
-              "qf-2": "sf-1",
-              "qf-3": "sf-2",
-              "qf-4": "sf-2",
-              "qf-5": "sf-3",
-              "qf-6": "sf-3",
-              "qf-7": "sf-4",
-              "qf-8": "sf-4",
-              "sf-1": "final-1",
-              "sf-2": "final-1",
-              "sf-3": "final-2",
-              "sf-4": "final-2",
-              "final-1": "champion",
-              "final-2": "champion",
-            };
+            
+            const isPlayoffs6 = currentEvent.stagesInfo?.find((s) => s.id === "playoffs")?.format === "playoffs_6";
+            
+            let relatedAdv: Record<string, string> = {};
+            if (isPlayoffs6) {
+              relatedAdv = {
+                "qf-1": "sf-1",
+                "qf-2": "sf-1",
+                "qf-3": "sf-2",
+                "qf-4": "sf-2",
+                "sf-seed-1": "final-1",
+                "sf-1": "final-1",
+                "sf-seed-2": "final-2",
+                "sf-2": "final-2",
+                "final-1": "champion",
+                "final-2": "champion",
+              };
+            } else {
+              relatedAdv = {
+                "qf-1": "sf-1",
+                "qf-2": "sf-1",
+                "qf-3": "sf-2",
+                "qf-4": "sf-2",
+                "qf-5": "sf-3",
+                "qf-6": "sf-3",
+                "qf-7": "sf-4",
+                "qf-8": "sf-4",
+                "sf-1": "final-1",
+                "sf-2": "final-1",
+                "sf-3": "final-2",
+                "sf-4": "final-2",
+                "final-1": "champion",
+                "final-2": "champion",
+              };
+            }
+            
             const nextIdLocal =
               relatedAdv[localSlotName as keyof typeof relatedAdv];
             if (nextIdLocal) {
@@ -859,22 +912,42 @@ export default function App() {
       if (activeStage === "playoffs" && oldTeamId) {
         const cascadeClear = (slotName: string, removedTeam: string) => {
           const localSlotName = slotName.replace("playoffs-", "");
-          const relatedAdv: Record<string, string> = {
-            "qf-1": "sf-1",
-            "qf-2": "sf-1",
-            "qf-3": "sf-2",
-            "qf-4": "sf-2",
-            "qf-5": "sf-3",
-            "qf-6": "sf-3",
-            "qf-7": "sf-4",
-            "qf-8": "sf-4",
-            "sf-1": "final-1",
-            "sf-2": "final-1",
-            "sf-3": "final-2",
-            "sf-4": "final-2",
-            "final-1": "champion",
-            "final-2": "champion",
-          };
+          
+          const isPlayoffs6 = currentEvent.stagesInfo?.find((s) => s.id === "playoffs")?.format === "playoffs_6";
+          
+          let relatedAdv: Record<string, string> = {};
+          if (isPlayoffs6) {
+            relatedAdv = {
+              "qf-1": "sf-1",
+              "qf-2": "sf-1",
+              "qf-3": "sf-2",
+              "qf-4": "sf-2",
+              "sf-seed-1": "final-1",
+              "sf-1": "final-1",
+              "sf-seed-2": "final-2",
+              "sf-2": "final-2",
+              "final-1": "champion",
+              "final-2": "champion",
+            };
+          } else {
+            relatedAdv = {
+              "qf-1": "sf-1",
+              "qf-2": "sf-1",
+              "qf-3": "sf-2",
+              "qf-4": "sf-2",
+              "qf-5": "sf-3",
+              "qf-6": "sf-3",
+              "qf-7": "sf-4",
+              "qf-8": "sf-4",
+              "sf-1": "final-1",
+              "sf-2": "final-1",
+              "sf-3": "final-2",
+              "sf-4": "final-2",
+              "final-1": "champion",
+              "final-2": "champion",
+            };
+          }
+          
           const nextIdLocal =
             relatedAdv[localSlotName as keyof typeof relatedAdv];
           if (nextIdLocal) {
@@ -1064,6 +1137,7 @@ export default function App() {
                           format={format}
                           activeGroupId={activeGroupId}
                           currentEvent={currentEvent}
+                          slots={activeStageActuals}
                         />
                       </div>
                     )}

@@ -48,6 +48,10 @@ export const TopNav: React.FC<TopNavProps> = ({
   const eventMenuRef = useRef<HTMLDivElement>(null);
   const navMenuRef = useRef<HTMLDivElement>(null);
 
+  const filteredNavItems = navItems.filter(item => 
+    (item.id !== "globalSim" && item.id !== "simulator") || currentEventId === "iem_cologne_2026"
+  );
+
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "light" || savedTheme === "dark") {
@@ -167,7 +171,7 @@ export const TopNav: React.FC<TopNavProps> = ({
 
           {isNavMenuOpen && (
             <div className="absolute top-full left-0 mt-2 w-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-xl shadow-2xl py-2 z-50 overflow-hidden flex flex-col">
-              {navItems.map(item => {
+              {filteredNavItems.map(item => {
                 const Icon = item.icon;
                 const isActive = mainView === item.id;
                 return (
@@ -195,7 +199,7 @@ export const TopNav: React.FC<TopNavProps> = ({
 
         {/* Desktop Horizontal Nav */}
         <div className="hidden lg:flex items-center bg-zinc-200/50 dark:bg-black/30 p-1 rounded-xl border border-black/5 dark:border-white/5 shrink-0 w-max shadow-inner">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = mainView === item.id;
             return (

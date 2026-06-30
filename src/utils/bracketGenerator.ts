@@ -49,6 +49,64 @@ export function generateBracketConfig(formatStr: string): BracketConfig {
   }
 }
 
+export function generatePickSlots(formatStr: string): import("../types").PickSlot[] {
+  const { type, teamsCount, advanceCount } = parseFormatString(formatStr);
+
+  if (type === "swiss") {
+    return [
+      { id: '3-0-1', type: '3-0', teamId: null },
+      { id: '3-0-2', type: '3-0', teamId: null },
+      { id: 'adv-1', type: 'advance', teamId: null },
+      { id: 'adv-2', type: 'advance', teamId: null },
+      { id: 'adv-3', type: 'advance', teamId: null },
+      { id: 'adv-4', type: 'advance', teamId: null },
+      { id: 'adv-5', type: 'advance', teamId: null },
+      { id: 'adv-6', type: 'advance', teamId: null },
+      { id: '0-3-1', type: '0-3', teamId: null },
+      { id: '0-3-2', type: '0-3', teamId: null }
+    ];
+  }
+
+  if (type === "playoffs") {
+    if (teamsCount === 6) {
+      return [
+        { id: 'qf-1', type: 'qf', teamId: null },
+        { id: 'qf-2', type: 'qf', teamId: null },
+        { id: 'qf-3', type: 'qf', teamId: null },
+        { id: 'qf-4', type: 'qf', teamId: null },
+        { id: 'sf-seed-1', type: 'sf', teamId: null },
+        { id: 'sf-1', type: 'sf', teamId: null },
+        { id: 'sf-seed-2', type: 'sf', teamId: null },
+        { id: 'sf-2', type: 'sf', teamId: null },
+        { id: 'final-1', type: 'final', teamId: null },
+        { id: 'final-2', type: 'final', teamId: null },
+        { id: 'champion', type: 'champion', teamId: null }
+      ];
+    }
+    return [
+      { id: 'qf-1', type: 'qf', teamId: null },
+      { id: 'qf-2', type: 'qf', teamId: null },
+      { id: 'qf-3', type: 'qf', teamId: null },
+      { id: 'qf-4', type: 'qf', teamId: null },
+      { id: 'qf-5', type: 'qf', teamId: null },
+      { id: 'qf-6', type: 'qf', teamId: null },
+      { id: 'qf-7', type: 'qf', teamId: null },
+      { id: 'qf-8', type: 'qf', teamId: null },
+      { id: 'sf-1', type: 'sf', teamId: null },
+      { id: 'sf-2', type: 'sf', teamId: null },
+      { id: 'sf-3', type: 'sf', teamId: null },
+      { id: 'sf-4', type: 'sf', teamId: null },
+      { id: 'final-1', type: 'final', teamId: null },
+      { id: 'final-2', type: 'final', teamId: null },
+      { id: 'champion', type: 'champion', teamId: null }
+    ];
+  }
+
+  return Array.from({length: advanceCount}).map((_, i) => ({
+    id: `adv-${i+1}`, type: 'advance', teamId: null
+  }));
+}
+
 function distributeByes(totalMatches: number, byes: number): boolean[] {
   const isBye = new Array(totalMatches).fill(false);
   if (byes === 0) return isBye;
